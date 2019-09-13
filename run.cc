@@ -12,6 +12,10 @@ void run(){
 	TFile* dataFile=new TFile("/d/grid15/ln16/pi0eta/121818/z_pi0eta_a0_reco/pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
+	const int dim=5;
+	gStyle->SetOptFit(111);
+	gStyle->SetStatH(0.1);
+	gStyle->SetStatW(0.1);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
 	TH1F* discriminatorHist;
 	TH1F* Meta_Qd = new TH1F( "Meta_Qd", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
@@ -24,9 +28,19 @@ void run(){
 	double Meta;
 	double Mpi0;
 	double Mpi0eta;
+	double cosTheta_X_cm;
+	double phi_X_cm;
+	double cosTheta_eta_gj;
+	double phi_eta_gj;
+	double cosThetaHighestEphotonIneta_gj;
 	dataTree->SetBranchAddress("Meta",&Meta);
 	dataTree->SetBranchAddress("Mpi0",&Mpi0);
 	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
+        dataTree->SetBranchAddress("cosTheta_X_cm", &cosTheta_X_cm); 
+        dataTree->SetBranchAddress("phi_X_cm",&phi_X_cm); 
+        dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);
+        dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj); 
+        dataTree->SetBranchAddress("cosThetaHighestEphotonIneta_gj",&cosThetaHighestEphotonIneta_gj);
 	Long64_t nentries=dataTree->GetEntries();
 	nentries=1000;
 	cout << "Total Entries: " << nentries << endl;
@@ -39,24 +53,45 @@ void run(){
 	logFile << "Event\tQ-Value\tChiSq\tMpi0" << endl;
 	entireLogFile << "Event\tQ-Value\tChiSq\tMpi0" << endl;
 	
-	// randomly select some events to save 
+	// randomly select some events to write histograms for 
 	int numberEventsToSave=100;
 	const int kDim=500;
 	set<int> selectRandomIdxToSave;
 	const int c_nentries = (const int)nentries;
+
+	// importing all the data to RAM instead of reading from root file
 	double Metas[c_nentries];
 	double Mpi0s[c_nentries];
 	double Mpi0etas[c_nentries];
+	double cosTheta_X_cms[c_nentries];
+	double phi_X_cms[c_nentries];
+	double cosTheta_eta_gjs[c_nentries];
+	double phi_eta_gjs[c_nentries];
+	double cosThetaHighestEphotonIneta_gjs[c_nentries];
 	for (int ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
 		Metas[ientry]=Meta;
 		Mpi0s[ientry]=Mpi0;
 		Mpi0etas[ientry]=Mpi0eta;
+		cosTheta_X_cms[ientry]=cosTheta_X_cm;
+		phi_X_cms[ientry]=phi_X_cm;
+		cosTheta_eta_gjs[ientry]=cosTheta_eta_gj;
+		phi_eta_gjs[ientry]=phi_eta_gj;
+		cosThetaHighestEphotonIneta_gjs[ientry]=cosThetaHighestEphotonIneta_gj;	 
 		if ( selectRandomIdxToSave.size() < numberEventsToSave){
 			selectRandomIdxToSave.insert(rand() % nentries);
 		}
+		
 	}
+	// outputting the results before and after standardizeArray will show that it works
+	// for(auto& cosTheta_X_cm1 : cosTheta_X_cms){ cout << cosTheta_X_cm1 << endl; }
+	standardizeArray(cosTheta_X_cms, nentries, "cosTheta_X_cms"); 
+	standardizeArray(phi_X_cms, nentries, "phi_X_cms"); 
+	standardizeArray(cosTheta_eta_gjs,nentries,"cosTheta_eta_gjs");
+	standardizeArray(phi_eta_gjs,nentries,"phi_eta_gjs");
+	standardizeArray(cosThetaHighestEphotonIneta_gjs,nentries,"cosThetaHighestEphotonIneta_gjs");
+
 	// cout << "LOADED ALL THE DATA INTO MEMORY" << endl;
 
 	// defining some variables we will use in the main loop to get the distances and then the q-values
@@ -80,9 +115,17 @@ void run(){
 		allCanvases->Clear();
 		discriminatorHist = new TH1F("","",75,0.35,0.8);
 
-		phasePoint1[0] = Mpi0s[ientry];
+		phasePoint1[0] = cosTheta_X_cms[ientry];
+		phasePoint1[1] = phi_X_cms[ientry];
+		phasePoint1[2] = cosTheta_eta_gjs[ientry];
+		phasePoint1[3] = phi_eta_gjs[ientry];
+		phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
 		for (int jentry=0; jentry<nentries; jentry++){
-			phasePoint2[0] = Mpi0s[jentry];
+			phasePoint2[0] = cosTheta_X_cms[jentry];
+			phasePoint2[1] = phi_X_cms[jentry];
+			phasePoint2[2] = cosTheta_eta_gjs[jentry];
+			phasePoint2[3] = phi_eta_gjs[jentry];
+			phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
 			if (jentry != ientry){
 				distance = calc_distance(phasePoint1,phasePoint2);
 				if ( distances.size() >= kDim ) {
@@ -119,11 +162,18 @@ void run(){
 		bkgFit->SetLineColor(kMagenta);
 		sigFit->SetLineColor(kBlue);
 		Double_t par[numDOFbkg+numDOFsig];
-		fit->SetParameters(5,70,0.545,0.02,10,0.51,0.06);
+		fit->SetParName(0,"const");
+		fit->SetParName(1,"Amp_Gaus1");
+		fit->SetParName(2,"Mean_Gaus1");
+		fit->SetParName(3,"Sigma_Gaus1");
+		fit->SetParName(4,"Amp_Gaus2");
+		fit->SetParName(5,"Mean_Gaus2");
+		fit->SetParName(6,"Sigma_Gaus2");
+		fit->SetParameters(5,70,0.545,0.02,10,0.51,0.04);
 		fit->SetParLimits(0, 0, kDim);
 		fit->SetParLimits(1, 0, kDim);
 		fit->SetParLimits(4, 0, kDim);
-		fit->SetParLimits(6, 0.02, 0.12);
+		fit->SetParLimits(6, 0.02, 0.06);
 		discriminatorHist->Fit("fit","RQB"); // B will enforce the bounds
 		fit->GetParameters(par);
 		bkgFit->SetParameters(par);

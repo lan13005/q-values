@@ -1,6 +1,7 @@
 #ifndef RUN_H
 #define RUN_H
-const int dim=1;
+
+const int dim=5;
 
 double calc_distance( double phaseSpace_1[dim], double phaseSpace_2[dim] ){
 	double sum = 0;
@@ -33,5 +34,15 @@ Double_t fitFunc(Double_t *x, Double_t *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
 
+void standardizeArray(double inputVector[], int nentries, string name){
+	double max_inputVector = *max_element(inputVector, inputVector+nentries);
+	double min_inputVector = *min_element(inputVector, inputVector+nentries);
+	//double extrema_inputVector[2] = {max_inputVector, min_inputVector};
+	for (int ientry=0; ientry<nentries; ++ientry){
+		inputVector[ientry] = (inputVector[ientry]-min_inputVector)/(max_inputVector-min_inputVector);
+	}
+	cout << "Max,min "+name+": " << max_inputVector << "," << min_inputVector << endl;
+	cout << "	Finished standardizing "+name << endl;
+}
 
 #endif
