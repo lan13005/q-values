@@ -15,13 +15,13 @@ numberEventsToSave=5
 
 # How much events should we show?
 override_nentries="true"
-nentries=1000
+nentries=250
 
 # how much processes to spawn?
-nProcess=4
+nProcess=1
 
-subprocess.call(['rm','histograms/*'])
-subprocess.call(['rm','logs/*'])
+subprocess.call('rm /d/grid15/ln16/pi0eta/121818/q-values/histograms/*',shell=True)
+subprocess.call('rm /d/grid15/ln16/pi0eta/121818/q-values/logs/*',shell=True)
 
 
 def startProcess(iProcess):
@@ -30,6 +30,7 @@ def startProcess(iProcess):
 if __name__ == "__main__":
 	jobs=[]
 	for iProcess in range(nProcess):
+                print("Starting process {0}".format(iProcess))
 		p=multiprocessing.Process(target=startProcess, args=(iProcess,))
 		jobs.append(p)
 		p.start()
