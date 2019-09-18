@@ -41,8 +41,15 @@ void standardizeArray(double inputVector[], int nentries, string name){
 	for (int ientry=0; ientry<nentries; ++ientry){
 		inputVector[ientry] = (inputVector[ientry]-min_inputVector)/(max_inputVector-min_inputVector);
 	}
-	cout << "Max,min "+name+": " << max_inputVector << "," << min_inputVector << endl;
-	cout << "	Finished standardizing "+name << endl;
+	//cout << "Max,min "+name+": " << max_inputVector << "," << min_inputVector << endl;
+	//cout << "	Finished standardizing "+name << endl;
 }
+
+
+
+//double elapsedTime(high_resolution_clock start) {
+//	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() 
+//}
+
 
 #endif
