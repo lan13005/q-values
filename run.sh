@@ -1,5 +1,5 @@
-kDim=200
-numberEventsToSave=25
+kDim=400
+numberEventsToSavePerProcess=10
 nProcess=30
 seedShift=12314
 nentries=300
@@ -13,7 +13,7 @@ rm diagnostic_logs.txt
 
 for ((iProcess=0; iProcess < $nProcess; iProcess++));
 do
-    ./main "$iProcess" "$kDim" "$numberEventsToSave" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &
+    ./main "$iProcess" "$kDim" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &
 done
 
 wait

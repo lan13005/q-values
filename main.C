@@ -2,25 +2,25 @@
 
 //bool verbose = false;
 //int kDim=200;
-//int numberEventsToSave=5;
+//int numberEventsToSavePerProcess=5;
 //bool override_nentries=true;
 //Long64_t nentries=100;
 //int nProcess=5;
 //int seedShift=123125;
 
-bool useEta=false;
+bool useEta=true;
 
-//void main(int iProcess, int kDim, int numberEventsToSave, int nProcess, int seedShift, Long64_t nentries, bool override_nentries, bool verbose){
+//void main(int iProcess, int kDim, int numberEventsToSavePerProcess, int nProcess, int seedShift, Long64_t nentries, bool override_nentries, bool verbose){
 int main( int argc, char* argv[] ){
         //int iProcess = std::stoi(argv[0]);
         //int kDim= std::stoi(argv[1]);
-        //int numberEventsToSave= std::stoi(argv[2]);
+        //int numberEventsToSavePerProcess= std::stoi(argv[2]);
         //int nProcess= std::stoi(argv[3]);
         //int seedShift= std::stoi(argv[4]);
         //Long64_t nentries= std::stoll(argv[5]);
         int iProcess = atoi(argv[1]);
         int kDim= atoi(argv[2]);
-        int numberEventsToSave= atoi(argv[3]);
+        int numberEventsToSavePerProcess= atoi(argv[3]);
         int nProcess= atoi(argv[4]);
         int seedShift= atoi(argv[5]);
         Long64_t nentries= atoi(argv[6]);
@@ -37,7 +37,7 @@ int main( int argc, char* argv[] ){
         cout << "----------------------------" << endl;
         cout << "iProcess: " << iProcess << endl;
         cout << "kDim: " << kDim << endl;
-        cout << "numberEventsToSave: " << numberEventsToSave << endl;
+        cout << "numberEventsToSavePerProcess: " << numberEventsToSavePerProcess << endl;
         cout << "nProcess: " << nProcess << endl;
         cout << "seedShift: " << seedShift << endl;
         cout << "nentries: " << nentries << endl; 
@@ -99,7 +99,7 @@ int main( int argc, char* argv[] ){
 	set<int> selectRandomIdxToSave;
 	int randomEvent;
 	srand(iProcess+seedShift);
-	for (int i=0; i<numberEventsToSave/nProcess; i++){
+	for (int i=0; i<numberEventsToSavePerProcess; i++){
 		randomEvent = rand() % (int)batchEntries;
 		randomEvent += lowest_nentry;
 		selectRandomIdxToSave.insert( randomEvent );
@@ -149,6 +149,7 @@ int main( int argc, char* argv[] ){
 	standardizeArray(phi_X_cms, nentries, "phi_X_cms"); 
 	standardizeArray(cosTheta_eta_gjs,nentries,"cosTheta_eta_gjs");
 	standardizeArray(phi_eta_gjs,nentries,"phi_eta_gjs");
+	standardizeArray(Mpi0s,nentries,"Mpi0s");
 	standardizeArray(cosThetaHighestEphotonIneta_gjs,nentries,"cosThetaHighestEphotonIneta_gjs");
 	standardizeArray(cosThetaHighestEphotonInpi0_cms,nentries,"cosThetaHighestEphotonInpi0_cms");
 	//
@@ -194,20 +195,22 @@ int main( int argc, char* argv[] ){
 		    discriminatorHist = new TH1F("","",50,0.05,0.25);
                 }
 
-		phasePoint1[0] = cosTheta_X_cms[ientry];
-		phasePoint1[1] = phi_X_cms[ientry];
-		phasePoint1[2] = cosTheta_eta_gjs[ientry];
-		phasePoint1[3] = phi_eta_gjs[ientry];
-		phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
-		phasePoint1[5] = cosThetaHighestEphotonInpi0_cms[ientry];
+		//phasePoint1[0] = cosTheta_X_cms[ientry];
+                phasePoint1[0] = Mpi0s[ientry];
+		//phasePoint1[1] = phi_X_cms[ientry];
+		phasePoint1[1] = cosTheta_eta_gjs[ientry];
+		phasePoint1[2] = phi_eta_gjs[ientry];
+		//phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
+		//phasePoint1[5] = cosThetaHighestEphotonInpi0_cms[ientry];
 		for (int jentry=0; jentry<nentries; jentry++){
                         if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
-			phasePoint2[0] = cosTheta_X_cms[jentry];
-			phasePoint2[1] = phi_X_cms[jentry];
-			phasePoint2[2] = cosTheta_eta_gjs[jentry];
-			phasePoint2[3] = phi_eta_gjs[jentry];
-			phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
-			phasePoint2[5] = cosThetaHighestEphotonInpi0_cms[jentry];
+			//phasePoint2[0] = cosTheta_X_cms[jentry];
+			phasePoint2[0] = Mpi0s[jentry];
+			//phasePoint2[1] = phi_X_cms[jentry];
+			phasePoint2[1] = cosTheta_eta_gjs[jentry];
+			phasePoint2[2] = phi_eta_gjs[jentry];
+			//phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
+			//phasePoint2[5] = cosThetaHighestEphotonInpi0_cms[jentry];
 			if (jentry != ientry){
 		    	        distance = calc_distance(phasePoint1,phasePoint2);
                                 //distance = rgen.Uniform(nentries);
@@ -279,9 +282,10 @@ int main( int argc, char* argv[] ){
 		    fit->SetParLimits(0, 0, kDim);
 		    fit->SetParLimits(1, 0, kDim);
 		    fit->SetParLimits(2,0.53,0.56);
-		    fit->SetParLimits(4, 0, kDim);
-		    fit->SetParLimits(5,0.49,0.55);
-		    fit->SetParLimits(6, 0.02, 0.06);
+		    fit->SetParLimits(3,0.009,0.1);
+		    fit->SetParLimits(4, 0, 0);// kDim);
+		    fit->SetParLimits(5, 0, 0);//0.49,0.55);
+		    fit->SetParLimits(6, 0, 0);//0.02, 0.06);
                 }
                 else {
 		    fit->SetParameters(5,70,0.135,0.01,10,0,0,0);

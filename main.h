@@ -14,7 +14,7 @@
 #include <TH1F.h>
 #include <TLine.h>
 
-const int dim=6;
+const int dim=3;
 bool verbose2=false;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
