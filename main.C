@@ -8,6 +8,7 @@
 //int nProcess=5;
 //int seedShift=123125;
 
+bool useEta=false;
 
 //void main(int iProcess, int kDim, int numberEventsToSave, int nProcess, int seedShift, Long64_t nentries, bool override_nentries, bool verbose){
 int main( int argc, char* argv[] ){
@@ -54,7 +55,6 @@ int main( int argc, char* argv[] ){
 	TFile* dataFile=new TFile("/d/grid15/ln16/pi0eta/121818/z_pi0eta_a0_reco/pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
-	const int dim=5;
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
         TLine* etaLine;
 	TH1F* discriminatorHist;
@@ -66,6 +66,9 @@ int main( int argc, char* argv[] ){
 	double cosTheta_eta_gj;
 	double phi_eta_gj;
 	double cosThetaHighestEphotonIneta_gj;
+	double cosThetaHighestEphotonInpi0_cm;
+        ULong64_t eventNumber;
+        double uniqueComboID;
 	dataTree->SetBranchAddress("Meta",&Meta);
 	dataTree->SetBranchAddress("Mpi0",&Mpi0);
 	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
@@ -74,6 +77,9 @@ int main( int argc, char* argv[] ){
         dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);
         dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj); 
         dataTree->SetBranchAddress("cosThetaHighestEphotonIneta_gj",&cosThetaHighestEphotonIneta_gj);
+        dataTree->SetBranchAddress("cosThetaHighestEphotonInpi0_cm",&cosThetaHighestEphotonInpi0_cm);
+        dataTree->SetBranchAddress("uniqueComboID",&uniqueComboID);
+        dataTree->SetBranchAddress("event",&eventNumber);
 	if (!override_nentries){
 		nentries=dataTree->GetEntries();
 	}
@@ -110,6 +116,7 @@ int main( int argc, char* argv[] ){
 	double cosTheta_eta_gjs[c_nentries];
 	double phi_eta_gjs[c_nentries];
 	double cosThetaHighestEphotonIneta_gjs[c_nentries];
+	double cosThetaHighestEphotonInpi0_cms[c_nentries];
 
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
 	for (int ientry=0; ientry<nentries; ientry++)
@@ -123,9 +130,16 @@ int main( int argc, char* argv[] ){
 		cosTheta_eta_gjs[ientry]=cosTheta_eta_gj;
 		phi_eta_gjs[ientry]=phi_eta_gj;
 		cosThetaHighestEphotonIneta_gjs[ientry]=cosThetaHighestEphotonIneta_gj;	 
+		cosThetaHighestEphotonInpi0_cms[ientry]=cosThetaHighestEphotonInpi0_cm;	 
 	}
 	dataFile->Close();
 	
+        if ( verbose_outputDistCalc ) {
+            cout << "Before standarization" << endl;
+            for ( int ientry=0 ; ientry < nentries; ientry++){
+                cout << phi_X_cms[ientry] << "," << cosTheta_eta_gjs[ientry] << endl;
+            }
+        }
 	//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
 	//logFile << "Time marker to load data: " << duration << "ms" << endl;
 
@@ -136,6 +150,16 @@ int main( int argc, char* argv[] ){
 	standardizeArray(cosTheta_eta_gjs,nentries,"cosTheta_eta_gjs");
 	standardizeArray(phi_eta_gjs,nentries,"phi_eta_gjs");
 	standardizeArray(cosThetaHighestEphotonIneta_gjs,nentries,"cosThetaHighestEphotonIneta_gjs");
+	standardizeArray(cosThetaHighestEphotonInpi0_cms,nentries,"cosThetaHighestEphotonInpi0_cms");
+	//
+	//
+        if ( verbose_outputDistCalc ) {
+	    cout << "After standardization" << endl;
+            for ( int ientry=0 ; ientry < nentries; ientry++){
+                cout << cosTheta_X_cms[ientry] << "," << phi_X_cms[ientry] << endl;
+            }
+        }
+
 
 	// defining some variables we will use in the main loop to get the distances and then the q-values
 	map<double, int> mapDistToJ;
@@ -163,21 +187,30 @@ int main( int argc, char* argv[] ){
 		mapDistToJ.clear();
 		distances.clear();
 		allCanvases->Clear();
-		discriminatorHist = new TH1F("","",75,0.35,0.8);
+                if ( useEta) { 
+		    discriminatorHist = new TH1F("","",50,0.35,0.8);
+		}
+                else {
+		    discriminatorHist = new TH1F("","",50,0.05,0.25);
+                }
 
 		phasePoint1[0] = cosTheta_X_cms[ientry];
 		phasePoint1[1] = phi_X_cms[ientry];
 		phasePoint1[2] = cosTheta_eta_gjs[ientry];
 		phasePoint1[3] = phi_eta_gjs[ientry];
 		phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
+		phasePoint1[5] = cosThetaHighestEphotonInpi0_cms[ientry];
 		for (int jentry=0; jentry<nentries; jentry++){
+                        if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
 			phasePoint2[0] = cosTheta_X_cms[jentry];
 			phasePoint2[1] = phi_X_cms[jentry];
 			phasePoint2[2] = cosTheta_eta_gjs[jentry];
 			phasePoint2[3] = phi_eta_gjs[jentry];
 			phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
+			phasePoint2[5] = cosThetaHighestEphotonInpi0_cms[jentry];
 			if (jentry != ientry){
 		    	        distance = calc_distance(phasePoint1,phasePoint2);
+                                //distance = rgen.Uniform(nentries);
                                 distKNN.insertPair(make_pair(distance,jentry));
 			}
 			//if ( verbose) { 
@@ -197,11 +230,17 @@ int main( int argc, char* argv[] ){
 		//	discriminatorHist->Fill(rgen.Gaus(0.55,0.15));
 		//}
 		if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim!" << endl; exit(0); }
+                //cout << "New Event\n" ;
                 while ( distKNN.kNN.empty() == false ){
                         newPair = distKNN.kNN.top();
                         distKNN.kNN.pop();
-                        discriminatorHist->Fill(Metas[newPair.second]);
-                        //cout << "(" << _pair.first << ", " << _pair.second << ")"; 
+                        if ( useEta ){
+                            discriminatorHist->Fill(Metas[newPair.second]);
+                        }
+                        else {
+                            discriminatorHist->Fill(Mpi0s[newPair.second]);
+                        }
+                        //cout << "(" << newPair.first << ", " << newPair.second << ")"; 
                         //cout << endl; 
                 }
 		//duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
@@ -210,9 +249,21 @@ int main( int argc, char* argv[] ){
 		// Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the Meta has a asymmetry
 		// such that there are more events to the left side of the peak. The second gaussian will have lower amplitude and a large sigma with a left shifted mean. We also want to 
 		// fix the amplitudes and constnat background to be strictly positive and choose kDim as the max value ( which is reached only if all values are filled into a single bin)
-		TF1* fit = new 	TF1("fit",fitFunc,0.425,0.7,numDOFbkg+numDOFsig);
-		TF1* bkgFit = new TF1("bkgFit",background,0.425,0.7,numDOFbkg);
-		TF1* sigFit = new TF1("sigFit",signal,0.425,0.7,numDOFsig);
+		
+    
+	        TF1* fit;
+                TF1* bkgFit;
+                TF1* sigFit;
+                if (useEta){
+		    fit = new TF1("fit",fitFunc,0.425,0.7,numDOFbkg+numDOFsig);
+		    bkgFit = new TF1("bkgFit",background,0.425,0.7,numDOFbkg);
+		    sigFit = new TF1("sigFit",signal,0.425,0.7,numDOFsig);
+		}
+                else { 
+		    fit = new TF1("fit",fitFunc,0.1,0.17,numDOFbkg+numDOFsig);
+		    bkgFit = new TF1("bkgFit",background,0.1,0.17,numDOFbkg);
+		    sigFit = new TF1("sigFit",signal,0.1,0.17,numDOFsig);
+                }
 		bkgFit->SetLineColor(kMagenta);
 		sigFit->SetLineColor(kBlue);
 		Double_t par[numDOFbkg+numDOFsig];
@@ -223,18 +274,35 @@ int main( int argc, char* argv[] ){
 		fit->SetParName(4,"Amp_Gaus2");
 		fit->SetParName(5,"Mean_Gaus2");
 		fit->SetParName(6,"Sigma_Gaus2");
-		fit->SetParameters(5,70,0.545,0.02,10,0.51,0.04);
-		fit->SetParLimits(0, 0, kDim);
-		fit->SetParLimits(1, 0, kDim);
-		fit->SetParLimits(2,0.53,0.56);
-		fit->SetParLimits(4, 0, kDim);
-		fit->SetParLimits(5,0.49,0.55);
-		fit->SetParLimits(6, 0.02, 0.06);
+                if (useEta) { 
+		    fit->SetParameters(5,70,0.545,0.02,10,0.51,0.04);
+		    fit->SetParLimits(0, 0, kDim);
+		    fit->SetParLimits(1, 0, kDim);
+		    fit->SetParLimits(2,0.53,0.56);
+		    fit->SetParLimits(4, 0, kDim);
+		    fit->SetParLimits(5,0.49,0.55);
+		    fit->SetParLimits(6, 0.02, 0.06);
+                }
+                else {
+		    fit->SetParameters(5,70,0.135,0.01,10,0,0,0);
+                    fit->SetParLimits(0, 0, kDim);
+                    fit->SetParLimits(1, 0, kDim);
+                    fit->SetParLimits(2, 0.12, 0.1425);
+                    fit->SetParLimits(3, 0.001, 0.01);
+                    fit->SetParLimits(4,0,0);
+                    fit->SetParLimits(5,0,0);
+                    fit->SetParLimits(6,0,0);
+		}
 		discriminatorHist->Fit("fit","RQB"); // B will enforce the bounds
 		fit->GetParameters(par);
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
-		qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+                if ( useEta) { 
+		    qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+                }
+                else {
+		    qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
+                }
 		conjugate_qvalue = 1-qvalue;
 		if(verbose2){
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
@@ -246,7 +314,12 @@ int main( int argc, char* argv[] ){
 		if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
 			discriminatorHist->SetTitle(("QValue="+to_string(qvalue)+"  ChiSq="+to_string(fit->GetChisquare())).c_str());
 			discriminatorHist->Draw();
-        		etaLine = new TLine(Metas[ientry],0,Metas[ientry],discriminatorHist->GetMaximum());
+                        if ( useEta) { 
+        		    etaLine = new TLine(Metas[ientry],0,Metas[ientry],discriminatorHist->GetMaximum());
+                        }
+                        else { 
+        		    etaLine = new TLine(Mpi0s[ientry],0,Mpi0s[ientry],discriminatorHist->GetMaximum());
+                        }
 			etaLine->SetLineColor(kOrange);
 			//bkgFit->Draw("same");
 			//sigFit->Draw("same");
@@ -257,7 +330,7 @@ int main( int argc, char* argv[] ){
   			sigFit->SetFillStyle(3005);
   			sigFit->Draw("SAME FC");
 			etaLine->Draw("same");
-			allCanvases->SaveAs(("histograms/Meta-event"+std::to_string(ientry)+".png").c_str());
+			allCanvases->SaveAs(("histograms/Mass-event"+std::to_string(ientry)+".png").c_str());
 		}
 		if(verbose2){
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();

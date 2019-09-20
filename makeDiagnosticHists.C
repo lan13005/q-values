@@ -1,4 +1,3 @@
-#include "run.h"
 #include <ctime>
 bool verbose = false;
 
@@ -65,6 +64,9 @@ void makeDiagnosticHists(){
 	if ( diagnosticlogFile.is_open() ) {
 		while ( diagnosticlogFile >> event >> qvalue >> chiSq >> Meta ) {
 			if (verbose) { cout << event << " " << qvalue << " " << chiSq << " " << Meta << endl; }
+                        if ( qvalue < 0 || qvalue > 1){
+                            cout << event << " " << qvalue << " " << chiSq << " " << Meta << endl;
+                        }
 			qvalues[event]=qvalue;
 			chiSqs[event]=chiSq;
 		}
