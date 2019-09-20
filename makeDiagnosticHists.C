@@ -11,12 +11,20 @@ void makeDiagnosticHists(){
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
+	TH1F* dHist_qvalues_bkgRegion = new TH1F( "dHist_qvalues_bkgRegion", "Q-Values; Events/0.01", 100, 0, 1);
+	TH1F* dHist_qvalues_sigRegion = new TH1F( "dHist_qvalues_signRegion", "Q-Values; Events/0.01", 100, 0, 1);
+	TH1F* dHist_chisq_bkgRegion = new TH1F( "dHist_chisq_bkgRegion", "#Chi^2; Events/1", 100, 0, 100);
+	TH1F* dHist_chisq_sigRegion = new TH1F( "dHist_chisq_sigRegion", "#Chi^2; Events/1", 100, 0, 100);
+        TH1F* dHist_std = new TH1F("dHist_std", "#sigma; Event/0.002", 60, 0, 0.12);
+
 	TH1F* Meta_Qd = new TH1F( "Meta_Qd", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
 	TH1F* Meta_bkg_Qd = new TH1F( "Meta_bkg_Qd", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
 	TH1F* Mpi0_Qd = new TH1F( "Mpi0_Qd", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
 	TH1F* Mpi0_bkg_Qd = new TH1F( "Mpi0_bkg_Qd", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
 	TH1F* Mpi0eta_Qd = new TH1F( "Mpi0eta_Qd", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
 	TH1F* Mpi0eta_bkg_Qd = new TH1F( "Mpi0eta_bkg_Qd", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+        
+
         TLine* etaLine;
 	double Meta;
 	double Mpi0;
@@ -53,24 +61,61 @@ void makeDiagnosticHists(){
 
 	double qvalues[c_nentries];
 	double chiSqs[c_nentries];
+	double stds[c_nentries];
 	double qvalue;
 	double conjugate_qvalue;
 	double chiSq;
+        double std;
 	int event;
 	// we will not save Meta since we already have it
 	// the order of the array[c_entries] are ordered by event which starts at 0 to nentries-1. If we just fill qvalues and chiSqs with "value" at array index "event" 
 	// 	then it should be properly ordered.
 	ifstream diagnosticlogFile ("diagnostic_logs.txt");
 	if ( diagnosticlogFile.is_open() ) {
-		while ( diagnosticlogFile >> event >> qvalue >> chiSq >> Meta ) {
-			if (verbose) { cout << event << " " << qvalue << " " << chiSq << " " << Meta << endl; }
+		while ( diagnosticlogFile >> event >> qvalue >> chiSq >> std) {
+			if (verbose) { cout << event << " " << qvalue << " " << chiSq << " " << std << endl; }
                         if ( qvalue < 0 || qvalue > 1){
-                            cout << event << " " << qvalue << " " << chiSq << " " << Meta << endl;
+                            cout << event << " " << qvalue << " " << chiSq << " " << std << endl;
                         }
-			qvalues[event]=qvalue;
 			chiSqs[event]=chiSq;
+                        stds[event]=std;      
+                        //if (std>0.09){ qvalue = 0; }
+			qvalues[event]=qvalue;
+                        if ( (0.115 < Mpi0s[event]) && (Mpi0s[event] < .16) ) { 
+                            dHist_qvalues_sigRegion->Fill(qvalue);
+                            dHist_chisq_sigRegion->Fill(chiSq);
+                        }
+                        else {
+                            dHist_qvalues_bkgRegion->Fill(qvalue);
+                            dHist_chisq_bkgRegion->Fill(chiSq);
+                        }
+                        dHist_std->Fill(std);
 		}
 	}
+        allCanvases->Clear();
+        dHist_std->Draw();
+        allCanvases->SaveAs("stds.png");
+	THStack* stackedHists = new THStack("stackedHists","");
+        allCanvases->Clear();
+        dHist_qvalues_bkgRegion->SetFillColorAlpha(kBlue,0.3);
+        dHist_qvalues_sigRegion->SetFillColorAlpha(kMagenta,0.3);
+        stackedHists->Add(dHist_qvalues_bkgRegion,"HIST");
+        stackedHists->Add(dHist_qvalues_sigRegion,"HIST");
+        stackedHists->Draw();
+	stackedHists->GetXaxis()->SetTitle(dHist_qvalues_bkgRegion->GetXaxis()->GetTitle());
+	stackedHists->SetTitle("Q-Values");
+        allCanvases->SaveAs("qvalues.png");
+        allCanvases->Clear();
+	stackedHists = new THStack("stackedHists","");
+        dHist_chisq_bkgRegion->SetFillColorAlpha(kBlue,0.3);
+        dHist_chisq_sigRegion->SetFillColorAlpha(kMagenta,0.3);
+        stackedHists->Add(dHist_chisq_bkgRegion,"HIST");
+        stackedHists->Add(dHist_chisq_sigRegion,"HIST");
+        stackedHists->Draw();
+	stackedHists->GetXaxis()->SetTitle(dHist_chisq_bkgRegion->GetXaxis()->GetTitle());
+	stackedHists->SetTitle("#Chi^2");
+        allCanvases->SaveAs("chisq.png");
+    
 
 	for (int ientry=0; ientry<nentries; ientry++){
 		qvalue = qvalues[ientry];
@@ -85,7 +130,7 @@ void makeDiagnosticHists(){
 
 	// HERE WE WILL JUST DRAW SOME OF THE HISTOGRAMS WITH THE BKG FILLED IN TO SEE THEIR CONTRIBUTION
 	// ----------------- Meta 
-	THStack* stackedHists = new THStack("stackedHists","");
+	stackedHists = new THStack("stackedHists","");
 	allCanvases->Clear();
 	Meta_bkg_Qd->SetFillColorAlpha(kMagenta,0.5);
 	Meta_bkg_Qd->SetLineColorAlpha(kMagenta,0);

@@ -12,6 +12,9 @@ bool useEta=true;
 
 //void main(int iProcess, int kDim, int numberEventsToSavePerProcess, int nProcess, int seedShift, Long64_t nentries, bool override_nentries, bool verbose){
 int main( int argc, char* argv[] ){
+	gStyle->SetOptFit(111);
+	gStyle->SetStatH(0.1);
+	gStyle->SetStatW(0.1);
         //int iProcess = std::stoi(argv[0]);
         //int kDim= std::stoi(argv[1]);
         //int numberEventsToSavePerProcess= std::stoi(argv[2]);
@@ -145,6 +148,8 @@ int main( int argc, char* argv[] ){
 
 	// outputting the results before and after standardizeArray will show that it works
 	// for(auto& cosTheta_X_cm1 : cosTheta_X_cms){ cout << cosTheta_X_cm1 << endl; }
+	
+         
 	standardizeArray(cosTheta_X_cms, nentries, "cosTheta_X_cms"); 
 	standardizeArray(phi_X_cms, nentries, "phi_X_cms"); 
 	standardizeArray(cosTheta_eta_gjs,nentries,"cosTheta_eta_gjs");
@@ -152,8 +157,9 @@ int main( int argc, char* argv[] ){
 	standardizeArray(Mpi0s,nentries,"Mpi0s");
 	standardizeArray(cosThetaHighestEphotonIneta_gjs,nentries,"cosThetaHighestEphotonIneta_gjs");
 	standardizeArray(cosThetaHighestEphotonInpi0_cms,nentries,"cosThetaHighestEphotonInpi0_cms");
-	//
-	//
+
+
+
         if ( verbose_outputDistCalc ) {
 	    cout << "After standardization" << endl;
             for ( int ientry=0 ; ientry < nentries; ientry++){
@@ -174,11 +180,14 @@ int main( int argc, char* argv[] ){
         distSort_kNN distKNN(kDim);
         pair<double,int> newPair;
 
+        double comboStd; 
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
 	// Then we can plot the k nearest neighbors in the discriminating distribution which happens to be a double gaussian and flat bkg. Calculate Q-Value from event
 	// i's discriminating variable's value. This value will be plugged into the signal PDF and the total PDF. The ratio of these two values are taken which is the Q-Value.
 	//logFile << std::fixed << std::setprecision(6);
 	for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
+                cumulativeStd std(kDim);
+                //std = new cumulativeStd(kDim);
 		if(verbose) { cout << "Getting next event!\n--------------------------------\n" << endl;  }
 		//duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
 		auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
@@ -195,22 +204,22 @@ int main( int argc, char* argv[] ){
 		    discriminatorHist = new TH1F("","",50,0.05,0.25);
                 }
 
-		//phasePoint1[0] = cosTheta_X_cms[ientry];
-                phasePoint1[0] = Mpi0s[ientry];
-		//phasePoint1[1] = phi_X_cms[ientry];
-		phasePoint1[1] = cosTheta_eta_gjs[ientry];
-		phasePoint1[2] = phi_eta_gjs[ientry];
-		//phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
-		//phasePoint1[5] = cosThetaHighestEphotonInpi0_cms[ientry];
+		phasePoint1[0] = cosTheta_X_cms[ientry];
+		phasePoint1[1] = phi_X_cms[ientry];
+		phasePoint1[2] = cosTheta_eta_gjs[ientry];
+		phasePoint1[3] = phi_eta_gjs[ientry];
+		phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
+		phasePoint1[5] = cosThetaHighestEphotonInpi0_cms[ientry];
+                //phasePoint1[6] = Mpi0s[ientry];
 		for (int jentry=0; jentry<nentries; jentry++){
                         if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
-			//phasePoint2[0] = cosTheta_X_cms[jentry];
-			phasePoint2[0] = Mpi0s[jentry];
-			//phasePoint2[1] = phi_X_cms[jentry];
-			phasePoint2[1] = cosTheta_eta_gjs[jentry];
-			phasePoint2[2] = phi_eta_gjs[jentry];
-			//phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
-			//phasePoint2[5] = cosThetaHighestEphotonInpi0_cms[jentry];
+		        phasePoint2[0] = cosTheta_X_cms[jentry];
+			phasePoint2[1] = phi_X_cms[jentry];
+			phasePoint2[2] = cosTheta_eta_gjs[jentry];
+			phasePoint2[3] = phi_eta_gjs[jentry];
+			phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
+			phasePoint2[5] = cosThetaHighestEphotonInpi0_cms[jentry];
+			//phasePoint2[6] = Mpi0s[jentry];
 			if (jentry != ientry){
 		    	        distance = calc_distance(phasePoint1,phasePoint2);
                                 //distance = rgen.Uniform(nentries);
@@ -236,6 +245,7 @@ int main( int argc, char* argv[] ){
                 //cout << "New Event\n" ;
                 while ( distKNN.kNN.empty() == false ){
                         newPair = distKNN.kNN.top();
+                        std.insertValue(Metas[newPair.second]);
                         distKNN.kNN.pop();
                         if ( useEta ){
                             discriminatorHist->Fill(Metas[newPair.second]);
@@ -246,6 +256,8 @@ int main( int argc, char* argv[] ){
                         //cout << "(" << newPair.first << ", " << newPair.second << ")"; 
                         //cout << endl; 
                 }
+                comboStd = std.calcStd();
+                
 		//duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 		//if(verbose2){logFile << "	Filled neighbors: " << duration2 << "ms" << endl;}
 	
@@ -274,18 +286,20 @@ int main( int argc, char* argv[] ){
 		fit->SetParName(1,"Amp_Gaus1");
 		fit->SetParName(2,"Mean_Gaus1");
 		fit->SetParName(3,"Sigma_Gaus1");
-		fit->SetParName(4,"Amp_Gaus2");
-		fit->SetParName(5,"Mean_Gaus2");
-		fit->SetParName(6,"Sigma_Gaus2");
+		//fit->SetParName(4,"Amp_Gaus2");
+		//fit->SetParName(5,"Mean_Gaus2");
+		//fit->SetParName(6,"Sigma_Gaus2");
                 if (useEta) { 
-		    fit->SetParameters(5,70,0.545,0.02,10,0.51,0.04);
+		    fit->SetParameters(5,70,0.545,0.008);//,10,0.51,0.04);
 		    fit->SetParLimits(0, 0, kDim);
 		    fit->SetParLimits(1, 0, kDim);
-		    fit->SetParLimits(2,0.53,0.56);
-		    fit->SetParLimits(3,0.009,0.1);
-		    fit->SetParLimits(4, 0, 0);// kDim);
-		    fit->SetParLimits(5, 0, 0);//0.49,0.55);
-		    fit->SetParLimits(6, 0, 0);//0.02, 0.06);
+		    //fit->SetParLimits(2,0.53,0.56);
+		    //fit->SetParLimits(3,0.009,0.1);
+		    fit->SetParLimits(2,0.50,0.56);
+		    fit->SetParLimits(3,0.001,0.1);
+		    //fit->SetParLimits(4, 0, 0);// kDim);
+		    //fit->SetParLimits(5, 0, 0);//0.49,0.55);
+		    //fit->SetParLimits(6, 0, 0);//0.02, 0.06);
                 }
                 else {
 		    fit->SetParameters(5,70,0.135,0.01,10,0,0,0);
@@ -314,9 +328,9 @@ int main( int argc, char* argv[] ){
 		}
 
 		// Here we draw the histograms that were randomly selected
-		logFile << ientry << "\t" << qvalue << "\t" << fit->GetChisquare()<< "\t" << Mpi0s[ientry] << endl;
+		logFile << ientry << " " << qvalue << " " << fit->GetChisquare()<< " " << comboStd << endl;//"\t" << Metas[ientry] << "\t" << Mpi0s[ientry] << endl;
 		if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
-			discriminatorHist->SetTitle(("QValue="+to_string(qvalue)+"  ChiSq="+to_string(fit->GetChisquare())).c_str());
+			discriminatorHist->SetTitle(("QValue="+to_string(qvalue)+"  ChiSq="+to_string(fit->GetChisquare())+"     Std="+to_string(comboStd)).c_str());
 			discriminatorHist->Draw();
                         if ( useEta) { 
         		    etaLine = new TLine(Metas[ientry],0,Metas[ientry],discriminatorHist->GetMaximum());

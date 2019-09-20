@@ -13,8 +13,10 @@
 #include <TF1.h>
 #include <TH1F.h>
 #include <TLine.h>
+#include <TROOT.h>
+#include <TStyle.h>
 
-const int dim=3;
+const int dim=7;
 bool verbose2=false;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
@@ -43,9 +45,9 @@ Double_t background(Double_t *x, Double_t *par){
 	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0]+par[3]*x[0]*x[0]*x[0]+par[4]*x[0]*x[0]*x[0]*x[0];
 }
 
-int numDOFsig = 6;
+int numDOFsig = 3;
 Double_t signal(Double_t *x, Double_t *par){
-	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2])) + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
+	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
 	//return (x[0]-par[0])*(x[0]-par[0]);
 
 }
@@ -83,6 +85,7 @@ void standardizeArray(double inputVector[], int nentries, string name){
 		inputVector[ientry] = (inputVector[ientry]-min_inputVector)/(max_inputVector-min_inputVector);
 	}
 }
+
 
 
 // The following two classes will be used to keep track of pairs of distances and index, sorted by distance. priority_queue in stl requires three arguments
@@ -134,11 +137,39 @@ class distSort_kNN
 
 
 
-//double elapsedTime(high_resolution_clock start) {
-//	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start).count() 
-//}
+class cumulativeStd{
+    public:
+        std::vector<double> inputVector;
+        cumulativeStd ( int kDim ){ _kDim=kDim; inputVector.reserve(_kDim); }
+        void insertValue ( double value ) {
+            inputVector[_timesCalled] = value;
+            ++_timesCalled;
+        }
+        double calcStd(){
+            if (_timesCalled != _kDim){ return -1; } 
 
+            for (int i=0; i<_kDim; ++i){
+                _sum+=inputVector[i];
+            }
+            _sum /= _kDim;
+            _mean=_sum; _sum=0;
+            //cout << "mean: " << _mean << endl;
+            for (int i=0; i<_kDim; ++i){
+                _diff = (inputVector[i]-_mean);
+                _sum += _diff*_diff;
+                //cout << "sum: " << _sum << endl;
+            }
+            _sum /= _kDim;
+            return sqrt(_sum);
+        }
+    private:
+        int _timesCalled=0;
+        double _sum=0;
+        double _mean=0;
+        double _diff;
+        UInt_t _kDim;
 
+};
 
 
 
