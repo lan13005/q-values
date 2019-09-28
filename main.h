@@ -23,6 +23,7 @@ TRandom rgen;
 
 using namespace std;
 
+
 double calc_distance( double phaseSpace_1[dim], double phaseSpace_2[dim] ){
 	double sum = 0;
 	double diff=0;
@@ -45,9 +46,10 @@ Double_t background(Double_t *x, Double_t *par){
 	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0]+par[3]*x[0]*x[0]*x[0]+par[4]*x[0]*x[0]*x[0]*x[0];
 }
 
-int numDOFsig = 3;
+int numDOFsig = 5;
 Double_t signal(Double_t *x, Double_t *par){
-	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
+	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2])) + par[3]*exp(-0.5*((x[0]-par[1])/par[4])*((x[0]-par[1])/par[4]));
+	//return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
 	//return (x[0]-par[0])*(x[0]-par[0]);
 
 }
@@ -56,37 +58,111 @@ Double_t fitFunc(Double_t *x, Double_t *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
 
-void standardizeArray(double inputVector[], int nentries, string name){
-        // ERROR 1: not sure why this code did not work. It would sometimes give a max element that was not correct
-	//double max_inputVector = *std::max(inputVector, inputVector+nentries);
-	//double min_inputVector = *std::min(inputVector, inputVector+nentries);
+class standardizeArray{
+     // ERROR 1: not sure why this code did not work. It would sometimes give a max element that was not correct
+     //double max_inputVector = *std::max(inputVector, inputVector+nentries);
+     //double min_inputVector = *std::min(inputVector, inputVector+nentries);
+     
+     // ERROR 2: I tried to create a function that does this max,min calculation and returns an array. This was abit more difficult and quite buggy. Functions can return array points
+     // but also would require static types or something like that to make it go outside the functions scope. This lead to wierd effects like calling the function twice might
+     // pass the max, min from one function call to another. Safest is to just do it here. 
+    private:
+         long long _nentries;
+         double _max_inputVector = DBL_MIN;
+         double _min_inputVector = DBL_MAX;
+         std::vector<double> _array;
+
+     public:
+        double mean; // initialization always calculates mean so safe to access. unlike std which has a useless value until stdevStandardization is run 
+        standardizeArray (std::vector<double> inputVector, long long nentries){
+            _nentries=nentries;
+            _array.reserve(nentries);
+            mean=0;
+            for (int i=0; i<_nentries; ++i){
+                _array.push_back(inputVector[i]);
+                mean+=inputVector[i];
+            } 
+            mean/=_nentries;
+            //cout << "nentries: " << _nentries << endl;
+            //cout << "Mean: " << mean << endl;
+        }
         
-        // ERROR 2: I tried to create a function that does this max,min calculation and returns an array. This was abit more difficult and quite buggy. Functions can return array points
-        // but also would require static types or something like that to make it go outside the functions scope. This lead to wierd effects like calling the function twice might
-        // pass the max, min from one function call to another. Safest is to just do it here. 
-
-        // This should be fool proof
-        double max_inputVector = DBL_MIN;
-        double min_inputVector = DBL_MAX;
-        for (int ientry=0; ientry<nentries; ++ientry){
-            if (inputVector[ientry] > max_inputVector){
-                max_inputVector = inputVector[ientry];
+        void rangeStandardization(){
+            for (int ientry=0; ientry<_nentries; ++ientry){
+                if (_array[ientry] > _max_inputVector){
+                    _max_inputVector = _array[ientry];
+                }
+                if (_array[ientry] < _min_inputVector){
+                    _min_inputVector = _array[ientry];
+                }
             }
-            else if (inputVector[ientry] < min_inputVector){
-                min_inputVector = inputVector[ientry];
-            }
-        }
-        if(verbose_outputDistCalc){
-	    cout << "Max,min "+name+": " << max_inputVector << "," << min_inputVector << endl;
-	    cout << "	Finished standardizing "+name << endl;
+            //cout << "Max,min: " << _max_inputVector << "," << _min_inputVector << endl;
+	    for (int ientry=0; ientry<_nentries; ++ientry){
+	    	_array[ientry] = (_array[ientry]-_min_inputVector)/(_max_inputVector-_min_inputVector);
+	    }
+	    //cout << "Max,min "+name+": " << max_inputVector << "," << min_inputVector << endl;
+	    //cout << "	Finished standardizing "+name << endl;
         }
 
-	for (int ientry=0; ientry<nentries; ++ientry){
-		inputVector[ientry] = (inputVector[ientry]-min_inputVector)/(max_inputVector-min_inputVector);
-	}
-}
+        double calcStd(){
+            double local_std=0;
+            double diff=0;
+            for (int ientry=0; ientry<_nentries; ++ientry){
+                //cout << "mean: " << mean << endl;
+                diff = (_array[ientry]-mean);
+                //cout << "diff: " << diff << endl;
+                local_std += diff*diff;
+            }
+            local_std /= _nentries;
+            //cout << "STD: " << local_std << endl;
+            return sqrt(local_std);
+        }
+
+        void stdevStandardization(){
+            double std = calcStd();
+            for (int ientry=0; ientry < _nentries; ++ientry){
+               _array[ientry] = _array[ientry]/std; 
+            } 
+        }
+
+        std::vector<double> getVector(){
+            return _array;
+        }
+
+        void printVector(){
+            for (int ientry=0; ientry<_nentries; ++ientry){
+                cout << _array[ientry] << ", ";
+            }
+            cout << endl;
+        }
+
+};
 
 
+class parseVarString{
+    private:
+        int nVars=0;
+        std::string delimiter=";";
+        std::string token;
+        size_t pos=0;
+    public:
+        std::vector<std::string> varStringSet;
+        std::string varString;
+        parseVarString (std::string inputString){
+           varString =  inputString;
+        }
+        void parseString(){
+            while ((pos = varString.find(delimiter)) != std::string::npos) {
+                token = varString.substr(0, pos);
+                varStringSet.push_back(token);
+                //std::cout << token << std::endl;
+                varString.erase(0, pos + delimiter.length());
+                ++nVars;
+            }
+            varStringSet.push_back(varString);
+            //std::cout << varString << std::endl;
+        }
+};
 
 // The following two classes will be used to keep track of pairs of distances and index, sorted by distance. priority_queue in stl requires three arguments
 // which are type, container for type, and a comparator. we will use pair as the type which is held in a vector container. compareDist is the comparator

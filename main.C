@@ -37,6 +37,7 @@ int main( int argc, char* argv[] ){
         bool verbose;
         if ( atoi(argv[8])==1 ){ verbose=true;}
         else{ verbose=false;}
+        std::string varString=argv[9];
         cout << "----------------------------" << endl;
         cout << "iProcess: " << iProcess << endl;
         cout << "kDim: " << kDim << endl;
@@ -46,8 +47,15 @@ int main( int argc, char* argv[] ){
         cout << "nentries: " << nentries << endl; 
         cout << "override_nentries: " << override_nentries << endl;
         cout << "verbose: " << verbose  << endl; 
-        cout << "----------------------------" << endl;
     
+        parseVarString parse(varString);
+        parse.parseString();
+        for (int iVar=0; iVar<parse.varStringSet.size(); ++iVar){
+            cout << "var" << std::to_string(iVar) << ": " << parse.varStringSet[iVar] << endl;
+        }
+        cout << "----------------------------" << endl;
+
+
 	// Starting timing
 	//clock_t start;
 	//double duration;
@@ -55,7 +63,7 @@ int main( int argc, char* argv[] ){
 	//start = clock();
 	
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("/d/grid15/ln16/pi0eta/121818/z_pi0eta_a0_reco/pi0eta_a0_recotreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("/d/grid15/ln16/pi0eta/092419/pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
@@ -70,8 +78,15 @@ int main( int argc, char* argv[] ){
 	double phi_eta_gj;
 	double cosThetaHighestEphotonIneta_gj;
 	double cosThetaHighestEphotonInpi0_cm;
+        double vanHove_x;
+        double vanHove_y;
+        double vanHove_omega;
+        double pi0_energy;
+        double mandelstam_tp;
         ULong64_t eventNumber;
         double uniqueComboID;
+        double AccWeight;
+
 	dataTree->SetBranchAddress("Meta",&Meta);
 	dataTree->SetBranchAddress("Mpi0",&Mpi0);
 	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
@@ -81,8 +96,15 @@ int main( int argc, char* argv[] ){
         dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj); 
         dataTree->SetBranchAddress("cosThetaHighestEphotonIneta_gj",&cosThetaHighestEphotonIneta_gj);
         dataTree->SetBranchAddress("cosThetaHighestEphotonInpi0_cm",&cosThetaHighestEphotonInpi0_cm);
+        dataTree->SetBranchAddress("vanHove_x",&vanHove_x);
+        dataTree->SetBranchAddress("vanHove_y",&vanHove_y);
+        dataTree->SetBranchAddress("vanHove_omega",&vanHove_omega);
+        dataTree->SetBranchAddress("pi0_energy", &pi0_energy);
+        dataTree->SetBranchAddress("mandelstam_tp", &mandelstam_tp);
         dataTree->SetBranchAddress("uniqueComboID",&uniqueComboID);
         dataTree->SetBranchAddress("event",&eventNumber);
+        dataTree->SetBranchAddress("AccWeight",&AccWeight);
+
 	if (!override_nentries){
 		nentries=dataTree->GetEntries();
 	}
@@ -111,36 +133,49 @@ int main( int argc, char* argv[] ){
 	const int c_nentries = (const int)nentries;
 
 	// importing all the data to RAM instead of reading from root file
-	double Metas[c_nentries];
-	double Mpi0s[c_nentries];
-	double Mpi0etas[c_nentries];
-	double cosTheta_X_cms[c_nentries];
-	double phi_X_cms[c_nentries];
-	double cosTheta_eta_gjs[c_nentries];
-	double phi_eta_gjs[c_nentries];
-	double cosThetaHighestEphotonIneta_gjs[c_nentries];
-	double cosThetaHighestEphotonInpi0_cms[c_nentries];
+	std::vector<double> Metas; Metas.reserve(c_nentries);
+        std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries);
+        std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries);
+        std::vector<double> cosTheta_X_cms; cosTheta_X_cms.reserve(c_nentries);
+        std::vector<double> phi_X_cms; phi_X_cms.reserve(c_nentries);
+        std::vector<double> cosTheta_eta_gjs; cosTheta_eta_gjs.reserve(c_nentries);
+        std::vector<double> phi_eta_gjs; phi_eta_gjs.reserve(c_nentries);
+        std::vector<double> cosThetaHighestEphotonIneta_gjs; cosThetaHighestEphotonIneta_gjs.reserve(c_nentries);
+        std::vector<double> cosThetaHighestEphotonInpi0_cms; cosThetaHighestEphotonInpi0_cms.reserve(c_nentries);
+        std::vector<double> pi0_energies; pi0_energies.reserve(c_nentries);
+        std::vector<double> mandelstam_tps; mandelstam_tps.reserve(c_nentries);
+	std::vector<double> vanHove_xs; vanHove_xs.reserve(c_nentries);
+	std::vector<double> vanHove_ys; vanHove_ys.reserve(c_nentries);
+	std::vector<double> vanHove_omegas; vanHove_omegas.reserve(c_nentries);
+        std::vector<double> AccWeights; AccWeights.reserve(c_nentries);
 
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
 	for (int ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
-		Metas[ientry]=Meta;
-		Mpi0s[ientry]=Mpi0;
-		Mpi0etas[ientry]=Mpi0eta;
-		cosTheta_X_cms[ientry]=cosTheta_X_cm;
-		phi_X_cms[ientry]=phi_X_cm;
-		cosTheta_eta_gjs[ientry]=cosTheta_eta_gj;
-		phi_eta_gjs[ientry]=phi_eta_gj;
-		cosThetaHighestEphotonIneta_gjs[ientry]=cosThetaHighestEphotonIneta_gj;	 
-		cosThetaHighestEphotonInpi0_cms[ientry]=cosThetaHighestEphotonInpi0_cm;	 
+		Metas.push_back(Meta);
+		Mpi0s.push_back(Mpi0);
+		Mpi0etas.push_back(Mpi0eta);
+		cosTheta_X_cms.push_back(cosTheta_X_cm);
+		phi_X_cms.push_back(phi_X_cm);
+		cosTheta_eta_gjs.push_back(cosTheta_eta_gj);
+		phi_eta_gjs.push_back(phi_eta_gj);
+		cosThetaHighestEphotonIneta_gjs.push_back(cosThetaHighestEphotonIneta_gj);	 
+		cosThetaHighestEphotonInpi0_cms.push_back(cosThetaHighestEphotonInpi0_cm);	 
+                vanHove_xs.push_back(vanHove_x);
+                vanHove_ys.push_back(vanHove_y);
+                vanHove_omegas.push_back(vanHove_omega);
+                pi0_energies.push_back(pi0_energy);
+                mandelstam_tps.push_back(mandelstam_tp);
+                AccWeights.push_back(AccWeight);
 	}
 	dataFile->Close();
 	
         if ( verbose_outputDistCalc ) {
             cout << "Before standarization" << endl;
             for ( int ientry=0 ; ientry < nentries; ientry++){
-                cout << phi_X_cms[ientry] << "," << cosTheta_eta_gjs[ientry] << endl;
+                cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
+                //cout << phi_X_cms[ientry] <<endl;// "," << cosTheta_eta_gjs[ientry] << endl;
             }
         }
 	//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
@@ -149,21 +184,71 @@ int main( int argc, char* argv[] ){
 	// outputting the results before and after standardizeArray will show that it works
 	// for(auto& cosTheta_X_cm1 : cosTheta_X_cms){ cout << cosTheta_X_cm1 << endl; }
 	
-         
-	standardizeArray(cosTheta_X_cms, nentries, "cosTheta_X_cms"); 
-	standardizeArray(phi_X_cms, nentries, "phi_X_cms"); 
-	standardizeArray(cosTheta_eta_gjs,nentries,"cosTheta_eta_gjs");
-	standardizeArray(phi_eta_gjs,nentries,"phi_eta_gjs");
-	standardizeArray(Mpi0s,nentries,"Mpi0s");
-	standardizeArray(cosThetaHighestEphotonIneta_gjs,nentries,"cosThetaHighestEphotonIneta_gjs");
-	standardizeArray(cosThetaHighestEphotonInpi0_cms,nentries,"cosThetaHighestEphotonInpi0_cms");
+        standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries);
+        standardizeArray class_phi_X_cms(phi_X_cms,nentries);
+        standardizeArray class_cosTheta_eta_gjs(cosTheta_eta_gjs,nentries);
+        standardizeArray class_phi_eta_gjs(phi_eta_gjs,nentries);
+        standardizeArray class_Mpi0s(Mpi0s,nentries);
+        standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries);
+        standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries);
+        standardizeArray class_vanHove_xs(vanHove_xs,nentries);
+        standardizeArray class_vanHove_ys(vanHove_ys,nentries);
+        standardizeArray class_vanHove_omegas(vanHove_omegas,nentries);
+        standardizeArray class_pi0_energies(pi0_energies, nentries);
+        standardizeArray class_mandelstam_tps(mandelstam_tps, nentries);
+
+        class_cosTheta_X_cms.stdevStandardization();
+        class_phi_X_cms.stdevStandardization();
+        class_cosTheta_eta_gjs.stdevStandardization();
+        class_phi_eta_gjs.stdevStandardization();
+        class_Mpi0s.stdevStandardization();
+        class_cosThetaHighestEphotonIneta_gjs.stdevStandardization();
+        class_cosThetaHighestEphotonInpi0_cms.stdevStandardization();
+        class_vanHove_xs.stdevStandardization();
+        class_vanHove_ys.stdevStandardization();
+        class_vanHove_omegas.stdevStandardization();
+        class_pi0_energies.stdevStandardization();
+        class_mandelstam_tps.stdevStandardization();
+
+        cosTheta_X_cms = class_cosTheta_X_cms.getVector();
+        phi_X_cms=class_phi_X_cms.getVector();
+        cosTheta_eta_gjs=class_cosTheta_eta_gjs.getVector();
+        phi_eta_gjs=class_phi_eta_gjs.getVector();
+        Mpi0s=class_Mpi0s.getVector();
+        cosThetaHighestEphotonIneta_gjs=class_cosThetaHighestEphotonIneta_gjs.getVector();
+        cosThetaHighestEphotonInpi0_cms=class_cosThetaHighestEphotonInpi0_cms.getVector();
+        vanHove_xs=class_vanHove_xs.getVector();
+        vanHove_ys=class_vanHove_xs.getVector();
+        vanHove_omegas=class_vanHove_omegas.getVector();
+        pi0_energies=class_pi0_energies.getVector();
+        mandelstam_tps=class_mandelstam_tps.getVector();
+
+        map<std::string, std::vector<double>> nameToVec;
+        nameToVec["cosTheta_X_cms"] = cosTheta_X_cms;
+        nameToVec["phi_X_cms"] = phi_X_cms; 
+        nameToVec["cosTheta_eta_gjs"] = cosTheta_eta_gjs; 
+        nameToVec["phi_eta_gjs"] = phi_eta_gjs; 
+        nameToVec["Mpi0s"] = Mpi0s; 
+        nameToVec["cosThetaHighestEphotonIneta_gjs"] = cosThetaHighestEphotonIneta_gjs; 
+        nameToVec["cosThetaHighestEphotonInpi0_cms"] = cosThetaHighestEphotonInpi0_cms; 
+        nameToVec["vanHove_omegas"] = vanHove_omegas; 
+        nameToVec["vanHove_xs"] = vanHove_xs; 
+        nameToVec["vanHove_ys"] = vanHove_ys; 
+        nameToVec["pi0_energies"] = pi0_energies; 
+        nameToVec["mandelstam_tps"] = mandelstam_tps; 
 
 
+        //int nameMapCounter=0;
+	//for(auto elem : nameToVec){
+        //    phasePoint1[nameMapCounter] = elem.second[ientry];
+        //    ++nameMapCounter;
+	//}
 
         if ( verbose_outputDistCalc ) {
 	    cout << "After standardization" << endl;
             for ( int ientry=0 ; ientry < nentries; ientry++){
-                cout << cosTheta_X_cms[ientry] << "," << phi_X_cms[ientry] << endl;
+                cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
+                //cout << phi_X_cms[ientry] << endl;//"," << cosTheta_eta_gjs[ientry] << endl;
             }
         }
 
@@ -179,6 +264,14 @@ int main( int argc, char* argv[] ){
 
         distSort_kNN distKNN(kDim);
         pair<double,int> newPair;
+
+
+        // It is much slower to constantly read a map to get the vector rather than just importing it all into a vector first.
+        std::vector< std::vector< double > > varVector;
+        int numVars=parse.varStringSet.size();
+        for (int iVar=0; iVar<numVars; ++iVar){
+            varVector.push_back(nameToVec[parse.varStringSet[iVar]]);
+        }
 
         double comboStd; 
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
@@ -204,22 +297,41 @@ int main( int argc, char* argv[] ){
 		    discriminatorHist = new TH1F("","",50,0.05,0.25);
                 }
 
-		phasePoint1[0] = cosTheta_X_cms[ientry];
-		phasePoint1[1] = phi_X_cms[ientry];
-		phasePoint1[2] = cosTheta_eta_gjs[ientry];
-		phasePoint1[3] = phi_eta_gjs[ientry];
-		phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
-		phasePoint1[5] = cosThetaHighestEphotonInpi0_cms[ientry];
+                for ( int iVar=0; iVar<numVars; ++iVar ){
+                    phasePoint1[iVar] = varVector[iVar][ientry];
+                }
+                
+		//phasePoint1[0] = cosTheta_X_cms[ientry];
+		//phasePoint1[1] = phi_X_cms[ientry];
+		//phasePoint1[2] = cosTheta_eta_gjs[ientry];
+		//phasePoint1[3] = phi_eta_gjs[ientry];
+		//phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
+		//phasePoint1[5] = cosThetaHighestEphotonInpi0_cms[ientry];
+                //phasePoint1[6] = mandelstam_tps[ientry];
+                //phasePoint1[6] = pi0_energies[ientry];
                 //phasePoint1[6] = Mpi0s[ientry];
+                //phasePoint1[6] = vanHove_omegas[ientry];
+                //phasePoint1[6] = vanHove_xs[ientry];
+                //phasePoint1[7] = vanHove_ys[ientry];
 		for (int jentry=0; jentry<nentries; jentry++){
                         if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
-		        phasePoint2[0] = cosTheta_X_cms[jentry];
-			phasePoint2[1] = phi_X_cms[jentry];
-			phasePoint2[2] = cosTheta_eta_gjs[jentry];
-			phasePoint2[3] = phi_eta_gjs[jentry];
-			phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
-			phasePoint2[5] = cosThetaHighestEphotonInpi0_cms[jentry];
+        
+                        for ( int iVar=0; iVar<numVars; ++iVar ){
+                            phasePoint2[iVar] = varVector[iVar][jentry];
+                        }
+                        
+		        //phasePoint2[0] = cosTheta_X_cms[jentry];
+			//phasePoint2[1] = phi_X_cms[jentry];
+			//phasePoint2[2] = cosTheta_eta_gjs[jentry];
+			//phasePoint2[3] = phi_eta_gjs[jentry];
+			//phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
+			//phasePoint2[5] = cosThetaHighestEphotonInpi0_cms[jentry];
+                        //phasePoint1[6] = mandelstam_tps[ientry];
+                        //phasePoint1[6] = pi0_energies[ientry];
 			//phasePoint2[6] = Mpi0s[jentry];
+                        //phasePoint2[6] = vanHove_omegas[jentry];
+                        //phasePoint2[6] = vanHove_xs[jentry];
+                        //phasePoint2[7] = vanHove_ys[jentry];
 			if (jentry != ientry){
 		    	        distance = calc_distance(phasePoint1,phasePoint2);
                                 //distance = rgen.Uniform(nentries);
@@ -286,20 +398,20 @@ int main( int argc, char* argv[] ){
 		fit->SetParName(1,"Amp_Gaus1");
 		fit->SetParName(2,"Mean_Gaus1");
 		fit->SetParName(3,"Sigma_Gaus1");
-		//fit->SetParName(4,"Amp_Gaus2");
+		fit->SetParName(4,"Amp_Gaus2");
 		//fit->SetParName(5,"Mean_Gaus2");
-		//fit->SetParName(6,"Sigma_Gaus2");
+		fit->SetParName(5,"Sigma_Gaus2");
                 if (useEta) { 
-		    fit->SetParameters(5,70,0.545,0.008);//,10,0.51,0.04);
+		    fit->SetParameters(5,50,0.545,0.01,20,0.03);
 		    fit->SetParLimits(0, 0, kDim);
 		    fit->SetParLimits(1, 0, kDim);
 		    //fit->SetParLimits(2,0.53,0.56);
 		    //fit->SetParLimits(3,0.009,0.1);
 		    fit->SetParLimits(2,0.50,0.56);
-		    fit->SetParLimits(3,0.001,0.1);
+		    fit->SetParLimits(3,0.005,0.1);
 		    //fit->SetParLimits(4, 0, 0);// kDim);
-		    //fit->SetParLimits(5, 0, 0);//0.49,0.55);
-		    //fit->SetParLimits(6, 0, 0);//0.02, 0.06);
+		    fit->SetParLimits(4, 0, kDim);//0.49,0.55);
+		    fit->SetParLimits(5, 0.02, 0.04);//0.02, 0.06);
                 }
                 else {
 		    fit->SetParameters(5,70,0.135,0.01,10,0,0,0);
