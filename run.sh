@@ -1,11 +1,11 @@
-kDim=400
-numberEventsToSavePerProcess=10
+kDim=200
+numberEventsToSavePerProcess=2
 nProcess=30
 seedShift=12314
-nentries=10
+nentries=300
 override_nentries=0
 verbose=0
-varString="varNameSet"
+varString="cosTheta_X_cms;phi_X_cms;cosTheta_eta_gjs;phi_eta_gjs;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms"
 
 g++ -o main main.C `root-config --cflags --glibs`
 rm histograms/*
@@ -19,5 +19,7 @@ done
 
 wait
 
-cat logs/* > diagnostic_logs.txt
+cat logs/log* > diagnostic_logs.txt
+rm qvalResults.root
+hadd qvalResults.root logs/results*
 root -l -b -q makeDiagnosticHists.C

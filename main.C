@@ -63,7 +63,7 @@ int main( int argc, char* argv[] ){
 	//start = clock();
 	
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("/d/grid15/ln16/pi0eta/092419/pi0eta_a0_recotreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
@@ -105,6 +105,8 @@ int main( int argc, char* argv[] ){
         dataTree->SetBranchAddress("event",&eventNumber);
         dataTree->SetBranchAddress("AccWeight",&AccWeight);
 
+
+
 	if (!override_nentries){
 		nentries=dataTree->GetEntries();
 	}
@@ -112,7 +114,14 @@ int main( int argc, char* argv[] ){
 
 	double batchEntries = nentries/nProcess;
 	double lowest_nentry = iProcess*batchEntries;
-	double largest_nentry = (iProcess+1)*batchEntries;
+	double largest_nentry;
+        if (iProcess!=(nProcess-1)) {
+            largest_nentry  = (iProcess+1)*batchEntries;
+        }
+        else {
+            largest_nentry = nentries; 
+        }
+
 	if(verbose){cout << "nentries we will use for this process: " << lowest_nentry << ", " << largest_nentry << endl;}
 
 	// opening a file to write my log data to
@@ -148,11 +157,14 @@ int main( int argc, char* argv[] ){
 	std::vector<double> vanHove_ys; vanHove_ys.reserve(c_nentries);
 	std::vector<double> vanHove_omegas; vanHove_omegas.reserve(c_nentries);
         std::vector<double> AccWeights; AccWeights.reserve(c_nentries);
-
+        
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
 	for (int ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
+                //if ( ientry != eventNumber){ cout << "ientry != eventNumber. The events are in the root tree are out of order or missing!" <<
+                //        "\n ientry,eventNumber: " << ientry << ", " << eventNumber << endl; break; }
+                //                ***** THE COMBINATIONS COME IN AT RANDOM ORDERS! ***** DOESNT MATTER I THINK
 		Metas.push_back(Meta);
 		Mpi0s.push_back(Mpi0);
 		Mpi0etas.push_back(Mpi0eta);
@@ -169,7 +181,7 @@ int main( int argc, char* argv[] ){
                 mandelstam_tps.push_back(mandelstam_tp);
                 AccWeights.push_back(AccWeight);
 	}
-	dataFile->Close();
+        cout << "Size of each array: " << AccWeights.size() << endl;
 	
         if ( verbose_outputDistCalc ) {
             cout << "Before standarization" << endl;
@@ -183,12 +195,11 @@ int main( int argc, char* argv[] ){
 
 	// outputting the results before and after standardizeArray will show that it works
 	// for(auto& cosTheta_X_cm1 : cosTheta_X_cms){ cout << cosTheta_X_cm1 << endl; }
-	
+	// **** WE FIRST IMPORT THE DATA INTO A CLASS, SAVES AN INTERNAL COPY
         standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries);
         standardizeArray class_phi_X_cms(phi_X_cms,nentries);
         standardizeArray class_cosTheta_eta_gjs(cosTheta_eta_gjs,nentries);
         standardizeArray class_phi_eta_gjs(phi_eta_gjs,nentries);
-        standardizeArray class_Mpi0s(Mpi0s,nentries);
         standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries);
         standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries);
         standardizeArray class_vanHove_xs(vanHove_xs,nentries);
@@ -196,12 +207,14 @@ int main( int argc, char* argv[] ){
         standardizeArray class_vanHove_omegas(vanHove_omegas,nentries);
         standardizeArray class_pi0_energies(pi0_energies, nentries);
         standardizeArray class_mandelstam_tps(mandelstam_tps, nentries);
+        //standardizeArray class_Mpi0s(Mpi0s,nentries);
+        //standardizeArray class_Metas(Metas,nentries);
 
+        // ***** STANDARDIZES THE INTERAL COPY 
         class_cosTheta_X_cms.stdevStandardization();
         class_phi_X_cms.stdevStandardization();
         class_cosTheta_eta_gjs.stdevStandardization();
         class_phi_eta_gjs.stdevStandardization();
-        class_Mpi0s.stdevStandardization();
         class_cosThetaHighestEphotonIneta_gjs.stdevStandardization();
         class_cosThetaHighestEphotonInpi0_cms.stdevStandardization();
         class_vanHove_xs.stdevStandardization();
@@ -209,12 +222,14 @@ int main( int argc, char* argv[] ){
         class_vanHove_omegas.stdevStandardization();
         class_pi0_energies.stdevStandardization();
         class_mandelstam_tps.stdevStandardization();
-
+        //class_Mpi0s.stdevStandardization();
+        //class_Metas.stdevStandardization();
+    
+        // ******* REPLACES THE ORIGNAL WITH THE STANDARDIZED COPY INSIDE THE ARRAY
         cosTheta_X_cms = class_cosTheta_X_cms.getVector();
         phi_X_cms=class_phi_X_cms.getVector();
         cosTheta_eta_gjs=class_cosTheta_eta_gjs.getVector();
         phi_eta_gjs=class_phi_eta_gjs.getVector();
-        Mpi0s=class_Mpi0s.getVector();
         cosThetaHighestEphotonIneta_gjs=class_cosThetaHighestEphotonIneta_gjs.getVector();
         cosThetaHighestEphotonInpi0_cms=class_cosThetaHighestEphotonInpi0_cms.getVector();
         vanHove_xs=class_vanHove_xs.getVector();
@@ -222,13 +237,14 @@ int main( int argc, char* argv[] ){
         vanHove_omegas=class_vanHove_omegas.getVector();
         pi0_energies=class_pi0_energies.getVector();
         mandelstam_tps=class_mandelstam_tps.getVector();
+        //Mpi0s=class_Mpi0s.getVector();
+        //Metas=class_Metas.getVector();
 
         map<std::string, std::vector<double>> nameToVec;
         nameToVec["cosTheta_X_cms"] = cosTheta_X_cms;
         nameToVec["phi_X_cms"] = phi_X_cms; 
         nameToVec["cosTheta_eta_gjs"] = cosTheta_eta_gjs; 
         nameToVec["phi_eta_gjs"] = phi_eta_gjs; 
-        nameToVec["Mpi0s"] = Mpi0s; 
         nameToVec["cosThetaHighestEphotonIneta_gjs"] = cosThetaHighestEphotonIneta_gjs; 
         nameToVec["cosThetaHighestEphotonInpi0_cms"] = cosThetaHighestEphotonInpi0_cms; 
         nameToVec["vanHove_omegas"] = vanHove_omegas; 
@@ -236,6 +252,8 @@ int main( int argc, char* argv[] ){
         nameToVec["vanHove_ys"] = vanHove_ys; 
         nameToVec["pi0_energies"] = pi0_energies; 
         nameToVec["mandelstam_tps"] = mandelstam_tps; 
+        nameToVec["Mpi0s"] = Mpi0s; 
+        nameToVec["Metas"] = Metas; 
 
 
         //int nameMapCounter=0;
@@ -260,7 +278,6 @@ int main( int argc, char* argv[] ){
 	double phasePoint2[dim];
 	double distance;
 	double qvalue;
-	double conjugate_qvalue;
 
         distSort_kNN distKNN(kDim);
         pair<double,int> newPair;
@@ -274,201 +291,223 @@ int main( int argc, char* argv[] ){
         }
 
         double comboStd; 
+        double chiSq;
+        ULong64_t flatEntryNumber;
+        double bestQ;
+        double bestChiSq;
+
+        TFile *resultsFile = new TFile(("logs/results"+to_string(iProcess)+".root").c_str(),"RECREATE");
+        TTree* resultsTree = new TTree("resultsTree","results");
+        resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
+        resultsTree->Branch("qvalue",&bestQ,"qvalue/D");
+        resultsTree->Branch("chisq",&bestChiSq,"chisq/D");
+        resultsTree->Branch("combostd",&comboStd,"combostd/D");
+
+        std::vector<double> binRange;
+        std::vector<double> fitRange;
+	TF1* fit;
+        TF1* bkgFit;
+        TF1* sigFit;
+        if (useEta){
+            binRange={50,0.35,0.8};
+            fitRange={0.425,0.7};
+        } 
+        else{ 
+            binRange={50,0.05,0.25};
+            fitRange={0.1,0.17};
+        }
+
+        int nBest100Bkg=0;
+        int nBest100Sig=0;
+        int nBest50Bkg50Sig=0;
+        // Getting the scaling of the flat bkg is a bit tricky. Have to count how much bins we have in our fit range. kDim divided by the bins in fit range is the height of the flat function.
+        double constAmp = (double)kDim/( (fitRange[1]-fitRange[0])/((binRange[2]-binRange[1])/binRange[0]) ) ;
+        double flatAmpInit[3]={constAmp,0,constAmp/2};
+        double gausAmpInit[3]={0,(double)kDim,(double)kDim/2};
+        //cout << "\n";
+        //cout << "Flat: Amp1, Amp2, Amp3: " << flatAmpInit[0] << ", " << flatAmpInit[1] << ", " << flatAmpInit[2]<< endl;
+        //cout << "Gaus: Amp1, Amp2, Amp3: " << gausAmpInit[0] << ", " << gausAmpInit[1] << ", " << gausAmpInit[2]<< endl;
+        //cout << "\n" << endl;
+
+
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
 	// Then we can plot the k nearest neighbors in the discriminating distribution which happens to be a double gaussian and flat bkg. Calculate Q-Value from event
 	// i's discriminating variable's value. This value will be plugged into the signal PDF and the total PDF. The ratio of these two values are taken which is the Q-Value.
 	//logFile << std::fixed << std::setprecision(6);
-	for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
-                cumulativeStd std(kDim);
-                //std = new cumulativeStd(kDim);
-		if(verbose) { cout << "Getting next event!\n--------------------------------\n" << endl;  }
-		//duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-		auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-		auto duration_beginEvent = std::chrono::high_resolution_clock::now();
-		if(verbose){cout << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
-		if(verbose2){logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
-		mapDistToJ.clear();
-		distances.clear();
-		allCanvases->Clear();
-                if ( useEta) { 
-		    discriminatorHist = new TH1F("","",50,0.35,0.8);
-		}
-                else {
-		    discriminatorHist = new TH1F("","",50,0.05,0.25);
-                }
+        for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
+                flatEntryNumber=ientry;
+                cumulativeStd stdCalc(kDim);
+
+	        if(verbose) { cout << "Getting next event!\n--------------------------------\n" << endl;  }
+	        auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+	        auto duration_beginEvent = std::chrono::high_resolution_clock::now();
+	        if(verbose2){logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
+
+                // clear data from previous events
+	        mapDistToJ.clear();
+	        distances.clear();
+	        allCanvases->Clear();
+	        discriminatorHist = new TH1F("","",binRange[0],binRange[1],binRange[2]);
 
                 for ( int iVar=0; iVar<numVars; ++iVar ){
                     phasePoint1[iVar] = varVector[iVar][ientry];
                 }
-                
-		//phasePoint1[0] = cosTheta_X_cms[ientry];
-		//phasePoint1[1] = phi_X_cms[ientry];
-		//phasePoint1[2] = cosTheta_eta_gjs[ientry];
-		//phasePoint1[3] = phi_eta_gjs[ientry];
-		//phasePoint1[4] = cosThetaHighestEphotonIneta_gjs[ientry];
-		//phasePoint1[5] = cosThetaHighestEphotonInpi0_cms[ientry];
-                //phasePoint1[6] = mandelstam_tps[ientry];
-                //phasePoint1[6] = pi0_energies[ientry];
-                //phasePoint1[6] = Mpi0s[ientry];
-                //phasePoint1[6] = vanHove_omegas[ientry];
-                //phasePoint1[6] = vanHove_xs[ientry];
-                //phasePoint1[7] = vanHove_ys[ientry];
-		for (int jentry=0; jentry<nentries; jentry++){
-                        if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
+	        for (int jentry=0; jentry<nentries; jentry++){
+                     if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
         
-                        for ( int iVar=0; iVar<numVars; ++iVar ){
-                            phasePoint2[iVar] = varVector[iVar][jentry];
-                        }
-                        
-		        //phasePoint2[0] = cosTheta_X_cms[jentry];
-			//phasePoint2[1] = phi_X_cms[jentry];
-			//phasePoint2[2] = cosTheta_eta_gjs[jentry];
-			//phasePoint2[3] = phi_eta_gjs[jentry];
-			//phasePoint2[4] = cosThetaHighestEphotonIneta_gjs[jentry];
-			//phasePoint2[5] = cosThetaHighestEphotonInpi0_cms[jentry];
-                        //phasePoint1[6] = mandelstam_tps[ientry];
-                        //phasePoint1[6] = pi0_energies[ientry];
-			//phasePoint2[6] = Mpi0s[jentry];
-                        //phasePoint2[6] = vanHove_omegas[jentry];
-                        //phasePoint2[6] = vanHove_xs[jentry];
-                        //phasePoint2[7] = vanHove_ys[jentry];
-			if (jentry != ientry){
-		    	        distance = calc_distance(phasePoint1,phasePoint2);
-                                //distance = rgen.Uniform(nentries);
-                                distKNN.insertPair(make_pair(distance,jentry));
-			}
-			//if ( verbose) { 
-			//	cout << "CURRENT SET: " << endl;
-			//	for(auto elem : mapDistToJ){
-			//		std::cout << elem.first << " " << elem.second << "\n";
-			//	}
-			//}
-		}
-		duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-		if(verbose2){logFile << "	Found neighbors: " << duration2 << "ms" << endl; }
-		//// Filling the discriminatorHist with all the nearest neighbors 
-		//for(auto elem : mapDistToJ){
-		//	discriminatorHist->Fill(Metas[elem.second]);
-		//}
-		//for (int i=0; i<200; i++){
-		//	discriminatorHist->Fill(rgen.Gaus(0.55,0.15));
-		//}
-		if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim!" << endl; exit(0); }
-                //cout << "New Event\n" ;
+                     for ( int iVar=0; iVar<numVars; ++iVar ){
+                         phasePoint2[iVar] = varVector[iVar][jentry];
+                     }
+	             if (jentry != ientry){
+	                     distance = calc_distance(phasePoint1,phasePoint2);
+                             //distance = rgen.Uniform(nentries);
+                             distKNN.insertPair(make_pair(distance,jentry));
+	             }
+	            //if ( verbose) { 
+	            //	cout << "CURRENT SET: " << endl;
+	            //	for(auto elem : mapDistToJ){
+	            //		std::cout << elem.first << " " << elem.second << "\n";
+	            //	}
+	            //}
+	        }
+	        duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+	        if(verbose2){logFile << "	Found neighbors: " << duration2 << "ms" << endl; }
+	        if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim! size,kDim="<< distKNN.kNN.size() << "," << kDim 
+                    << " -- if size is 1 less than kDim it is probably because kDim=nentries and event i cannot be a neighbor to itself" << endl;}
                 while ( distKNN.kNN.empty() == false ){
                         newPair = distKNN.kNN.top();
-                        std.insertValue(Metas[newPair.second]);
                         distKNN.kNN.pop();
                         if ( useEta ){
-                            discriminatorHist->Fill(Metas[newPair.second]);
+                            discriminatorHist->Fill(Metas[newPair.second]);//,AccWeights[newPair.second]);
+                            stdCalc.insertValue(Metas[newPair.second]);
                         }
                         else {
-                            discriminatorHist->Fill(Mpi0s[newPair.second]);
+                            discriminatorHist->Fill(Mpi0s[newPair.second]);//,AccWeights[newPair.second]);
+                            stdCalc.insertValue(Mpi0s[newPair.second]);
                         }
                         //cout << "(" << newPair.first << ", " << newPair.second << ")"; 
                         //cout << endl; 
                 }
-                comboStd = std.calcStd();
+                comboStd = stdCalc.calcStd();
                 
-		//duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-		//if(verbose2){logFile << "	Filled neighbors: " << duration2 << "ms" << endl;}
+	        //duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+	        //if(verbose2){logFile << "	Filled neighbors: " << duration2 << "ms" << endl;}
 	
-		// Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the Meta has a asymmetry
-		// such that there are more events to the left side of the peak. The second gaussian will have lower amplitude and a large sigma with a left shifted mean. We also want to 
-		// fix the amplitudes and constnat background to be strictly positive and choose kDim as the max value ( which is reached only if all values are filled into a single bin)
-		
-    
-	        TF1* fit;
-                TF1* bkgFit;
-                TF1* sigFit;
-                if (useEta){
-		    fit = new TF1("fit",fitFunc,0.425,0.7,numDOFbkg+numDOFsig);
-		    bkgFit = new TF1("bkgFit",background,0.425,0.7,numDOFbkg);
-		    sigFit = new TF1("sigFit",signal,0.425,0.7,numDOFsig);
-		}
-                else { 
-		    fit = new TF1("fit",fitFunc,0.1,0.17,numDOFbkg+numDOFsig);
-		    bkgFit = new TF1("bkgFit",background,0.1,0.17,numDOFbkg);
-		    sigFit = new TF1("sigFit",signal,0.1,0.17,numDOFsig);
-                }
-		bkgFit->SetLineColor(kMagenta);
-		sigFit->SetLineColor(kBlue);
-		Double_t par[numDOFbkg+numDOFsig];
-		fit->SetParName(0,"const");
-		fit->SetParName(1,"Amp_Gaus1");
-		fit->SetParName(2,"Mean_Gaus1");
-		fit->SetParName(3,"Sigma_Gaus1");
-		fit->SetParName(4,"Amp_Gaus2");
-		//fit->SetParName(5,"Mean_Gaus2");
-		fit->SetParName(5,"Sigma_Gaus2");
-                if (useEta) { 
-		    fit->SetParameters(5,50,0.545,0.01,20,0.03);
-		    fit->SetParLimits(0, 0, kDim);
-		    fit->SetParLimits(1, 0, kDim);
-		    //fit->SetParLimits(2,0.53,0.56);
-		    //fit->SetParLimits(3,0.009,0.1);
-		    fit->SetParLimits(2,0.50,0.56);
-		    fit->SetParLimits(3,0.005,0.1);
-		    //fit->SetParLimits(4, 0, 0);// kDim);
-		    fit->SetParLimits(4, 0, kDim);//0.49,0.55);
-		    fit->SetParLimits(5, 0.02, 0.04);//0.02, 0.06);
-                }
-                else {
-		    fit->SetParameters(5,70,0.135,0.01,10,0,0,0);
-                    fit->SetParLimits(0, 0, kDim);
-                    fit->SetParLimits(1, 0, kDim);
-                    fit->SetParLimits(2, 0.12, 0.1425);
-                    fit->SetParLimits(3, 0.001, 0.01);
-                    fit->SetParLimits(4,0,0);
-                    fit->SetParLimits(5,0,0);
-                    fit->SetParLimits(6,0,0);
-		}
-		discriminatorHist->Fit("fit","RQB"); // B will enforce the bounds
-		fit->GetParameters(par);
-		bkgFit->SetParameters(par);
-		sigFit->SetParameters(&par[numDOFbkg]);
-                if ( useEta) { 
-		    qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-                }
-                else {
-		    qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
-                }
-		conjugate_qvalue = 1-qvalue;
-		if(verbose2){
-			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-			logFile << "	Got Q-value: " << duration2 <<  "ms" << endl;
-		}
+	        // Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the Meta has a asymmetry
+	        // such that there are more events to the left side of the peak. The second gaussian will have lower amplitude and a large sigma with a left shifted mean. We also want to 
+	        // fix the amplitudes and constnat background to be strictly positive and choose kDim as the max value ( which is reached only if all values are filled into a single bin)
+	        
+                
+                // We will always do 3 fits per event. In the original paper on Q-factors they use 100% bkg, %100 signal, 50% bkg and 50% signal.
+     
+                //ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2");
+	        Double_t par[numDOFbkg+numDOFsig]; // needed to calculate the qvalue
+	        Double_t parBest[numDOFbkg+numDOFsig]; // needed to save the best initialization
 
-		// Here we draw the histograms that were randomly selected
-		logFile << ientry << " " << qvalue << " " << fit->GetChisquare()<< " " << comboStd << endl;//"\t" << Metas[ientry] << "\t" << Mpi0s[ientry] << endl;
-		if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
-			discriminatorHist->SetTitle(("QValue="+to_string(qvalue)+"  ChiSq="+to_string(fit->GetChisquare())+"     Std="+to_string(comboStd)).c_str());
-			discriminatorHist->Draw();
+                bestQ=0;
+                bestChiSq=DBL_MAX;
+                int best_iFit=0;
+
+                for (UInt_t iFit=0; iFit<3; ++iFit){
+                    // We use a normalized gaussian and a flat function. 
+	            fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
+	            bkgFit = new TF1("bkgFit",background,fitRange[0],fitRange[1],numDOFbkg);
+	            sigFit = new TF1("sigFit",signal,fitRange[0],fitRange[1],numDOFsig);
+
+                    // Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
+                    if (useEta) { 
+	                fit->SetParameters(flatAmpInit[iFit],gausAmpInit[iFit],0.544,0.022);//,20,0.03);
+                    }
+                    else {
+	                fit->SetParameters(flatAmpInit[iFit],gausAmpInit[iFit],0.134,0.0069);
+	            }
+                    // we have to enforce the functions to be positive. Easiest way is to make min=0 and max=kDim, the number of neighbors
+                    fit->SetParLimits(0,0,kDim); 
+                    fit->SetParLimits(1,0,kDim); 
+
+	            //discriminatorHist->Fit("fit","RQBWL"); // WL for weighted histogram fitting
+	            discriminatorHist->Fit("fit","RQBN"); // B will enforce the bounds, N will be no draw
+                    chiSq = fit->GetChisquare();
+                    if (verbose2) { logFile << "current ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
+
+                    if (chiSq < bestChiSq){
+	                fit->GetParameters(par);
+	                bkgFit->SetParameters(par);
+	                sigFit->SetParameters(&par[numDOFbkg]);
                         if ( useEta) { 
-        		    etaLine = new TLine(Metas[ientry],0,Metas[ientry],discriminatorHist->GetMaximum());
+	                    qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
                         }
-                        else { 
-        		    etaLine = new TLine(Mpi0s[ientry],0,Mpi0s[ientry],discriminatorHist->GetMaximum());
+                        else {
+	                    qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
                         }
-			etaLine->SetLineColor(kOrange);
-			//bkgFit->Draw("same");
-			//sigFit->Draw("same");
-  			bkgFit->SetFillColor(kMagenta);
-  			bkgFit->SetFillStyle(3004);
-  			bkgFit->Draw("SAME FC");
-  			sigFit->SetFillColor(kBlue);
-  			sigFit->SetFillStyle(3005);
-  			sigFit->Draw("SAME FC");
-			etaLine->Draw("same");
-			allCanvases->SaveAs(("histograms/Mass-event"+std::to_string(ientry)+".png").c_str());
-		}
-		if(verbose2){
-			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
-			logFile << "	Delta T to finish event: " << duration2 <<  "ms" << endl;
-		}
-            
-	}
+                        bestChiSq=chiSq;
+                        bestQ=qvalue;
+                        best_iFit=iFit;
+                        for( int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
+                            parBest[iPar]=par[iPar];
+                        }
+                    } 
+	        }
+                 
+                if ( best_iFit == 0){ ++nBest100Bkg; }
+                if ( best_iFit == 1){ ++nBest100Sig; }
+                if ( best_iFit == 2){ ++nBest50Bkg50Sig; }
 
+	       // Here we draw the histograms that were randomly selected
+	       logFile << ientry << " " << bestQ << " " << bestChiSq << " " << comboStd << endl;//"\t" << Metas[ientry] << "\t" << Mpi0s[ientry] << endl;
+	       if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
+	           discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(bestQ)+"  ChiSq="+to_string(bestChiSq)+"     Std="+to_string(comboStd)+"    iFit="+to_string(best_iFit)).c_str());
+	           discriminatorHist->Draw();
+                   if ( useEta) { 
+               	        etaLine = new TLine(Metas[ientry],0,Metas[ientry],discriminatorHist->GetMaximum());
+                   }
+                   else { 
+               	        etaLine = new TLine(Mpi0s[ientry],0,Mpi0s[ientry],discriminatorHist->GetMaximum());
+                   }
+	           etaLine->SetLineColor(kOrange);
+
+                   // bkgFit and sigFit has parameters that are set by SetParameters in the for loop above. The SetParameters function is only called when the new chiSq is better than
+                   // the old. the "fit" function has parameters that are overwritten every time we do a fit so if we wanted to plot the best fit function we have to save the 
+                   // best paramters but for bkgFit and sigFit I think that the best params are inherently saved by the above setup.
+	           fit->GetParameters(parBest);
+	           bkgFit->SetParameters(parBest);
+	           sigFit->SetParameters(&parBest[numDOFbkg]);
+	           fit->SetParName(0,"const");
+	           fit->SetParName(1,"Amp_Gaus1");
+	           fit->SetParName(2,"Mean_Gaus1");
+	           fit->SetParName(3,"Sigma_Gaus1");
+
+                   fit->SetLineColor(kRed);
+                   fit->Draw("SAME");
+  	           bkgFit->SetFillColor(kMagenta);
+                   bkgFit->SetLineColor(kMagenta);
+  	           bkgFit->SetFillStyle(3004);
+  	           bkgFit->Draw("SAME FC");
+  	           sigFit->SetFillColor(kBlue);
+                   sigFit->SetLineColor(kBlue);
+  	           sigFit->SetFillStyle(3005);
+  	           sigFit->Draw("SAME FC");
+
+	           etaLine->Draw("same");
+	           allCanvases->SaveAs(("histograms/Mass-event"+std::to_string(ientry)+".png").c_str());
+	       }
+
+	       if(verbose2){
+		    duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+		    logFile << "	Best ChiSq (" << bestChiSq << ") with Q-value: " << bestQ << " -- time: " << duration2 <<  "ms" << endl;
+		    logFile << "	Delta T to finish event: " << duration2 <<  "ms" << endl;
+	       }
+               resultsTree->Fill();
+        } 
+        resultsFile->cd();
+        resultsTree->Write();
+        //resultsFile->Write();
+        cout << "nentries: " << nentries << endl;
+        cout << "Number of times 100% bkg initialization was the best: " << nBest100Bkg << endl;
+        cout << "Number of times 100% sig initialization was the best: " << nBest100Sig << endl;
+        cout << "Number of times 50/50 bkg/sig initialization was the best: " << nBest50Bkg50Sig << endl;
+        
+        
 	// Finish the log files by including an elapsed time and finally closing the file
 	auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 	//logFile << "Total time: " << duration2 << " ms" << endl;

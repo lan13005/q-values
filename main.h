@@ -15,6 +15,10 @@
 #include <TLine.h>
 #include <TROOT.h>
 #include <TStyle.h>
+#include <TMath.h>
+
+
+//#include "Math/MinimizerOptions.h"
 
 const int dim=7;
 bool verbose2=false;
@@ -46,9 +50,9 @@ Double_t background(Double_t *x, Double_t *par){
 	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0]+par[3]*x[0]*x[0]*x[0]+par[4]*x[0]*x[0]*x[0]*x[0];
 }
 
-int numDOFsig = 5;
+int numDOFsig = 3;
 Double_t signal(Double_t *x, Double_t *par){
-	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2])) + par[3]*exp(-0.5*((x[0]-par[1])/par[4])*((x[0]-par[1])/par[4]));
+	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[1])/par[4])*((x[0]-par[1])/par[4]));
 	//return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
 	//return (x[0]-par[0])*(x[0]-par[0]);
 
@@ -216,28 +220,29 @@ class distSort_kNN
 class cumulativeStd{
     public:
         std::vector<double> inputVector;
+        // kDim would be the typical size of the calculation. But sometimes we will choose nentries < kDim when testing quickly (this is never the case in real example though)
         cumulativeStd ( int kDim ){ _kDim=kDim; inputVector.reserve(_kDim); }
         void insertValue ( double value ) {
             inputVector[_timesCalled] = value;
             ++_timesCalled;
         }
         double calcStd(){
-            if (_timesCalled != _kDim){ return -1; } 
-
-            for (int i=0; i<_kDim; ++i){
+            for (int i=0; i<_timesCalled; ++i){
                 _sum+=inputVector[i];
             }
-            _sum /= _kDim;
+            _sum /= _timesCalled;
             _mean=_sum; _sum=0;
             //cout << "mean: " << _mean << endl;
-            for (int i=0; i<_kDim; ++i){
+            for (int i=0; i<_timesCalled; ++i){
                 _diff = (inputVector[i]-_mean);
                 _sum += _diff*_diff;
                 //cout << "sum: " << _sum << endl;
             }
-            _sum /= _kDim;
+            _sum /= _timesCalled;
             return sqrt(_sum);
         }
+
+
     private:
         int _timesCalled=0;
         double _sum=0;
