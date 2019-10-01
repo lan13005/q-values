@@ -20,6 +20,9 @@
 
 //#include "Math/MinimizerOptions.h"
 
+double peakWidth_eta[2] = {0.544,0.022};
+double peakWidth_pi0[2] = {0.134,0.0069};
+
 const int dim=7;
 bool verbose2=false;
 bool verbose_outputDistCalc=false;
@@ -60,6 +63,19 @@ Double_t signal(Double_t *x, Double_t *par){
 
 Double_t fitFunc(Double_t *x, Double_t *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
+}
+
+double gausAmplitude( double xmin, double binsize, int binsToStep, int kDim, Double_t *par){
+    // So this goal of this function is to calculate the Amplitude we need to scale a unit gaussian by to get the entries = k in kDim. 
+    // In a perfect fit with some peak and width the gausssian overlays the bins heights perfectly. If we can evaluate the gaussian at various peaks
+    // we can get the counts. Do a discrete sum over all the bin heights to get the count. 
+    double discreteSum=0;
+    double x = xmin;
+    for (int iBin=0; iBin<binsToStep; ++iBin){
+        discreteSum+=signal(&x, par);
+        x+=binsize;
+    }
+    return (double)kDim/discreteSum;
 }
 
 class standardizeArray{

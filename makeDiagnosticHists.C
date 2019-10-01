@@ -4,7 +4,8 @@ bool verbose = true;
 void makeDiagnosticHists(){
 
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
+	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
 	gStyle->SetOptFit(111);
@@ -148,7 +149,7 @@ void makeDiagnosticHists(){
 
         allCanvases->Clear();
         dHist_std->Draw();
-        allCanvases->SaveAs("combostds.png");
+        allCanvases->SaveAs("diagnosticPlots/combostds.png");
 	THStack* stackedHists = new THStack("stackedHists","");
         //allCanvases->Clear();
         //dHist_qvalues_bkgRegion->SetFillColorAlpha(kBlue,0.3);
@@ -159,7 +160,7 @@ void makeDiagnosticHists(){
 	//stackedHists->GetXaxis()->SetTitle(dHist_qvalues_bkgRegion->GetXaxis()->GetTitle());
 	//stackedHists->SetTitle("Q-Values");
 	dHist_qvalues->Draw();
-        allCanvases->SaveAs("qvalues.png");
+        allCanvases->SaveAs("diagnosticPlots/qvalues.png");
         allCanvases->Clear();
 	//stackedHists = new THStack("stackedHists","");
         //dHist_chisq_bkgRegion->SetFillColorAlpha(kBlue,0.3);
@@ -170,7 +171,7 @@ void makeDiagnosticHists(){
 	//stackedHists->GetXaxis()->SetTitle(dHist_chisq_bkgRegion->GetXaxis()->GetTitle());
 	//stackedHists->SetTitle("#Chi^2");
 	dHist_chisq->Draw();
-        allCanvases->SaveAs("chisq.png");
+        allCanvases->SaveAs("diagnosticPlots/chisq.png");
     
         cout << "Drew the imported data" << endl;
 
@@ -211,7 +212,7 @@ void makeDiagnosticHists(){
 	stackedHists->GetXaxis()->SetTitle(Meta_Qd->GetXaxis()->GetTitle());
 	stackedHists->GetYaxis()->SetTitle(Meta_Qd->GetYaxis()->GetTitle());
 	stackedHists->SetTitle(Meta_Qd->GetTitle());
-	allCanvases->SaveAs("Meta_Qd.png");
+	allCanvases->SaveAs("diagnosticPlots/Meta_Qd.png");
 	// ----------------- Mpi0 
 	stackedHists = new THStack("stackedHists","");
 	allCanvases->Clear();
@@ -223,7 +224,7 @@ void makeDiagnosticHists(){
 	stackedHists->GetXaxis()->SetTitle(Mpi0_Qd->GetXaxis()->GetTitle());
 	stackedHists->GetYaxis()->SetTitle(Mpi0_Qd->GetYaxis()->GetTitle());
 	stackedHists->SetTitle(Mpi0_Qd->GetTitle());
-	allCanvases->SaveAs("Mpi0_Qd.png");
+	allCanvases->SaveAs("diagnosticPlots/Mpi0_Qd.png");
 	// ----------------- Mpi0eta 
 	stackedHists = new THStack("stackedHists","");
 	allCanvases->Clear();
@@ -235,7 +236,7 @@ void makeDiagnosticHists(){
 	stackedHists->GetXaxis()->SetTitle(Mpi0eta_Qd->GetXaxis()->GetTitle());
 	stackedHists->GetYaxis()->SetTitle(Mpi0eta_Qd->GetYaxis()->GetTitle());
 	stackedHists->SetTitle(Mpi0eta_Qd->GetTitle());
-	allCanvases->SaveAs("Mpi0eta_Qd.png");
+	allCanvases->SaveAs("diagnosticPlots/Mpi0eta_Qd.png");
 
         cout << "FINIHSED!"<<endl;
 

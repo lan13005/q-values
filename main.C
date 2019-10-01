@@ -63,7 +63,8 @@ int main( int argc, char* argv[] ){
 	//start = clock();
 	
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
+	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
@@ -255,7 +256,6 @@ int main( int argc, char* argv[] ){
         nameToVec["Mpi0s"] = Mpi0s; 
         nameToVec["Metas"] = Metas; 
 
-
         //int nameMapCounter=0;
 	//for(auto elem : nameToVec){
         //    phasePoint1[nameMapCounter] = elem.second[ientry];
@@ -321,13 +321,28 @@ int main( int argc, char* argv[] ){
         int nBest100Sig=0;
         int nBest50Bkg50Sig=0;
         // Getting the scaling of the flat bkg is a bit tricky. Have to count how much bins we have in our fit range. kDim divided by the bins in fit range is the height of the flat function.
-        double constAmp = (double)kDim/( (fitRange[1]-fitRange[0])/((binRange[2]-binRange[1])/binRange[0]) ) ;
+        double numBinsInFit = (fitRange[1]-fitRange[0])/((binRange[2]-binRange[1])/binRange[0]);
+        double binSize=((binRange[2]-binRange[1])/binRange[0]);
+        // this will be a unit gaussian with peak location and width given in peakWidth array. 
+        double ampPeakWidth[3]; 
+        if (useEta){
+            ampPeakWidth[0]=1; ampPeakWidth[1]=peakWidth_eta[0]; ampPeakWidth[2]=peakWidth_eta[1];
+        }
+        else {
+            ampPeakWidth[0]=1; ampPeakWidth[1]=peakWidth_pi0[0]; ampPeakWidth[2]=peakWidth_pi0[1];
+        }
+        double constAmp = (double)kDim/numBinsInFit;
         double flatAmpInit[3]={constAmp,0,constAmp/2};
-        double gausAmpInit[3]={0,(double)kDim,(double)kDim/2};
-        //cout << "\n";
-        //cout << "Flat: Amp1, Amp2, Amp3: " << flatAmpInit[0] << ", " << flatAmpInit[1] << ", " << flatAmpInit[2]<< endl;
-        //cout << "Gaus: Amp1, Amp2, Amp3: " << gausAmpInit[0] << ", " << gausAmpInit[1] << ", " << gausAmpInit[2]<< endl;
-        //cout << "\n" << endl;
+        double gausAmp=gausAmplitude(fitRange[0],binSize,(int)numBinsInFit,kDim,&ampPeakWidth[0]); // see header file for info and motivation
+        double gausAmpInit[3]={0,gausAmp,gausAmp/2};
+        cout << "\n";
+        cout << "Num Bins In Fit: " << (int)numBinsInFit << endl;
+        cout << "BinSize: " << binSize << endl;
+        cout << "GausAmp that would have k total entries in the bins: " << gausAmp << endl;
+        cout << "   ^- Corresponds to a total amplitude of: " << gausAmp*1/TMath::Sqrt(2*TMath::Pi())/ampPeakWidth[2] << endl;
+        cout << "Flat: Amp1, Amp2, Amp3: " << flatAmpInit[0] << ", " << flatAmpInit[1] << ", " << flatAmpInit[2]<< endl;
+        cout << "Gaus: Amp1, Amp2, Amp3: " << gausAmpInit[0] << ", " << gausAmpInit[1] << ", " << gausAmpInit[2]<< endl;
+        cout << "\n" << endl;
 
 
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
@@ -416,10 +431,10 @@ int main( int argc, char* argv[] ){
 
                     // Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
                     if (useEta) { 
-	                fit->SetParameters(flatAmpInit[iFit],gausAmpInit[iFit],0.544,0.022);//,20,0.03);
+	                fit->SetParameters(flatAmpInit[iFit],gausAmpInit[iFit],peakWidth_eta[0],peakWidth_eta[1]);//,20,0.03);
                     }
                     else {
-	                fit->SetParameters(flatAmpInit[iFit],gausAmpInit[iFit],0.134,0.0069);
+	                fit->SetParameters(flatAmpInit[iFit],gausAmpInit[iFit],peakWidth_pi0[0],peakWidth_pi0[1]);
 	            }
                     // we have to enforce the functions to be positive. Easiest way is to make min=0 and max=kDim, the number of neighbors
                     fit->SetParLimits(0,0,kDim); 
@@ -427,7 +442,7 @@ int main( int argc, char* argv[] ){
 
 	            //discriminatorHist->Fit("fit","RQBWL"); // WL for weighted histogram fitting
 	            discriminatorHist->Fit("fit","RQBN"); // B will enforce the bounds, N will be no draw
-                    chiSq = fit->GetChisquare();
+                    chiSq = fit->GetChisquare()/(fit->GetNDF());
                     if (verbose2) { logFile << "current ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
 
                     if (chiSq < bestChiSq){

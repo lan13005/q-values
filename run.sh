@@ -1,6 +1,6 @@
 kDim=200
-numberEventsToSavePerProcess=2
-nProcess=30
+numberEventsToSavePerProcess=10
+nProcess=40
 seedShift=12314
 nentries=300
 override_nentries=0
