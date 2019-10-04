@@ -1,16 +1,23 @@
-kDim=200
-numberEventsToSavePerProcess=10
-nProcess=40
-seedShift=12314
-nentries=300
-override_nentries=0
+kDim=500
+numberEventsToSavePerProcess=5
+nProcess=30
+seedShift=125
+nentries=200000
+override_nentries=1
 verbose=0
-varString="cosTheta_X_cms;phi_X_cms;cosTheta_eta_gjs;phi_eta_gjs;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms"
+varString="cosTheta_X_cms;phi_X_cms;cosTheta_eta_gjs;phi_eta_gjs" #vanHove_omegas"
+
+
+numVars=$(($(grep varString run.sh | grep -o ";" | wc -l)))
+sed -i "s@dim=dimNum@dim=$numVars@g" main.h
 
 g++ -o main main.C `root-config --cflags --glibs`
+
+sed -i "s@dim=$numVars@dim=dimNum@g" main.h
 rm histograms/*
 rm logs/*
 rm diagnostic_logs.txt
+
 
 for ((iProcess=0; iProcess < $nProcess; iProcess++));
 do

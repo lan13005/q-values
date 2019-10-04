@@ -23,14 +23,15 @@
 double peakWidth_eta[2] = {0.544,0.022};
 double peakWidth_pi0[2] = {0.134,0.0069};
 
-const int dim=7;
-bool verbose2=false;
+const int dim=dimNum;
+bool verbose2=true;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
 
 using namespace std;
 
 
+// our distance calculation between two phase points
 double calc_distance( double phaseSpace_1[dim], double phaseSpace_2[dim] ){
 	double sum = 0;
 	double diff=0;
@@ -67,13 +68,15 @@ Double_t fitFunc(Double_t *x, Double_t *par){
 
 double gausAmplitude( double xmin, double binsize, int binsToStep, int kDim, Double_t *par){
     // So this goal of this function is to calculate the Amplitude we need to scale a unit gaussian by to get the entries = k in kDim. 
-    // In a perfect fit with some peak and width the gausssian overlays the bins heights perfectly. If we can evaluate the gaussian at various peaks
+    // In a perfect fit with some peak and width the gausssian overlays the bins heights perfectly. If we can evaluate the gaussian at various bin values
     // we can get the counts. Do a discrete sum over all the bin heights to get the count. 
     double discreteSum=0;
     double x = xmin;
+    //cout << "x,sum: " << x << "," << discreteSum << endl;
     for (int iBin=0; iBin<binsToStep; ++iBin){
         discreteSum+=signal(&x, par);
         x+=binsize;
+        //cout << "x,sum: " << x << "," << discreteSum << endl;
     }
     return (double)kDim/discreteSum;
 }

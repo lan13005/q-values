@@ -12,16 +12,24 @@ void makeDiagnosticHists(){
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
-	TH1F* dHist_chisq= new TH1F( "dHist_chisq", "#Chi^2; Events/1", 100, 0, 100);
-        TH1F* dHist_std = new TH1F("dHist_std", "#sigma; Event/0.002", 60, 0, 0.12);
+	TH1F* dHist_chisq= new TH1F( "dHist_chisq", "#Chi^2; Events/0.1", 50, 0, 5);
+        TH1F* dHist_std = new TH1F("dHist_std", "#sigma; Event/0.0033", 60, 0, 0.2);
 	TH1F* dHist_qvalues = new TH1F( "dHist_qvalues_", "Q-Values; Events/0.01", 100, -1, 1);
 
-	TH1F* Meta_Qd = new TH1F( "Meta_Qd", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
-	TH1F* Meta_bkg_Qd = new TH1F( "Meta_bkg_Qd", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
-	TH1F* Mpi0_Qd = new TH1F( "Mpi0_Qd", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
-	TH1F* Mpi0_bkg_Qd = new TH1F( "Mpi0_bkg_Qd", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
-	TH1F* Mpi0eta_Qd = new TH1F( "Mpi0eta_Qd", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
-	TH1F* Mpi0eta_bkg_Qd = new TH1F( "Mpi0eta_bkg_Qd", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+	TH1F* Meta_flat = new TH1F( "Meta_flat", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
+	TH1F* Mpi0_flat = new TH1F( "Mpi0_flat", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+	TH1F* Meta_notFlat = new TH1F( "Meta_notFlat", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
+	TH1F* Mpi0_notFlat = new TH1F( "Mpi0_notFlat", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+
+	TH1F* Meta_tot = new TH1F( "Meta_tot", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
+	TH1F* Meta_sig = new TH1F( "Meta_sig", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
+	TH1F* Meta_bkg = new TH1F( "Meta_bkg", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
+	TH1F* Mpi0_tot = new TH1F( "Mpi0_tot", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+	TH1F* Mpi0_sig = new TH1F( "Mpi0_sig", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+	TH1F* Mpi0_bkg = new TH1F( "Mpi0_bkg", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+	TH1F* Mpi0eta_tot = new TH1F( "Mpi0eta_tot", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+	TH1F* Mpi0eta_sig = new TH1F( "Mpi0eta_sig", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+	TH1F* Mpi0eta_bkg = new TH1F( "Mpi0eta_bkg", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
         
         TLine* etaLine;
 	double Meta;
@@ -41,6 +49,7 @@ void makeDiagnosticHists(){
         dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
 	Long64_t nentries=dataTree->GetEntries();
+        nentries=200000;
 
         cout << "Finished setting up" << endl;
 	
@@ -80,12 +89,14 @@ void makeDiagnosticHists(){
 	Double_t conjugate_qvalue;
 	Double_t chisq;
         Double_t combostd;
+        Bool_t bool_MetaFlat;
 	ULong64_t flatEntryNumber;
 
 	dataTree2->SetBranchAddress("qvalue",&qvalue);
 	dataTree2->SetBranchAddress("chisq",&chisq);
 	dataTree2->SetBranchAddress("combostd",&combostd);
 	dataTree2->SetBranchAddress("flatEntryNumber",&flatEntryNumber);
+        dataTree2->SetBranchAddress("bool_MetaFlat",&bool_MetaFlat);
 
 	nentries=dataTree2->GetEntries();
 
@@ -121,6 +132,16 @@ void makeDiagnosticHists(){
             dHist_qvalues->Fill(qvalue);
             dHist_chisq->Fill(chisq);
             dHist_std->Fill(combostd);
+            
+            // flatEntryNumber is all out of order since we do parallel processing and merge afterwards. Thus we have to use this branch to index the order into the original
+            if ( bool_MetaFlat ) {
+                Meta_flat->Fill(Metas[flatEntryNumber]);
+                Mpi0_flat->Fill(Mpi0s[flatEntryNumber]);
+            }
+            else {
+                Meta_notFlat->Fill(Metas[flatEntryNumber]);
+                Mpi0_notFlat->Fill(Mpi0s[flatEntryNumber]);
+            }
         }
 
         cout << "Loaded all the results file" << endl;
@@ -146,6 +167,19 @@ void makeDiagnosticHists(){
         }
 
         cout << "Finished consistency check on results file and data" << endl;
+
+        allCanvases->Clear();
+        Meta_flat->Draw();
+        allCanvases->SaveAs("diagnosticPlots/Meta_flat.png");
+        allCanvases->Clear();
+        Mpi0_flat->Draw();
+        allCanvases->SaveAs("diagnosticPlots/Mpi0_flat.png");
+        allCanvases->Clear();
+        Meta_notFlat->Draw();
+        allCanvases->SaveAs("diagnosticPlots/Meta_notFlat.png");
+        allCanvases->Clear();
+        Mpi0_notFlat->Draw();
+        allCanvases->SaveAs("diagnosticPlots/Mpi0_notFlat.png");
 
         allCanvases->Clear();
         dHist_std->Draw();
@@ -180,23 +214,26 @@ void makeDiagnosticHists(){
 		conjugate_qvalue = 1-qvalue;
                 //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
                 if ( isUniqueEtaBs[ientry] ) {
-		    Meta_Qd->Fill(Metas[ientry]);//,AccWeights[ientry]);
-		    Meta_bkg_Qd->Fill(Metas[ientry], conjugate_qvalue);//*AccWeights[ientry]);
+		    Meta_sig->Fill(Metas[ientry],qvalue*AccWeights[ientry]);
+		    Meta_tot->Fill(Metas[ientry],AccWeights[ientry]);
+		    Meta_bkg->Fill(Metas[ientry], conjugate_qvalue*AccWeights[ientry]);
                 }
                 if ( isUniquePi0Bs[ientry] ) { 
-		    Mpi0_Qd->Fill(Mpi0s[ientry]);//,AccWeights[ientry]);
-		    Mpi0_bkg_Qd->Fill(Mpi0s[ientry], conjugate_qvalue);//*AccWeights[ientry]);
+		    Mpi0_sig->Fill(Mpi0s[ientry],qvalue*AccWeights[ientry]);
+		    Mpi0_tot->Fill(Mpi0s[ientry],AccWeights[ientry]);
+		    Mpi0_bkg->Fill(Mpi0s[ientry], conjugate_qvalue*AccWeights[ientry]);
                 }
                 if ( isUniquePi0EtaBs[ientry] ) { 
-		    Mpi0eta_Qd->Fill(Mpi0etas[ientry]);//,AccWeights[ientry]);
-		    Mpi0eta_bkg_Qd->Fill(Mpi0etas[ientry], conjugate_qvalue);//*AccWeights[ientry]);
+		    Mpi0eta_sig->Fill(Mpi0etas[ientry],qvalue*AccWeights[ientry]);
+		    Mpi0eta_tot->Fill(Mpi0etas[ientry],AccWeights[ientry]);
+		    Mpi0eta_bkg->Fill(Mpi0etas[ientry], conjugate_qvalue*AccWeights[ientry]);
                 }
-		//Meta_Qd->Fill(Metas[ientry],AccWeights[ientry]);
-		//Meta_bkg_Qd->Fill(Metas[ientry], conjugate_qvalue*AccWeights[ientry]);
-		//Mpi0_Qd->Fill(Mpi0s[ientry],AccWeights[ientry]);
-		//Mpi0_bkg_Qd->Fill(Mpi0s[ientry], conjugate_qvalue*AccWeights[ientry]);
-		//Mpi0eta_Qd->Fill(Mpi0etas[ientry],AccWeights[ientry]);
-		//Mpi0eta_bkg_Qd->Fill(Mpi0etas[ientry], conjugate_qvalue*AccWeights[ientry]);
+		//Meta_sig->Fill(Metas[ientry],AccWeights[ientry]);
+		//Meta_bkg->Fill(Metas[ientry], conjugate_qvalue*AccWeights[ientry]);
+		//Mpi0_sig->Fill(Mpi0s[ientry],AccWeights[ientry]);
+		//Mpi0_bkg->Fill(Mpi0s[ientry], conjugate_qvalue*AccWeights[ientry]);
+		//Mpi0eta_sig->Fill(Mpi0etas[ientry],AccWeights[ientry]);
+		//Mpi0eta_bkg->Fill(Mpi0etas[ientry], conjugate_qvalue*AccWeights[ientry]);
 	}
         cout << "Made the histograms" << endl;
 
@@ -204,50 +241,57 @@ void makeDiagnosticHists(){
 	// ----------------- Meta 
 	stackedHists = new THStack("stackedHists","");
 	allCanvases->Clear();
-	Meta_bkg_Qd->SetFillColorAlpha(kMagenta,0.5);
-	Meta_bkg_Qd->SetLineColorAlpha(kMagenta,0);
-	stackedHists->Add(Meta_Qd,"HIST");
-	stackedHists->Add(Meta_bkg_Qd,"HIST");
+	Meta_bkg->SetFillColorAlpha(kMagenta,0.5);
+	Meta_bkg->SetLineColorAlpha(kMagenta,0);
+	stackedHists->Add(Meta_tot,"HIST");
+	stackedHists->Add(Meta_bkg,"HIST");
 	stackedHists->Draw("nostack");
-	stackedHists->GetXaxis()->SetTitle(Meta_Qd->GetXaxis()->GetTitle());
-	stackedHists->GetYaxis()->SetTitle(Meta_Qd->GetYaxis()->GetTitle());
-	stackedHists->SetTitle(Meta_Qd->GetTitle());
-	allCanvases->SaveAs("diagnosticPlots/Meta_Qd.png");
+	stackedHists->GetXaxis()->SetTitle(Meta_tot->GetXaxis()->GetTitle());
+	stackedHists->GetYaxis()->SetTitle(Meta_tot->GetYaxis()->GetTitle());
+	stackedHists->SetTitle(Meta_tot->GetTitle());
+	allCanvases->SaveAs("diagnosticPlots/Meta_bkg.png");
 	// ----------------- Mpi0 
 	stackedHists = new THStack("stackedHists","");
 	allCanvases->Clear();
-	Mpi0_bkg_Qd->SetFillColorAlpha(kMagenta,0.5);
-	Mpi0_bkg_Qd->SetLineColorAlpha(kMagenta,0);
-	stackedHists->Add(Mpi0_Qd,"HIST");
-	stackedHists->Add(Mpi0_bkg_Qd,"HIST");
+	Mpi0_bkg->SetFillColorAlpha(kMagenta,0.5);
+	Mpi0_bkg->SetLineColorAlpha(kMagenta,0);
+	stackedHists->Add(Mpi0_tot,"HIST");
+	stackedHists->Add(Mpi0_bkg,"HIST");
 	stackedHists->Draw("nostack");
-	stackedHists->GetXaxis()->SetTitle(Mpi0_Qd->GetXaxis()->GetTitle());
-	stackedHists->GetYaxis()->SetTitle(Mpi0_Qd->GetYaxis()->GetTitle());
-	stackedHists->SetTitle(Mpi0_Qd->GetTitle());
-	allCanvases->SaveAs("diagnosticPlots/Mpi0_Qd.png");
+	stackedHists->GetXaxis()->SetTitle(Mpi0_tot->GetXaxis()->GetTitle());
+	stackedHists->GetYaxis()->SetTitle(Mpi0_tot->GetYaxis()->GetTitle());
+	stackedHists->SetTitle(Mpi0_tot->GetTitle());
+	allCanvases->SaveAs("diagnosticPlots/Mpi0_tot.png");
 	// ----------------- Mpi0eta 
 	stackedHists = new THStack("stackedHists","");
 	allCanvases->Clear();
-	Mpi0eta_bkg_Qd->SetFillColorAlpha(kMagenta,0.5);
-	Mpi0eta_bkg_Qd->SetLineColorAlpha(kMagenta,0);
-	stackedHists->Add(Mpi0eta_Qd,"HIST");
-	stackedHists->Add(Mpi0eta_bkg_Qd,"HIST");
+	Mpi0eta_bkg->SetFillColorAlpha(kMagenta,0.5);
+	Mpi0eta_bkg->SetLineColorAlpha(kMagenta,0);
+	stackedHists->Add(Mpi0eta_tot,"HIST");
+	stackedHists->Add(Mpi0eta_bkg,"HIST");
 	stackedHists->Draw("nostack");
-	stackedHists->GetXaxis()->SetTitle(Mpi0eta_Qd->GetXaxis()->GetTitle());
-	stackedHists->GetYaxis()->SetTitle(Mpi0eta_Qd->GetYaxis()->GetTitle());
-	stackedHists->SetTitle(Mpi0eta_Qd->GetTitle());
-	allCanvases->SaveAs("diagnosticPlots/Mpi0eta_Qd.png");
+	stackedHists->GetXaxis()->SetTitle(Mpi0eta_tot->GetXaxis()->GetTitle());
+	stackedHists->GetYaxis()->SetTitle(Mpi0eta_tot->GetYaxis()->GetTitle());
+	stackedHists->SetTitle(Mpi0eta_tot->GetTitle());
+	allCanvases->SaveAs("diagnosticPlots/Mpi0eta_tot.png");
+
+        allCanvases->Clear();
+        Mpi0eta_sig->Draw("HIST");
+        allCanvases->SaveAs("diagnosticPlots/Mpi0eta_sig.png");
 
         cout << "FINIHSED!"<<endl;
 
 
 	TFile* dataFile3 = new TFile("postQValHists.root","RECREATE");
-        Meta_bkg_Qd->Write();
-        Meta_Qd->Write();
-        Mpi0_Qd->Write();
-        Mpi0_bkg_Qd->Write();
-        Mpi0eta_Qd->Write();
-        Mpi0eta_bkg_Qd->Write();
+        Meta_bkg->Write();
+        Meta_sig->Write();
+        Meta_tot->Write();
+        Mpi0_sig->Write();
+        Mpi0_bkg->Write();
+        Mpi0_tot->Write();
+        Mpi0eta_sig->Write();
+        Mpi0eta_bkg->Write();
+        Mpi0eta_tot->Write();
         
 
 
