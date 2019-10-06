@@ -1,7 +1,7 @@
 #include <ctime>
 bool verbose = true;
 
-void makeDiagnosticHists(){
+void makeDiagnosticHists(Long64_t nentries){
 
 	// setting up some basic root stuff and getting the file and tree
 	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
@@ -48,36 +48,48 @@ void makeDiagnosticHists(){
         dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
         dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-	Long64_t nentries=dataTree->GetEntries();
-        nentries=200000;
+	//Long64_t nentries=dataTree->GetEntries();
+        //nentries=200000;
 
         cout << "Finished setting up" << endl;
 	
 	const int c_nentries = (const int)nentries;
         cout << "c_nentries: " << c_nentries << endl;
-	std::vector<double> Metas(c_nentries,0);
-	std::vector<double> Mpi0s(c_nentries,0);
-	std::vector<double> Mpi0etas(c_nentries,0);
-        std::vector<double> AccWeights(c_nentries,0);
+	//std::vector<double> Metas(c_nentries,0);
+	//std::vector<double> Mpi0s(c_nentries,0);
+	//std::vector<double> Mpi0etas(c_nentries,0);
+        //std::vector<double> AccWeights(c_nentries,0);
+        //std::vector<bool> isUniqueEtaBs(c_nentries,0);
+        //std::vector<bool> isUniquePi0Bs(c_nentries,0);
+        //std::vector<bool> isUniquePi0EtaBs(c_nentries,0);
+        //
 
-        std::vector<bool> isUniqueEtaBs(c_nentries,0);
-        std::vector<bool> isUniquePi0Bs(c_nentries,0);
-        std::vector<bool> isUniquePi0EtaBs(c_nentries,0);
+        std::vector<double> Metas; Metas.reserve(c_nentries); 
+        std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries); 
+        std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries); 
+        std::vector<double> AccWeights; AccWeights.reserve(c_nentries); 
+        std::vector<bool> isUniqueEtaBs; isUniqueEtaBs.reserve(c_nentries); 
+        std::vector<bool> isUniquePi0Bs; isUniquePi0Bs.reserve(c_nentries); 
+        std::vector<bool> isUniquePi0EtaBs; isUniquePi0EtaBs.reserve(c_nentries); 
 
 	for (int ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
-		Metas[ientry]=Meta;
-		Mpi0s[ientry]=Mpi0;
-		Mpi0etas[ientry]=Mpi0eta;
-                AccWeights[ientry]=AccWeight;
+                if (isUniquePi0EtaB) {
+		    Metas.push_back(Meta);
+		    Mpi0s.push_back(Mpi0);
+		    Mpi0etas.push_back(Mpi0eta);
+                    AccWeights.push_back(AccWeight);
 
-                isUniqueEtaBs[ientry]=isUniqueEtaB;
-                isUniquePi0Bs[ientry]=isUniquePi0B;
-                isUniquePi0EtaBs[ientry]=isUniquePi0EtaB;
+                    isUniqueEtaBs.push_back(isUniqueEtaB);
+                    isUniquePi0Bs.push_back(isUniquePi0B);
+                    isUniquePi0EtaBs.push_back(isUniquePi0EtaB);
+                }
 	}
         
         cout << "Imported all the tree data into arrays" << endl;
+        Long64_t nentries_noDups = AccWeights.size();
+        cout << "Size of array after removing duplicates: " << nentries_noDups << endl;
 	//cout << "\033[1;31m THE ANALYSIS DEPENDS ON THE CONSISTENCY OF READING A TTREE FROM DIFFERENT FILES. IN ONE FILE WE READ IN THE DATA AND SAVED THE ENTRY NUMBER RAN THIS PROGRAM IN PARALLEL SO THE WAY WE MERGE THE ROOT FILES MIGHT HAVE SCRAMBLED SOME BLOCKS OF DATA. IF WE USE THE ENTRY NUMBER IT SHOULD GIVE US CONSISTENT DATA IF WE COMPARE TO THE DATA WE JUST IMPORTED IN THE PREVIOUS STEP. \033[0m\n";
 
 	TFile* dataFile2 = new TFile("qvalResults.root");
@@ -103,9 +115,9 @@ void makeDiagnosticHists(){
 	const int c_nentries2 = (const int)nentries;
         cout << "c_nentries2: " << c_nentries2 << endl;
 
-        if (c_nentries!=c_nentries2){
+        if (nentries_noDups!=c_nentries2){
             cout << "\033[1;31m THE IMPORTED SIZES ARE NOT THE SAME .... EXITING... \033[0m\n"; 
-            cout << "size of dataFile, resultsFile: " << c_nentries << "," << c_nentries2 << endl;
+            cout << "size of dataFile, resultsFile: " << nentries_noDups << "," << c_nentries2 << endl;
             exit(0);
         }
 

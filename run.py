@@ -48,7 +48,7 @@ for iProcess in range(int(nProcess)):
 subprocess.Popen("cat logs/log* > diagnostic_logs.txt",shell=True).wait()
 subprocess.Popen("rm qvalResults.root",shell=True).wait()
 subprocess.Popen("hadd qvalResults.root logs/results*",shell=True).wait()
-subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
+subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+")'",shell=True).wait()
 
 print("--- %s seconds ---" % (time.time() - start_time))
 
