@@ -1,8 +1,10 @@
-kDim=500
-numberEventsToSavePerProcess=5
+start_time="$(date -u +%s)"
+
+kDim=200
+numberEventsToSavePerProcess=1
 nProcess=30
 seedShift=125
-nentries=200000
+nentries=100000
 override_nentries=1
 verbose=0
 varString="cosTheta_X_cms;phi_X_cms;cosTheta_eta_gjs;phi_eta_gjs" #vanHove_omegas"
@@ -30,3 +32,8 @@ cat logs/log* > diagnostic_logs.txt
 rm qvalResults.root
 hadd qvalResults.root logs/results*
 root -l -b -q makeDiagnosticHists.C
+
+
+end_time="$(date -u +%s)"
+elapsed="$(($end_time-$start_time))"
+echo "Total of $elapsed seconds elapsed for process"
