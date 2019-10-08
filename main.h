@@ -23,7 +23,7 @@
 double peakWidth_eta[2] = {0.544,0.022};
 double peakWidth_pi0[2] = {0.134,0.0069};
 
-const int dim=dimNum;
+const int dim=8;
 bool verbose2=true;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
@@ -45,10 +45,10 @@ double calc_distance( double phaseSpace_1[dim], double phaseSpace_2[dim] ){
 }
 
 
-int numDOFbkg = 1;
+int numDOFbkg = 2;
 Double_t background(Double_t *x, Double_t *par){
-	return par[0];
-	//return par[0]+par[1]*x[0];
+	//return par[0];
+	return par[0]+par[1]*x[0];
 	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0];
 	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0]+par[3]*x[0]*x[0]*x[0];
 	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0]+par[3]*x[0]*x[0]*x[0]+par[4]*x[0]*x[0]*x[0]*x[0];
@@ -66,20 +66,6 @@ Double_t fitFunc(Double_t *x, Double_t *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
 
-double gausAmplitude( double xmin, double binsize, int binsToStep, int kDim, Double_t *par){
-    // So this goal of this function is to calculate the Amplitude we need to scale a unit gaussian by to get the entries = k in kDim. 
-    // In a perfect fit with some peak and width the gausssian overlays the bins heights perfectly. If we can evaluate the gaussian at various bin values
-    // we can get the counts. Do a discrete sum over all the bin heights to get the count. 
-    double discreteSum=0;
-    double x = xmin;
-    //cout << "x,sum: " << x << "," << discreteSum << endl;
-    for (int iBin=0; iBin<binsToStep; ++iBin){
-        discreteSum+=signal(&x, par);
-        x+=binsize;
-        //cout << "x,sum: " << x << "," << discreteSum << endl;
-    }
-    return (double)kDim/discreteSum;
-}
 
 class standardizeArray{
      // ERROR 1: not sure why this code did not work. It would sometimes give a max element that was not correct
@@ -207,7 +193,7 @@ class distSort_kNN
     public:
         // constructor with basic output and setting kDim
         distSort_kNN ( UInt_t kDim ) {
-            cout << "Priority Queue is set up to sort the {distance,index} pairs keeping " << kDim << " neighbors" << endl;
+            //cout << "Priority Queue is set up to sort the {distance,index} pairs keeping " << kDim << " neighbors" << endl;
             _kDim = kDim;
         }
 
@@ -272,27 +258,116 @@ class cumulativeStd{
 };
 
 
+//double gausAmplitude( double xmin, double binsize, int binsToStep, int kDim, Double_t *par){
+//    // So this goal of this function is to calculate the Amplitude we need to scale a unit gaussian by to get the entries = k in kDim. 
+//    // In a perfect fit with some peak and width the gausssian overlays the bins heights perfectly. If we can evaluate the gaussian at various bin values
+//    // we can get the counts. Do a discrete sum over all the bin heights to get the count. 
+//    double discreteSum=0;
+//    double x = xmin;
+//    //cout << "x,sum: " << x << "," << discreteSum << endl;
+//    for (int iBin=0; iBin<binsToStep; ++iBin){
+//        discreteSum+=signal(&x, par);
+//        x+=binsize;
+//        cout << "x,sum: " << x << "," << discreteSum << endl;
+//    }
+//    return discreteSum;
+//}
 
+//double bkgAmplitude( double xmin, double binsize, int binsToStep, int kDim, Double_t *par){
+//    // So this goal of this function is to calculate the Amplitude we need to scale a unit gaussian by to get the entries = k in kDim. 
+//    // In a perfect fit with some peak and width the gausssian overlays the bins heights perfectly. If we can evaluate the gaussian at various bin values
+//    // we can get the counts. Do a discrete sum over all the bin heights to get the count. 
+//    double discreteSum=0;
+//    double x = xmin;
+//    //cout << "x,sum: " << x << "," << discreteSum << endl;
+//    for (int iBin=0; iBin<binsToStep; ++iBin){
+//        discreteSum+=background(&x, par);
+//        x+=binsize;
+//        //cout << "x,sum: " << x << "," << discreteSum << endl;
+//    }
+//    return discreteSum;
+//}
 
+class getParamInit{
+    private:
+        std::string line;
+        TF1* sigFit[2];
+        TF1* bkgFit[2];
+        std::vector<Double_t> _perFitParVals[2];
+        std::vector<Double_t> _fullFitParVals[2];
+        double _maxCount;
+        int _dof;
 
+    public:
+        double scaleBkg[2];
+        double scaleSig[2];
+        double integralSig[2];
+        double integralBkg[2];
+        bool verbose=false;
+        double fitMin[2];
+        double fitMax[2];
+        double binsize[2];
+        std::vector<string> parNames[2];
 
+        getParamInit ( int maxCount, int dof, double fitMin_eta, double fitMax_eta, double binsize_eta, double fitMin_pi0, double fitMax_pi0, double binsize_pi0){
+            fitMin[0] = fitMin_eta;
+            fitMin[1] = fitMin_pi0;
+            fitMax[0] = fitMax_eta;
+            fitMax[1] = fitMax_pi0;
+            binsize[0] = binsize_eta;
+            binsize[1] = binsize_pi0;
+            _maxCount=maxCount;
+            _dof=dof;
 
+        }
+        
+        void loadData(){
+            ifstream inFile[2];
+            inFile[0].open("fitResults/etaFitNoAccSub.txt");
+            inFile[1].open("fitResults/pi0FitNoAccSub.txt");
+            
+            for(int iFile=0; iFile<2; ++iFile){
+                sigFit[iFile] = new TF1(("sigFit"+to_string(iFile)).c_str(),signal,fitMin[iFile],fitMax[iFile],numDOFsig);
+                bkgFit[iFile] = new TF1(("bkgFit"+to_string(iFile)).c_str(),background,fitMin[iFile],fitMax[iFile],numDOFbkg);
 
+                _fullFitParVals[iFile].reserve(_dof+1);
+                _perFitParVals[iFile].reserve(_dof+1);
+                parNames[iFile].reserve(_dof+1);
+                while(std::getline(inFile[iFile], line)){
+                    std::stringstream  lineStream(line);
+                    string parName;
+                    Double_t parVal;
+                    lineStream >> parName;
+                    lineStream >> parVal;
+                    _fullFitParVals[iFile].push_back(parVal);    
+                    parNames[iFile].push_back(parName);
+                    //cout << parName << " " << parVal << endl;
+                }
+                sigFit[iFile]->SetParameters(_fullFitParVals[iFile][3], _fullFitParVals[iFile][4],_fullFitParVals[iFile][5]);
+                bkgFit[iFile]->SetParameters(_fullFitParVals[iFile][1], _fullFitParVals[iFile][2]);
+                integralSig[iFile] = sigFit[iFile]->Integral(fitMin[iFile],fitMax[iFile]);
+                integralBkg[iFile] = bkgFit[iFile]->Integral(fitMin[iFile],fitMax[iFile]);
+                scaleBkg[iFile] = _maxCount/(integralBkg[iFile]/binsize[iFile]); 
+                scaleSig[iFile] = _maxCount/(integralSig[iFile]/binsize[iFile]); 
+                if(verbose){cout << "Counts under curves for sig and bkg: " <<  integralSig[iFile]/binsize[iFile] << "," << integralBkg[iFile]/binsize[iFile] << endl;}
+                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][0]);
+                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][1]*scaleBkg[iFile]);
+                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][2]*scaleBkg[iFile]);
+                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][3]*scaleSig[iFile]);
+                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][4]);
+                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][5]);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                for (int iPar=0; iPar<numDOFbkg+numDOFsig+1; ++iPar){
+                    if(verbose){cout << parNames[iFile][iPar] << " " << _fullFitParVals[iFile][iPar] <<" " << _perFitParVals[iFile][iPar] << endl;}
+                }
+                if(verbose){cout << "============================" << endl;}
+            }
+        }
+        double getEta_par0(){ return _perFitParVals[0][1]; } 
+        double getEta_par1(){ return _perFitParVals[0][2]; } 
+        double getEta_par2(){ return _perFitParVals[0][3]; } 
+        double getPi0_par0(){ return _perFitParVals[1][1]; } 
+        double getPi0_par1(){ return _perFitParVals[1][2]; } 
+        double getPi0_par2(){ return _perFitParVals[1][3]; } 
+};
 #endif

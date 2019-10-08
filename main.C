@@ -40,21 +40,24 @@ int main( int argc, char* argv[] ){
         if ( atoi(argv[8])==1 ){ verbose=true;}
         else{ verbose=false;}
         std::string varString=argv[9];
-        cout << "----------------------------" << endl;
-        cout << "iProcess: " << iProcess << endl;
-        cout << "kDim: " << kDim << endl;
-        cout << "numberEventsToSavePerProcess: " << numberEventsToSavePerProcess << endl;
-        cout << "nProcess: " << nProcess << endl;
-        cout << "seedShift: " << seedShift << endl;
-        cout << "nentries: " << nentries << endl; 
-        cout << "override_nentries: " << override_nentries << endl;
-        cout << "verbose: " << verbose  << endl; 
+        if(verbose){cout << "----------------------------" << endl;}
+        if(verbose){cout << "iProcess: " << iProcess << endl;}
+        if(verbose){cout << "kDim: " << kDim << endl;}
+        if(verbose){cout << "numberEventsToSavePerProcess: " << numberEventsToSavePerProcess << endl;}
+        if(verbose){cout << "nProcess: " << nProcess << endl;}
+        if(verbose){cout << "seedShift: " << seedShift << endl;}
+        if(verbose){cout << "nentries: " << nentries << endl; }
+        if(verbose){cout << "override_nentries: " << override_nentries << endl;}
+        if(verbose){cout << "verbose: " << verbose  << endl; }
     
         parseVarString parse(varString);
         parse.parseString();
+        cout << "----------------------------" << endl;
+        cout << "----------------------------" << endl;
         for (int iVar=0; iVar<parse.varStringSet.size(); ++iVar){
             cout << "var" << std::to_string(iVar) << ": " << parse.varStringSet[iVar] << endl;
         }
+        cout << "----------------------------" << endl;
         cout << "----------------------------" << endl;
 
 
@@ -94,6 +97,7 @@ int main( int argc, char* argv[] ){
         bool isUniqueEtaB;
         bool isUniquePi0B;
         bool isUniquePi0EtaB;
+        bool notRepeatedSpectroscopicPi0Eta;
 
 	dataTree->SetBranchAddress("Meta",&Meta);
 	dataTree->SetBranchAddress("Mpi0",&Mpi0);
@@ -115,12 +119,12 @@ int main( int argc, char* argv[] ){
         dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
         dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-
+        dataTree->SetBranchAddress("notRepeatedSpectroscopicPi0Eta",&notRepeatedSpectroscopicPi0Eta);
 
 	if (!override_nentries){
 		nentries=dataTree->GetEntries();
 	}
-	if(verbose){cout << "Chosen Total Entries: " << nentries << endl;}
+	cout << "Chosen Total Entries: " << nentries << endl;
 
 
 	// opening a file to write my log data to
@@ -155,7 +159,7 @@ int main( int argc, char* argv[] ){
                 //if ( ientry != eventNumber){ cout << "ientry != eventNumber. The events are in the root tree are out of order or missing!" <<
                 //        "\n ientry,eventNumber: " << ientry << ", " << eventNumber << endl; break; }
                 //                ***** THE COMBINATIONS COME IN AT RANDOM ORDERS! ***** DOESNT MATTER I THINK
-                if (isUniquePi0EtaB) {
+                if (notRepeatedSpectroscopicPi0Eta) {
 		    Metas.push_back(Meta);
 		    Mpi0s.push_back(Mpi0);
 		    Mpi0etas.push_back(Mpi0eta);
@@ -177,9 +181,9 @@ int main( int argc, char* argv[] ){
         Long64_t nentries_noDups = AccWeights.size();
         cout << "Entries after removing duplicates: " << nentries_noDups << endl;
 
-	double batchEntries = (double)nentries_noDups/nProcess;
-	double lowest_nentry = iProcess*batchEntries;
-	double largest_nentry;
+	int batchEntries = (int)nentries_noDups/nProcess;
+	int lowest_nentry = iProcess*batchEntries;
+	int largest_nentry;
         if (iProcess!=(nProcess-1)) {
             largest_nentry  = (iProcess+1)*batchEntries;
         }
@@ -204,7 +208,7 @@ int main( int argc, char* argv[] ){
 	
         if ( verbose_outputDistCalc ) {
             cout << "Before standarization" << endl;
-            for ( int ientry=0 ; ientry < nentries; ientry++){
+            for ( int ientry=0 ; ientry < nentries_noDups; ientry++){
                 cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
                 //cout << phi_X_cms[ientry] <<endl;// "," << cosTheta_eta_gjs[ientry] << endl;
             }
@@ -215,17 +219,17 @@ int main( int argc, char* argv[] ){
 	// outputting the results before and after standardizeArray will show that it works
 	// for(auto& cosTheta_X_cm1 : cosTheta_X_cms){ cout << cosTheta_X_cm1 << endl; }
 	// **** WE FIRST IMPORT THE DATA INTO A CLASS, SAVES AN INTERNAL COPY
-        standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries);
-        standardizeArray class_phi_X_cms(phi_X_cms,nentries);
-        standardizeArray class_cosTheta_eta_gjs(cosTheta_eta_gjs,nentries);
-        standardizeArray class_phi_eta_gjs(phi_eta_gjs,nentries);
-        standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries);
-        standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries);
-        standardizeArray class_vanHove_xs(vanHove_xs,nentries);
-        standardizeArray class_vanHove_ys(vanHove_ys,nentries);
-        standardizeArray class_vanHove_omegas(vanHove_omegas,nentries);
-        standardizeArray class_pi0_energies(pi0_energies, nentries);
-        standardizeArray class_mandelstam_tps(mandelstam_tps, nentries);
+        standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries_noDups);
+        standardizeArray class_phi_X_cms(phi_X_cms,nentries_noDups);
+        standardizeArray class_cosTheta_eta_gjs(cosTheta_eta_gjs,nentries_noDups);
+        standardizeArray class_phi_eta_gjs(phi_eta_gjs,nentries_noDups);
+        standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries_noDups);
+        standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries_noDups);
+        standardizeArray class_vanHove_xs(vanHove_xs,nentries_noDups);
+        standardizeArray class_vanHove_ys(vanHove_ys,nentries_noDups);
+        standardizeArray class_vanHove_omegas(vanHove_omegas,nentries_noDups);
+        standardizeArray class_pi0_energies(pi0_energies, nentries_noDups);
+        standardizeArray class_mandelstam_tps(mandelstam_tps, nentries_noDups);
         //standardizeArray class_Mpi0s(Mpi0s,nentries);
         //standardizeArray class_Metas(Metas,nentries);
 
@@ -267,10 +271,10 @@ int main( int argc, char* argv[] ){
         nameToVec["cosThetaHighestEphotonIneta_gjs"] = cosThetaHighestEphotonIneta_gjs; 
         nameToVec["cosThetaHighestEphotonInpi0_cms"] = cosThetaHighestEphotonInpi0_cms; 
         nameToVec["vanHove_omegas"] = vanHove_omegas; 
-        //nameToVec["vanHove_xs"] = vanHove_xs; 
-        //nameToVec["vanHove_ys"] = vanHove_ys; 
-        //nameToVec["pi0_energies"] = pi0_energies; 
-        //nameToVec["mandelstam_tps"] = mandelstam_tps; 
+        nameToVec["vanHove_xs"] = vanHove_xs; 
+        nameToVec["vanHove_ys"] = vanHove_ys; 
+        nameToVec["pi0_energies"] = pi0_energies; 
+        nameToVec["mandelstam_tps"] = mandelstam_tps; 
         //nameToVec["Mpi0s"] = Mpi0s; 
         //nameToVec["Metas"] = Metas; 
 
@@ -282,7 +286,7 @@ int main( int argc, char* argv[] ){
 
         if ( verbose_outputDistCalc ) {
 	    cout << "After standardization" << endl;
-            for ( int ientry=0 ; ientry < nentries; ientry++){
+            for ( int ientry=0 ; ientry < nentries_noDups; ientry++){
                 cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
                 //cout << phi_X_cms[ientry] << endl;//"," << cosTheta_eta_gjs[ientry] << endl;
             }
@@ -306,7 +310,7 @@ int main( int argc, char* argv[] ){
         // It is much slower to constantly read a map to get the vector rather than just importing it all into a vector first.
         std::vector< std::vector< double > > varVector;
         int numVars=parse.varStringSet.size();
-        cout << numVars << ", " << dim << endl;
+        //cout << numVars << ", " << dim << endl;
         if (numVars!=dim){ cout << " **** ERROR THE NUMBER OF VARIABLES USED IS NOT THE SAME HERE! *******" << endl; exit(0); }
         for (int iVar=0; iVar<numVars; ++iVar){
             varVector.push_back(nameToVec[parse.varStringSet[iVar]]);
@@ -332,7 +336,7 @@ int main( int argc, char* argv[] ){
         resultsTree->Branch("chisq2",&bestChiSq2,"chisq2/D");
         resultsTree->Branch("combostd2",&comboStd2,"combostd2/D");
         resultsTree->Branch("bool_MetaFlat",&bool_MetaFlat,"bool_MetaFlat/O");
-        cout << "Set up branch addresses" << endl;
+        if(verbose) {cout << "Set up branch addresses" << endl;}
 
         std::vector<double> binRange;
         std::vector<double> fitRange;
@@ -342,8 +346,8 @@ int main( int argc, char* argv[] ){
         TF1 *bkgFit,*bkgFit2;
         TF1 *sigFit,*sigFit2;
         binRange={50,0.35,0.8};
-        //fitRange={0.45,0.7};
-        fitRange={0.35,0.8};
+        fitRange={0.45,0.7};
+        //fitRange={0.35,0.8};
         binRange2={50,0.05,0.25};
         fitRange2={0.1,0.17};
 
@@ -358,41 +362,12 @@ int main( int argc, char* argv[] ){
         double binSize=((binRange[2]-binRange[1])/binRange[0]);
         double numBinsInFit2 = (fitRange2[1]-fitRange2[0])/((binRange2[2]-binRange2[1])/binRange2[0]);
         double binSize2=((binRange2[2]-binRange2[1])/binRange2[0]);
-        // this will be a unit gaussian with peak location and width given in peakWidth array. 
-        double ampPeakWidth[3]; 
-        double ampPeakWidth2[3]; 
-        ampPeakWidth[0]=1; ampPeakWidth[1]=peakWidth_eta[0]; ampPeakWidth[2]=peakWidth_eta[1];
-        ampPeakWidth2[0]=1; ampPeakWidth2[1]=peakWidth_pi0[0]; ampPeakWidth2[2]=peakWidth_pi0[1];
-        double constAmp = (double)kDim/numBinsInFit;
-        double constAmp2 = (double)kDim/numBinsInFit2;
-        double flatAmpInit[3]={constAmp,0,constAmp/2};
-        double gausAmp=gausAmplitude(fitRange[0],binSize,(int)numBinsInFit,kDim,&ampPeakWidth[0]); // see header file for info and motivation
-        double gausAmpInit[3]={0,gausAmp,gausAmp/2};
-        double flatAmpInit2[3]={constAmp2,0,constAmp2/2};
-        double gausAmp2=gausAmplitude(fitRange2[0],binSize2,(int)numBinsInFit2,kDim,&ampPeakWidth2[0]); // see header file for info and motivation
-        double gausAmpInit2[3]={0,gausAmp2,gausAmp2/2};
 
-        cout << "Eta hist range: " << binRange[0] << ", " << binRange[1] << ", " << binRange[2] << endl;
-        cout << "Eta fit range: " << fitRange[0] << ", " << fitRange[1] << endl;
-        cout << "Pi0 hist range: " << binRange2[0] << ", " << binRange2[1] << ", " << binRange2[2] << endl;
-        cout << "Pi0 fit range: " << fitRange2[0] << ", " << fitRange2[1] << endl;
-
-        cout << "Eta\n---------------------\n";
-        cout << "Num Bins In Fit: " << (int)numBinsInFit << endl;
-        cout << "BinSize: " << binSize << endl;
-        cout << "GausAmp that would have k total entries in the bins: " << gausAmp << endl;
-        cout << "   ^- Corresponds to a total amplitude of: " << gausAmp*1/TMath::Sqrt(2*TMath::Pi())/ampPeakWidth[2] << endl;
-        cout << "Flat: Amp1, Amp2, Amp3: " << flatAmpInit[0] << ", " << flatAmpInit[1] << ", " << flatAmpInit[2]<< endl;
-        cout << "Gaus: Amp1, Amp2, Amp3: " << gausAmpInit[0] << ", " << gausAmpInit[1] << ", " << gausAmpInit[2]<< endl;
-        cout << "Pi0\n---------------------\n";
-        cout << "Num Bins In Fit: " << (int)numBinsInFit2 << endl;
-        cout << "BinSize: " << binSize2 << endl;
-        cout << "GausAmp that would have k total entries in the bins: " << gausAmp2 << endl;
-        cout << "   ^- Corresponds to a total amplitude of: " << gausAmp2*1/TMath::Sqrt(2*TMath::Pi())/ampPeakWidth2[2] << endl;
-        cout << "Flat: Amp1, Amp2, Amp3: " << flatAmpInit2[0] << ", " << flatAmpInit2[1] << ", " << flatAmpInit2[2]<< endl;
-        cout << "Gaus: Amp1, Amp2, Amp3: " << gausAmpInit2[0] << ", " << gausAmpInit2[1] << ", " << gausAmpInit2[2]<< endl;
-        cout << "\n" << endl;
-
+        if (verbose) {cout << "Eta hist range: " << binRange[0] << ", " << binRange[1] << ", " << binRange[2] << endl;}
+        if (verbose) {cout << "Eta fit range: " << fitRange[0] << ", " << fitRange[1] << endl;}
+        if (verbose) {cout << "Pi0 hist range: " << binRange2[0] << ", " << binRange2[1] << ", " << binRange2[2] << endl;}
+        if (verbose) {cout << "Pi0 fit range: " << fitRange2[0] << ", " << fitRange2[1] << endl;}
+        
 
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
 	// Then we can plot the k nearest neighbors in the discriminating distribution which happens to be a double gaussian and flat bkg. Calculate Q-Value from event
@@ -419,7 +394,7 @@ int main( int argc, char* argv[] ){
               for ( int iVar=0; iVar<numVars; ++iVar ){
                   phasePoint1[iVar] = varVector[iVar][ientry];
               }
-	      for (int jentry=0; jentry<nentries; jentry++){
+	      for (int jentry=0; jentry<nentries_noDups; jentry++){
                    if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
         
                    for ( int iVar=0; iVar<numVars; ++iVar ){
@@ -440,11 +415,10 @@ int main( int argc, char* argv[] ){
 	      duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 	      if(verbose2){logFile << "	Found neighbors: " << duration2 << "ms" << endl; }
 	      if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim! size,kDim="<< distKNN.kNN.size() << "," << kDim 
-                  << " -- if size is 1 less than kDim it is probably because kDim=nentries and event i cannot be a neighbor to itself" << endl;}
+                  << " -- if size is 1 less than kDim it is probably because kDim=nentries_noDups and event i cannot be a neighbor to itself" << endl;}
               while ( distKNN.kNN.empty() == false ){
                       newPair = distKNN.kNN.top();
                       distKNN.kNN.pop();
-                      //if ( useEta ){
                       discriminatorHist->Fill(Metas[newPair.second]);//,AccWeights[newPair.second]);
                       discriminatorHist2->Fill(Mpi0s[newPair.second]);//,AccWeights[newPair.second]);
                       stdCalc.insertValue(Metas[newPair.second]);
@@ -480,6 +454,9 @@ int main( int argc, char* argv[] ){
               bestChiSq2=DBL_MAX;
               int best_iFit2=0;
               bestChiSqFlat=DBL_MAX;
+              int countSig;
+              int countBkg;
+
 
               for (UInt_t iFit=0; iFit<3; ++iFit){
                   // We use a normalized gaussian and a flat function. 
@@ -496,16 +473,16 @@ int main( int argc, char* argv[] ){
 
                   // Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
                   //if (useEta) { 
-	          fit->SetParameters(flatAmpInit[iFit],gausAmpInit[iFit],peakWidth_eta[0],peakWidth_eta[1]);//,20,0.03);
-                  fit->FixParameter(2,peakWidth_eta[0]);
-                  fit->FixParameter(3,peakWidth_eta[1]);
+                  fit->SetParameters(paramInit_eta.getBkg_a0(),paramInit_eta.getBkg_a1(),paramInit_eta.getSigAmp(),paramInit_eta.getSigMean(),paramInit_eta.getSigSig());
+                  fit->FixParameter(3,paramInit_eta.getSigMean());
+                  fit->FixParameter(4,paramInit_eta.getSigSig());
                   //fit->SetParLimits(2,0.5275,0.58); 
                   //fit->SetParLimits(3,0.017,0.027); 
                   //}
                   //else {
-	          fit2->SetParameters(flatAmpInit2[iFit],gausAmpInit2[iFit],peakWidth_pi0[0],peakWidth_pi0[1]);
-                  fit2->FixParameter(2,peakWidth_pi0[0]);
-                  fit2->FixParameter(3,peakWidth_pi0[1]);
+                  fit->SetParameters(paramInit_pi0.getBkg_a0(),paramInit_pi0.getBkg_a1(),paramInit_pi0.getSigAmp(),paramInit_pi0.getSigMean(),paramInit_pi0.getSigSig());
+                  fit->FixParameter(3,paramInit_pi0.getSigMean());
+                  fit->FixParameter(4,paramInit_pi0.getSigSig());
                   //fit2->SetParLimits(2,0.125,0.15); 
                   //fit2->SetParLimits(3,0.005,0.015); 
 	          //}
@@ -648,13 +625,13 @@ int main( int argc, char* argv[] ){
         resultsFile->cd();
         resultsTree->Write();
         //resultsFile->Write();
-        cout << "nentries: " << nentries << endl;
-        cout << "Number of times 100% bkg initialization was the best: " << nBest100Bkg << endl;
-        cout << "Number of times 100% sig initialization was the best: " << nBest100Sig << endl;
-        cout << "Number of times 50/50 bkg/sig initialization was the best: " << nBest50Bkg50Sig << endl;
-        cout << "Number of times 100% bkg initialization for pi0 was the best: " << nBest100Bkg2 << endl;
-        cout << "Number of times 100% sig initialization for pi0 was the best: " << nBest100Sig2 << endl;
-        cout << "Number of times 50/50 bkg/sig initialization for pi0 was the best: " << nBest50Bkg50Sig2 << endl;
+        if(verbose){cout << "nentries: " << nentries << endl;}
+        if(verbose){cout << "Number of times 100% bkg initialization was the best: " << nBest100Bkg << endl;}
+        if(verbose){cout << "Number of times 100% sig initialization was the best: " << nBest100Sig << endl;}
+        if(verbose){cout << "Number of times 50/50 bkg/sig initialization was the best: " << nBest50Bkg50Sig << endl;}
+        if(verbose){cout << "Number of times 100% bkg initialization for pi0 was the best: " << nBest100Bkg2 << endl;}
+        if(verbose){cout << "Number of times 100% sig initialization for pi0 was the best: " << nBest100Sig2 << endl;}
+        if(verbose){cout << "Number of times 50/50 bkg/sig initialization for pi0 was the best: " << nBest50Bkg50Sig2 << endl;}
         
         
 	// Finish the log files by including an elapsed time and finally closing the file
