@@ -1,4 +1,4 @@
-#include "main.h"
+#include "helperFuncs.h"
 
 void getInitParams_step2(){
     //double binRange[3]={50,0.35,0.8};
@@ -23,15 +23,30 @@ void getInitParams_step2(){
     std::vector<double> par0pi0 = {paramInit.getPi0_par0(), paramInit.getPi0_par0()/2, 0};
     std::vector<double> par1pi0 = {paramInit.getPi0_par1(), paramInit.getPi0_par1()/2, 0};
     std::vector<double> par2pi0 = {0, paramInit.getPi0_par2()/2, paramInit.getPi0_par2()};
+    std::vector<double> peakWidth_eta = {paramInit.getEta_peak(), paramInit.getEta_width()};
+    std::vector<double> peakWidth_pi0 = {paramInit.getPi0_peak(), paramInit.getPi0_width()};
 
     std::vector< std::vector<double>  > allPars;
+    std::vector <string> allParNames;
+    allParNames.push_back("par0eta");
+    allParNames.push_back("par1eta");
+    allParNames.push_back("par2eta");
+    allParNames.push_back("par0pi0");
+    allParNames.push_back("par1pi0");
+    allParNames.push_back("par2pi0");
+
     allPars.push_back(par0eta);
     allPars.push_back(par1eta);
     allPars.push_back(par2eta);
     allPars.push_back(par0pi0);
     allPars.push_back(par1pi0);
     allPars.push_back(par2pi0);
+
+    cout << "peak width eta: " << peakWidth_eta[0] << " " << peakWidth_eta[1] << endl;
+    cout << "peak width pi0: " << peakWidth_pi0[0] << " " << peakWidth_pi0[1] << endl;
+    cout << "Max Bkg, 50/50 BkgSig, Max Sig" << endl;
     for(int iPar=0; iPar<allPars.size(); ++iPar){
+        cout << allParNames[iPar] << ": " ;
         for(int iVal=0; iVal<allPars[iPar].size(); ++iVal){
             cout << allPars[iPar][iVal] << " ";
         }

@@ -8,7 +8,7 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
+	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
 	gStyle->SetOptFit(111);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
@@ -46,11 +46,9 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
         bool isUniqueEtaB;
         bool isUniquePi0B;
         bool isUniquePi0EtaB;
-        bool notRepeatedSpectroscopicPi0Eta;
         dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
         dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-        dataTree->SetBranchAddress("notRepeatedSpectroscopicPi0Eta",&notRepeatedSpectroscopicPi0Eta);
 	//Long64_t nentries=dataTree->GetEntries();
         //nentries=200000;
 
@@ -78,21 +76,19 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 	for (int ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
-                if (notRepeatedSpectroscopicPi0Eta) {
-		    Metas.push_back(Meta);
-		    Mpi0s.push_back(Mpi0);
-		    Mpi0etas.push_back(Mpi0eta);
-                    AccWeights.push_back(AccWeight);
+		Metas.push_back(Meta);
+		Mpi0s.push_back(Mpi0);
+		Mpi0etas.push_back(Mpi0eta);
+                AccWeights.push_back(AccWeight);
 
-                    isUniqueEtaBs.push_back(isUniqueEtaB);
-                    isUniquePi0Bs.push_back(isUniquePi0B);
-                    isUniquePi0EtaBs.push_back(isUniquePi0EtaB);
-                }
+                isUniqueEtaBs.push_back(isUniqueEtaB);
+                isUniquePi0Bs.push_back(isUniquePi0B);
+                isUniquePi0EtaBs.push_back(isUniquePi0EtaB);
+                
 	}
         cout << "Imported all the tree data into arrays" << endl;
-        Long64_t nentries_noDups = AccWeights.size();
-	const int c_nentries_noDups = (const int)nentries_noDups;
-        cout << "Size of array after removing duplicates: " << nentries_noDups << endl;
+        nentries = AccWeights.size();
+        cout << "Size of array: " << nentries << endl;
 	//cout << "\033[1;31m THE ANALYSIS DEPENDS ON THE CONSISTENCY OF READING A TTREE FROM DIFFERENT FILES. IN ONE FILE WE READ IN THE DATA AND SAVED THE ENTRY NUMBER RAN THIS PROGRAM IN PARALLEL SO THE WAY WE MERGE THE ROOT FILES MIGHT HAVE SCRAMBLED SOME BLOCKS OF DATA. IF WE USE THE ENTRY NUMBER IT SHOULD GIVE US CONSISTENT DATA IF WE COMPARE TO THE DATA WE JUST IMPORTED IN THE PREVIOUS STEP. \033[0m\n";
 	TFile* dataFile2 = new TFile("qvalResults.root");
         TTree* dataTree2;
@@ -113,13 +109,12 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
         dataTree2->SetBranchAddress("bool_MetaFlat",&bool_MetaFlat);
 
 	nentries=dataTree2->GetEntries();
-
 	const int c_nentries2 = (const int)nentries;
         cout << "c_nentries2: " << c_nentries2 << endl;
 
-        if (nentries_noDups!=c_nentries2){
+        if (nentries!=c_nentries2){
             cout << "\033[1;31m THE IMPORTED SIZES ARE NOT THE SAME .... EXITING... \033[0m\n"; 
-            cout << "size of dataFile, resultsFile: " << nentries_noDups << "," << c_nentries2 << endl;
+            cout << "size of dataFile, resultsFile: " << nentries << "," << c_nentries2 << endl;
             exit(0);
         }
 
@@ -127,11 +122,11 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
         set<ULong64_t> all_flatEntryNumber;
         cout << "built comparision sets..." << endl;
 
-	std::vector< double > qvalues(c_nentries_noDups,0);
-	std::vector< double > chisqs(c_nentries_noDups,0);
-	std::vector< double > combostds(c_nentries_noDups,0);
-        std::vector<ULong64_t> flatEntryNumbers(c_nentries_noDups,0);
-	for (int ientry=0; ientry<c_nentries_noDups; ientry++)
+	std::vector< double > qvalues(c_nentries,0);
+	std::vector< double > chisqs(c_nentries,0);
+	std::vector< double > combostds(c_nentries,0);
+        std::vector<ULong64_t> flatEntryNumbers(c_nentries,0);
+	for (int ientry=0; ientry<c_nentries; ientry++)
 	{
             dataTree2->GetEntry(ientry);
             //cout << "ientry, flatEntryNumber: " << ientry << "," << flatEntryNumber << endl;            
@@ -162,7 +157,7 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 
 
         // ***************** CHECK 1 ********************
-        for (int iEntry=0; iEntry<nentries_noDups; ++iEntry){
+        for (int iEntry=0; iEntry<nentries; ++iEntry){
             if ( flatEntryNumbers[iEntry] != iEntry){
                 cout << "flatEntryNumbers[iEntry] != iEntry: flatEntryNumbers[iEntry], iEntry: " << flatEntryNumbers[iEntry] << ", " << iEntry << endl;
             }
@@ -224,7 +219,7 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
     
         cout << "Drew the imported data" << endl;
 
-	for (int ientry=0; ientry<nentries_noDups; ientry++){
+	for (int ientry=0; ientry<nentries; ientry++){
 		qvalue = qvalues[ientry];
 		conjugate_qvalue = 1-qvalue;
                 if(qvalue != qvalue){

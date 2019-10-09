@@ -9,21 +9,21 @@ start_time = time.time()
 
 kDim=200
 numberEventsToSavePerProcess=5
-nProcess=1
-seedShift=125
-nentries=300
-override_nentries=1
+nProcess=36
+seedShift=1261
+nentries=200000
+override_nentries=0
 verbose=0
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
-varStringBase='cosTheta_X_cms;phi_X_cms;cosTheta_eta_gjs;phi_eta_gjs;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas;mandelstam_tps'
-varVec=np.array(varStringBase.rstrip().split(";"));
+varStringBase='cosTheta_X_cms;phi_X_cms;cosTheta_eta_gjs;phi_eta_gjs;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
+varVec=np.array(varStringBase.rstrip().split(";"))
 
 
-def runOverCombo(combo):
+def runOverCombo(combo,nentries):
     """ 
     This function takes in an arguement like (3,) to use the 3rd variable as the distance metric. (1,2) would be using the first 2
     """
-    tagVec=["0","0","0","0","0","0","0","0"]
+    tagVec=["0","0","0","0","0","0","0"]
     for ele in combo:
         tagVec[ele]="1"
     tag="".join(tagVec)
@@ -64,14 +64,17 @@ def runOverCombo(combo):
     subprocess.Popen("cat logs/log* > diagnostic_logs.txt",shell=True).wait()
     subprocess.Popen("rm qvalResults.root",shell=True).wait()
     subprocess.Popen("hadd qvalResults.root logs/results*",shell=True).wait()
+
+    if not override_nentries:
+        nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub.txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
     subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+",\""+tag+"\")'",shell=True).wait()
 
 
 
 #numVar=1
 #runOverCombo((3,))
-numVar=8
-runOverCombo((0, 1, 2, 3, 4, 5, 6, 7))
+numVar=7
+runOverCombo((0, 1, 2, 3, 4, 5, 6),nentries)
 counter=0
 for numVar in np.arange(len((varVec)))+1:
     combos=combinations(range(len(varVec)),numVar)
@@ -81,7 +84,7 @@ for numVar in np.arange(len((varVec)))+1:
         #if counter%4==0:
         #    continue
         #print combo
-        #runOverCombo(combo)
+        #runOverCombo(combo,nentries)
     
 
 print("--- %s seconds ---" % (time.time() - start_time))

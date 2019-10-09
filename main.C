@@ -71,7 +71,7 @@ int main( int argc, char* argv[] ){
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
+	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
         TLine* etaLine;
         TLine* pi0Line;
@@ -97,7 +97,7 @@ int main( int argc, char* argv[] ){
         bool isUniqueEtaB;
         bool isUniquePi0B;
         bool isUniquePi0EtaB;
-        bool notRepeatedSpectroscopicPi0Eta;
+        Int_t uniqueSpectroscopicPi0EtaID;
 
 	dataTree->SetBranchAddress("Meta",&Meta);
 	dataTree->SetBranchAddress("Mpi0",&Mpi0);
@@ -119,7 +119,7 @@ int main( int argc, char* argv[] ){
         dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
         dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-        dataTree->SetBranchAddress("notRepeatedSpectroscopicPi0Eta",&notRepeatedSpectroscopicPi0Eta);
+        dataTree->SetBranchAddress("uniqueSpectroscopicPi0EtaID",&uniqueSpectroscopicPi0EtaID);
 
 	if (!override_nentries){
 		nentries=dataTree->GetEntries();
@@ -151,44 +151,41 @@ int main( int argc, char* argv[] ){
 	std::vector<double> vanHove_ys; vanHove_ys.reserve(c_nentries);
 	std::vector<double> vanHove_omegas; vanHove_omegas.reserve(c_nentries);
         std::vector<double> AccWeights; AccWeights.reserve(c_nentries);
+        std::vector<Int_t> uniqueSpectroscopicPi0EtaIDs; uniqueSpectroscopicPi0EtaIDs.reserve(c_nentries);
         
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
 	for (Long64_t ientry=0; ientry<nentries; ientry++)
 	{
-		dataTree->GetEntry(ientry);
+        	dataTree->GetEntry(ientry);
                 //if ( ientry != eventNumber){ cout << "ientry != eventNumber. The events are in the root tree are out of order or missing!" <<
                 //        "\n ientry,eventNumber: " << ientry << ", " << eventNumber << endl; break; }
                 //                ***** THE COMBINATIONS COME IN AT RANDOM ORDERS! ***** DOESNT MATTER I THINK
-                if (notRepeatedSpectroscopicPi0Eta) {
-		    Metas.push_back(Meta);
-		    Mpi0s.push_back(Mpi0);
-		    Mpi0etas.push_back(Mpi0eta);
-		    cosTheta_X_cms.push_back(cosTheta_X_cm);
-		    phi_X_cms.push_back(phi_X_cm);
-		    cosTheta_eta_gjs.push_back(cosTheta_eta_gj);
-		    phi_eta_gjs.push_back(phi_eta_gj);
-		    cosThetaHighestEphotonIneta_gjs.push_back(cosThetaHighestEphotonIneta_gj);	 
-		    cosThetaHighestEphotonInpi0_cms.push_back(cosThetaHighestEphotonInpi0_cm);	 
-                    vanHove_xs.push_back(vanHove_x);
-                    vanHove_ys.push_back(vanHove_y);
-                    vanHove_omegas.push_back(vanHove_omega);
-                    pi0_energies.push_back(pi0_energy);
-                    mandelstam_tps.push_back(mandelstam_tp);
-                    AccWeights.push_back(AccWeight);
-                }
+		Metas.push_back(Meta);
+		Mpi0s.push_back(Mpi0);
+		Mpi0etas.push_back(Mpi0eta);
+		cosTheta_X_cms.push_back(cosTheta_X_cm);
+		phi_X_cms.push_back(phi_X_cm);
+		cosTheta_eta_gjs.push_back(cosTheta_eta_gj);
+		phi_eta_gjs.push_back(phi_eta_gj);
+		cosThetaHighestEphotonIneta_gjs.push_back(cosThetaHighestEphotonIneta_gj);	 
+		cosThetaHighestEphotonInpi0_cms.push_back(cosThetaHighestEphotonInpi0_cm);	 
+                vanHove_xs.push_back(vanHove_x);
+                vanHove_ys.push_back(vanHove_y);
+                vanHove_omegas.push_back(vanHove_omega);
+                pi0_energies.push_back(pi0_energy);
+                mandelstam_tps.push_back(mandelstam_tp);
+                AccWeights.push_back(AccWeight);
+                uniqueSpectroscopicPi0EtaIDs.push_back(uniqueSpectroscopicPi0EtaID);
 	}
 
-        Long64_t nentries_noDups = AccWeights.size();
-        cout << "Entries after removing duplicates: " << nentries_noDups << endl;
-
-	int batchEntries = (int)nentries_noDups/nProcess;
+	int batchEntries = (int)nentries/nProcess;
 	int lowest_nentry = iProcess*batchEntries;
 	int largest_nentry;
         if (iProcess!=(nProcess-1)) {
             largest_nentry  = (iProcess+1)*batchEntries;
         }
         else {
-            largest_nentry = nentries_noDups; 
+            largest_nentry = nentries; 
         }
 
 	cout << "nentries we will use for this process: " << lowest_nentry << ", " << largest_nentry << endl;
@@ -208,7 +205,7 @@ int main( int argc, char* argv[] ){
 	
         if ( verbose_outputDistCalc ) {
             cout << "Before standarization" << endl;
-            for ( int ientry=0 ; ientry < nentries_noDups; ientry++){
+            for ( int ientry=0 ; ientry < nentries; ientry++){
                 cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
                 //cout << phi_X_cms[ientry] <<endl;// "," << cosTheta_eta_gjs[ientry] << endl;
             }
@@ -219,17 +216,17 @@ int main( int argc, char* argv[] ){
 	// outputting the results before and after standardizeArray will show that it works
 	// for(auto& cosTheta_X_cm1 : cosTheta_X_cms){ cout << cosTheta_X_cm1 << endl; }
 	// **** WE FIRST IMPORT THE DATA INTO A CLASS, SAVES AN INTERNAL COPY
-        standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries_noDups);
-        standardizeArray class_phi_X_cms(phi_X_cms,nentries_noDups);
-        standardizeArray class_cosTheta_eta_gjs(cosTheta_eta_gjs,nentries_noDups);
-        standardizeArray class_phi_eta_gjs(phi_eta_gjs,nentries_noDups);
-        standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries_noDups);
-        standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries_noDups);
-        standardizeArray class_vanHove_xs(vanHove_xs,nentries_noDups);
-        standardizeArray class_vanHove_ys(vanHove_ys,nentries_noDups);
-        standardizeArray class_vanHove_omegas(vanHove_omegas,nentries_noDups);
-        standardizeArray class_pi0_energies(pi0_energies, nentries_noDups);
-        standardizeArray class_mandelstam_tps(mandelstam_tps, nentries_noDups);
+        standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries);
+        standardizeArray class_phi_X_cms(phi_X_cms,nentries);
+        standardizeArray class_cosTheta_eta_gjs(cosTheta_eta_gjs,nentries);
+        standardizeArray class_phi_eta_gjs(phi_eta_gjs,nentries);
+        standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries);
+        standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries);
+        standardizeArray class_vanHove_xs(vanHove_xs,nentries);
+        standardizeArray class_vanHove_ys(vanHove_ys,nentries);
+        standardizeArray class_vanHove_omegas(vanHove_omegas,nentries);
+        standardizeArray class_pi0_energies(pi0_energies, nentries);
+        standardizeArray class_mandelstam_tps(mandelstam_tps, nentries);
         //standardizeArray class_Mpi0s(Mpi0s,nentries);
         //standardizeArray class_Metas(Metas,nentries);
 
@@ -286,7 +283,7 @@ int main( int argc, char* argv[] ){
 
         if ( verbose_outputDistCalc ) {
 	    cout << "After standardization" << endl;
-            for ( int ientry=0 ; ientry < nentries_noDups; ientry++){
+            for ( int ientry=0 ; ientry < nentries; ientry++){
                 cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
                 //cout << phi_X_cms[ientry] << endl;//"," << cosTheta_eta_gjs[ientry] << endl;
             }
@@ -368,6 +365,28 @@ int main( int argc, char* argv[] ){
         if (verbose) {cout << "Pi0 hist range: " << binRange2[0] << ", " << binRange2[1] << ", " << binRange2[2] << endl;}
         if (verbose) {cout << "Pi0 fit range: " << fitRange2[0] << ", " << fitRange2[1] << endl;}
         
+        // These initializations are related to the fitted gaussian on all the data
+        double peakWidtheta[2] = {0.545928, 0.0196892};
+        double peakWidthpi0[2] = {0.135399, 0.00760648};
+        double par0eta[3] = {3.4528, 1.7264, 0};
+        double par1eta[3] = {5.49805, 2.74902, 0}; 
+        double par2eta[3] = {0, 0.9, 1.8}; 
+        double par0pi0[3] = {7.30661, 3.6533, 0}; 
+        double par1pi0[3] = {30.5331, 15.2665, 0}; 
+        double par2pi0[3] = {0, 0.400002, 0.800003}; 
+
+        // phasePoint1 will consider all events from lowest to largest since these will be our attached q values. phasePoint2 on the other hand will only look at a subset of the events where the
+        // elements must be spectroscopically distinct, i.e. the 4 photons in consideration are different. Not sure if this is the value I should consider or is it better to do a pair of maps
+        // where I am tracking the two photon pairs that make up the eta and pi0.         
+        set<Int_t> setUsedSpectroscopicIDs;
+        std::vector<int> phasePoint2PotentailNeighbor; phasePoint2PotentailNeighbor.reserve(nentries);
+        for (Int_t ientry=0; ientry<nentries; ientry++){ 
+            if ( setUsedSpectroscopicIDs.find( uniqueSpectroscopicPi0EtaIDs[ientry] ) == setUsedSpectroscopicIDs.end() ) {
+                setUsedSpectroscopicIDs.insert( uniqueSpectroscopicPi0EtaIDs[ientry] );
+                phasePoint2PotentailNeighbor.push_back(ientry);
+            }
+        }
+        cout << phasePoint2PotentailNeighbor.size() << "/" << nentries << " are used as potential neighbors" << endl;
 
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
 	// Then we can plot the k nearest neighbors in the discriminating distribution which happens to be a double gaussian and flat bkg. Calculate Q-Value from event
@@ -394,13 +413,14 @@ int main( int argc, char* argv[] ){
               for ( int iVar=0; iVar<numVars; ++iVar ){
                   phasePoint1[iVar] = varVector[iVar][ientry];
               }
-	      for (int jentry=0; jentry<nentries_noDups; jentry++){
+	      //for (int jentry=0; jentry<nentries; jentry++){
+	      for (int jentry : phasePoint2PotentailNeighbor) {  
                    if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
         
                    for ( int iVar=0; iVar<numVars; ++iVar ){
                        phasePoint2[iVar] = varVector[iVar][jentry];
                    }
-	           if (jentry != ientry){
+	           if (uniqueSpectroscopicPi0EtaIDs[jentry] != uniqueSpectroscopicPi0EtaIDs[ientry]){
 	                   distance = calc_distance(phasePoint1,phasePoint2);
                            //distance = rgen.Uniform(nentries);
                            distKNN.insertPair(make_pair(distance,jentry));
@@ -415,7 +435,8 @@ int main( int argc, char* argv[] ){
 	      duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 	      if(verbose2){logFile << "	Found neighbors: " << duration2 << "ms" << endl; }
 	      if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim! size,kDim="<< distKNN.kNN.size() << "," << kDim 
-                  << " -- if size is 1 less than kDim it is probably because kDim=nentries_noDups and event i cannot be a neighbor to itself" << endl;}
+                  << "\n    -- if size is 1 less than kDim it is probably because kDim=nentries and event i cannot be a neighbor to itself" << 
+                  "\n    -- if size != kDim it could also mean that the number of spectroscopically unique neighbors reduces the number of poential neighbors below kDim" << endl;}
               while ( distKNN.kNN.empty() == false ){
                       newPair = distKNN.kNN.top();
                       distKNN.kNN.pop();
@@ -460,43 +481,72 @@ int main( int argc, char* argv[] ){
 
               for (UInt_t iFit=0; iFit<3; ++iFit){
                   // We use a normalized gaussian and a flat function. 
-	          fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
+	          fit = new TF1("fit",fitFuncBW,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
 	          bkgFit = new TF1("bkgFit",background,fitRange[0],fitRange[1],numDOFbkg);
-	          sigFit = new TF1("sigFit",signal,fitRange[0],fitRange[1],numDOFsig);
+	          sigFit = new TF1("sigFit",signalBW,fitRange[0],fitRange[1],numDOFsig);
                   flatFit = new TF1("flatEta",background,fitRange[0],fitRange[1],numDOFbkg);
 	          fit2 = new TF1("fit2",fitFunc,fitRange2[0],fitRange2[1],numDOFbkg+numDOFsig);
 	          bkgFit2 = new TF1("bkgFit2",background,fitRange2[0],fitRange2[1],numDOFbkg);
 	          sigFit2 = new TF1("sigFit2",signal,fitRange2[0],fitRange2[1],numDOFsig);
 
-                  flatFit->SetParameters(&flatAmpInit[iFit]);
+                  flatFit->SetParameters(par0eta[iFit],par1eta[iFit]);
                   flatFit->SetParLimits(0,0,kDim); 
+                  flatFit->FixParameter(1,0);
 
                   // Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
                   //if (useEta) { 
-                  fit->SetParameters(paramInit_eta.getBkg_a0(),paramInit_eta.getBkg_a1(),paramInit_eta.getSigAmp(),paramInit_eta.getSigMean(),paramInit_eta.getSigSig());
-                  fit->FixParameter(3,paramInit_eta.getSigMean());
-                  fit->FixParameter(4,paramInit_eta.getSigSig());
-                  //fit->SetParLimits(2,0.5275,0.58); 
-                  //fit->SetParLimits(3,0.017,0.027); 
+                  fit->SetParameters(par0eta[iFit],0,par2eta[iFit]/TMath::Sqrt(2*TMath::Pi())/peakWidtheta[1],peakWidtheta[0],0.03);
+                  fit->SetParLimits(3,0.544,0.558); 
+                  fit->SetParLimits(4,0.025,0.035); 
+                  //fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
+                  fit->FixParameter(1,0);
+                  //fit->FixParameter(3,peakWidtheta[0]);
+                  //fit->FixParameter(4,peakWidtheta[1]);
+                  //fit->SetParLimits(3,0.525,0.575); 
+                  //fit->SetParLimits(4,0.017,0.027); 
                   //}
                   //else {
-                  fit->SetParameters(paramInit_pi0.getBkg_a0(),paramInit_pi0.getBkg_a1(),paramInit_pi0.getSigAmp(),paramInit_pi0.getSigMean(),paramInit_pi0.getSigSig());
-                  fit->FixParameter(3,paramInit_pi0.getSigMean());
-                  fit->FixParameter(4,paramInit_pi0.getSigSig());
+                  fit2->SetParameters(par0pi0[iFit],0,par2pi0[iFit],peakWidthpi0[0],peakWidthpi0[1]);
+                  fit2->FixParameter(1,0);
+                  fit2->FixParameter(3,peakWidthpi0[0]);
+                  fit2->FixParameter(4,peakWidthpi0[1]);
                   //fit2->SetParLimits(2,0.125,0.15); 
                   //fit2->SetParLimits(3,0.005,0.015); 
 	          //}
                   // we have to enforce the functions to be positive. Easiest way is to make min=0 and max=kDim, the number of neighbors
                   fit->SetParLimits(0,0,kDim); 
-                  fit->SetParLimits(1,0,kDim); 
+                  fit->SetParLimits(2,0,kDim); 
                   fit2->SetParLimits(0,0,kDim); 
-                  fit2->SetParLimits(1,0,kDim); 
+                  fit2->SetParLimits(2,0,kDim); 
 
 	          //discriminatorHist->Fit("fit","RQBWL"); // WL for weighted histogram fitting
 	          discriminatorHist->Fit("flatEta","RQBNL"); // B will enforce the bounds, N will be no draw
                   chiSqFlat = flatFit->GetChisquare()/(flatFit->GetNDF());
+
+                  // we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
 	          discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
+	          fit->GetParameters(par);
+	          bkgFit->SetParameters(par);
+	          sigFit->SetParameters(&par[numDOFbkg]);
+	          qvalueEta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+                  //if (qvalueEta>1 || qvalueEta<0){
+                  //      cout << "Using flat fit instead of linear" << endl;
+                  //      fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
+                  //      fit->FixParameter(1,0); 
+	          //      discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
+	          //      fit->GetParameters(par);
+	          //      bkgFit->SetParameters(par);
+	          //      sigFit->SetParameters(&par[numDOFbkg]);
+	          //      qvalueEta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+                  //      if (qvaleEta>1 || qvalueEta<0){
+                  //          cout << "Not sure why qvalueEta is >1 or <0. Need to fix this!" << endl;
+                  //          cout << " **************** BREAKING ****************** " << endl;
+                  //          exit(0);
+                  //      }
+                  //}
                   chiSq = fit->GetChisquare()/(fit->GetNDF());
+
+                  // The pi0 fit
 	          discriminatorHist2->Fit("fit2","RQBNL"); // B will enforce the bounds, N will be no draw
                   chiSq2 = fit2->GetChisquare()/(fit2->GetNDF());
                   if (verbose2) { logFile << "current ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
@@ -508,30 +558,33 @@ int main( int argc, char* argv[] ){
                       bestChiSqFlat = chiSqFlat;
                   }
                   if (chiSq < bestChiSq){
-	              fit->GetParameters(par);
-	              bkgFit->SetParameters(par);
-	              sigFit->SetParameters(&par[numDOFbkg]);
-                      //if ( useEta) { 
-	              qvalueEta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-                      //}
-                      //else {
-	              //    qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
-                      //}
                       bestChiSq=chiSq;
                       best_iFit=iFit;
+
+                      if(qvalueEta>1 || qvalueEta<0) {
+                            cout << "qvalueEta out of bounds!\n-------------" << endl;
+                            for (double parVal : par){
+                                cout << parVal << endl;
+                            } 
+                            cout << "---- BREAKING ----" << endl;
+                            exit(0);
+                      }
                   } 
                   if (chiSq2 < bestChiSq2){
 	              fit2->GetParameters(par2);
 	              bkgFit2->SetParameters(par2);
 	              sigFit2->SetParameters(&par2[numDOFbkg]);
-                      //if ( useEta) { 
-	              //    qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-                      //}
-                      //else {
 	              qvaluePi0=sigFit2->Eval(Mpi0s[ientry])/fit2->Eval(Mpi0s[ientry]);
-                      //}
                       bestChiSq2=chiSq2;
                       best_iFit2=iFit;
+                      if(qvaluePi0>1 || qvaluePi0<0) {
+                            cout << "qvaluePi0 out of bounds!\n-------------" << endl;
+                            for (double parVal : par){
+                                cout << parVal << endl;
+                            } 
+                            cout << "---- BREAKING ----" << endl;
+                            exit(0);
+                      }
                   } 
 	      }
                
@@ -561,8 +614,10 @@ int main( int argc, char* argv[] ){
                   // bkgFit and sigFit has parameters that are set by SetParameters in the for loop above. The SetParameters function is only called when the new chiSq is better than
                   // the old. the "fit" function has parameters that are overwritten every time we do a fit so if we wanted to plot the best fit function we have to save the 
                   // best paramters but for bkgFit and sigFit I think that the best params are inherently saved by the above setup.
-	          fit->SetParameters(par);
-	          fit2->SetParameters(par2);
+
+                  // We set the parameters to the converged values and refit the histograms to just draw the histogram parameters onto the legend 
+                  fit->GetParameters(par);
+                  fit2->GetParameters(par2);
 	          bkgFit->SetParameters(par);
 	          bkgFit2->SetParameters(par2);
 	          sigFit->SetParameters(&par[numDOFbkg]);
@@ -590,6 +645,7 @@ int main( int argc, char* argv[] ){
 
                    allCanvases->cd(1);
 	          discriminatorHist->Draw();
+                  drawParText(par,numDOFbkg+numDOFsig);
 	          etaLine->Draw("same");
                   fit->Draw("SAME");
                    flatFit->Draw("SAME");
@@ -597,6 +653,7 @@ int main( int argc, char* argv[] ){
   	          sigFit->Draw("SAME FC");
                    allCanvases->cd(2);
 	          discriminatorHist2->Draw();
+                  drawParText(par2,numDOFbkg+numDOFsig);
 	          pi0Line->Draw("same");
                   fit2->Draw("SAME");
   	          bkgFit2->Draw("SAME FC");

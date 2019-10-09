@@ -16,6 +16,8 @@
 #include <TROOT.h>
 #include <TStyle.h>
 #include <TMath.h>
+#include <TLatex.h>
+#include <TPaveText.h>
 
 
 //#include "Math/MinimizerOptions.h"
@@ -23,7 +25,7 @@
 double peakWidth_eta[2] = {0.544,0.022};
 double peakWidth_pi0[2] = {0.134,0.0069};
 
-const int dim=8;
+const int dim=dimNum;
 bool verbose2=true;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
@@ -66,6 +68,35 @@ Double_t fitFunc(Double_t *x, Double_t *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
 
+
+Double_t signalBW(Double_t* x, Double_t* par) {
+    Double_t arg1 = 14.0/22.0; // 2 over pi
+    Double_t arg2 = par[2]*par[2]*par[1]*par[1]; //Gamma=par[1]  M=par[2]
+    Double_t arg3 = ((x[0]*x[0]) - (par[1]*par[1]))*((x[0]*x[0]) - (par[1]*par[1]));
+    Double_t arg4 = x[0]*x[0]*x[0]*x[0]*((par[2]*par[2])/(par[1]*par[1]));
+    
+    return par[0]*arg1*arg2/(arg3 + arg4);
+}
+
+Double_t fitFuncBW(Double_t *x, Double_t *par){
+	return background(x,par)+signalBW(x,&par[numDOFbkg]);
+}
+
+void drawParText(Double_t *par, int dof){
+    //TLatex parText;
+    //parText.SetTextAlign(12);
+    //parText.SetTextSize(0.01);
+    //for (int iPar=0; iPar<dof; ++iPar){
+    //    parText.DrawLatex(0.4,20,("par"+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
+    //}
+    //
+    TPaveText *pt = new TPaveText(0.1,0.8,0.3,0.9);
+    for (int iPar=0; iPar<dof; ++iPar){
+        pt->AddText(("par"+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
+    }
+    pt->Paint("NDC");
+    pt->Draw();
+}
 
 class standardizeArray{
      // ERROR 1: not sure why this code did not work. It would sometimes give a max element that was not correct
@@ -288,86 +319,4 @@ class cumulativeStd{
 //    return discreteSum;
 //}
 
-class getParamInit{
-    private:
-        std::string line;
-        TF1* sigFit[2];
-        TF1* bkgFit[2];
-        std::vector<Double_t> _perFitParVals[2];
-        std::vector<Double_t> _fullFitParVals[2];
-        double _maxCount;
-        int _dof;
-
-    public:
-        double scaleBkg[2];
-        double scaleSig[2];
-        double integralSig[2];
-        double integralBkg[2];
-        bool verbose=false;
-        double fitMin[2];
-        double fitMax[2];
-        double binsize[2];
-        std::vector<string> parNames[2];
-
-        getParamInit ( int maxCount, int dof, double fitMin_eta, double fitMax_eta, double binsize_eta, double fitMin_pi0, double fitMax_pi0, double binsize_pi0){
-            fitMin[0] = fitMin_eta;
-            fitMin[1] = fitMin_pi0;
-            fitMax[0] = fitMax_eta;
-            fitMax[1] = fitMax_pi0;
-            binsize[0] = binsize_eta;
-            binsize[1] = binsize_pi0;
-            _maxCount=maxCount;
-            _dof=dof;
-
-        }
-        
-        void loadData(){
-            ifstream inFile[2];
-            inFile[0].open("fitResults/etaFitNoAccSub.txt");
-            inFile[1].open("fitResults/pi0FitNoAccSub.txt");
-            
-            for(int iFile=0; iFile<2; ++iFile){
-                sigFit[iFile] = new TF1(("sigFit"+to_string(iFile)).c_str(),signal,fitMin[iFile],fitMax[iFile],numDOFsig);
-                bkgFit[iFile] = new TF1(("bkgFit"+to_string(iFile)).c_str(),background,fitMin[iFile],fitMax[iFile],numDOFbkg);
-
-                _fullFitParVals[iFile].reserve(_dof+1);
-                _perFitParVals[iFile].reserve(_dof+1);
-                parNames[iFile].reserve(_dof+1);
-                while(std::getline(inFile[iFile], line)){
-                    std::stringstream  lineStream(line);
-                    string parName;
-                    Double_t parVal;
-                    lineStream >> parName;
-                    lineStream >> parVal;
-                    _fullFitParVals[iFile].push_back(parVal);    
-                    parNames[iFile].push_back(parName);
-                    //cout << parName << " " << parVal << endl;
-                }
-                sigFit[iFile]->SetParameters(_fullFitParVals[iFile][3], _fullFitParVals[iFile][4],_fullFitParVals[iFile][5]);
-                bkgFit[iFile]->SetParameters(_fullFitParVals[iFile][1], _fullFitParVals[iFile][2]);
-                integralSig[iFile] = sigFit[iFile]->Integral(fitMin[iFile],fitMax[iFile]);
-                integralBkg[iFile] = bkgFit[iFile]->Integral(fitMin[iFile],fitMax[iFile]);
-                scaleBkg[iFile] = _maxCount/(integralBkg[iFile]/binsize[iFile]); 
-                scaleSig[iFile] = _maxCount/(integralSig[iFile]/binsize[iFile]); 
-                if(verbose){cout << "Counts under curves for sig and bkg: " <<  integralSig[iFile]/binsize[iFile] << "," << integralBkg[iFile]/binsize[iFile] << endl;}
-                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][0]);
-                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][1]*scaleBkg[iFile]);
-                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][2]*scaleBkg[iFile]);
-                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][3]*scaleSig[iFile]);
-                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][4]);
-                _perFitParVals[iFile].push_back(_fullFitParVals[iFile][5]);
-
-                for (int iPar=0; iPar<numDOFbkg+numDOFsig+1; ++iPar){
-                    if(verbose){cout << parNames[iFile][iPar] << " " << _fullFitParVals[iFile][iPar] <<" " << _perFitParVals[iFile][iPar] << endl;}
-                }
-                if(verbose){cout << "============================" << endl;}
-            }
-        }
-        double getEta_par0(){ return _perFitParVals[0][1]; } 
-        double getEta_par1(){ return _perFitParVals[0][2]; } 
-        double getEta_par2(){ return _perFitParVals[0][3]; } 
-        double getPi0_par0(){ return _perFitParVals[1][1]; } 
-        double getPi0_par1(){ return _perFitParVals[1][2]; } 
-        double getPi0_par2(){ return _perFitParVals[1][3]; } 
-};
 #endif
