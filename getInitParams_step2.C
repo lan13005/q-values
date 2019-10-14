@@ -2,9 +2,9 @@
 
 void getInitParams_step2(){
     //double binRange[3]={50,0.35,0.8};
-    double binRange[3]={50,0.35,0.8};
+    double binRange[3]={5000,0.35,0.8};
     double fitRange[3]={0.425,0.7};
-    double binRange2[3]={50,0.05,0.25};
+    double binRange2[3]={5000,0.05,0.25};
     double fitRange2[2]={0.1,0.17};
     int dof=numDOFbkg+numDOFsig;
     double binsize = (binRange[2]-binRange[1])/binRange[0];
@@ -42,7 +42,7 @@ void getInitParams_step2(){
     allPars.push_back(par1pi0);
     allPars.push_back(par2pi0);
 
-    cout << "peak width eta: " << peakWidth_eta[0] << " " << peakWidth_eta[1] << endl;
+    cout << "\n\npeak width eta: " << peakWidth_eta[0] << " " << peakWidth_eta[1] << endl;
     cout << "peak width pi0: " << peakWidth_pi0[0] << " " << peakWidth_pi0[1] << endl;
     cout << "Max Bkg, 50/50 BkgSig, Max Sig" << endl;
     for(int iPar=0; iPar<allPars.size(); ++iPar){

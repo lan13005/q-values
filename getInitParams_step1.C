@@ -13,7 +13,7 @@ void getInitParams_step1(){
 	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
 	TTree *dataTree;
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
-	dataFile->GetObject("pi0eta_a0_recotree_flat",dataTree);
+	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
 	double Meta;
 	double Mpi0;
 	dataTree->SetBranchAddress("Meta",&Meta);
@@ -39,19 +39,19 @@ void getInitParams_step1(){
             std::vector<double> binRange;
             std::vector<double> fitRange;
             if (useEta){
-                binRange={50,0.35,0.8};
+                binRange={5000,0.35,0.8};
                 fitRange={0.425,0.7};
             } 
             else{ 
-                binRange={50,0.05,0.25};
+                binRange={5000,0.05,0.25};
                 fitRange={0.1,0.17};
             }
 	    fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
             if (useEta){
-	        fit->SetParameters(500,10000,6000,0.55,0.025);
+	        fit->SetParameters(5,100,60,0.55,0.025);
             }
             else {
-	        fit->SetParameters(1000,0,14000,0.136,0.01);
+	        fit->SetParameters(10,0,140,0.136,0.01);
             }
 	    massHist = new TH1F("","",binRange[0],binRange[1],binRange[2]);
             cout << "Initialized for a specific mass (eta/pi0) fit" << endl;

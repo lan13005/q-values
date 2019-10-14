@@ -18,6 +18,19 @@
 #include <TMath.h>
 #include <TLatex.h>
 #include <TPaveText.h>
+#include <TLegend.h>
+#include <RooRealVar.h>
+#include <RooDataSet.h>
+#include <RooGenericPdf.h>
+#include <RooConstVar.h>
+#include <RooArgList.h>
+#include <RooPlot.h>
+#include <RooMinuit.h>
+#include <RooAddPdf.h>
+#include <RooFitResult.h>
+#include <RooChi2Var.h>
+//#include "RooAddPdf.h"
+//#include "RooFormulaVar.h"
 
 
 //#include "Math/MinimizerOptions.h"
@@ -82,7 +95,7 @@ Double_t fitFuncBW(Double_t *x, Double_t *par){
 	return background(x,par)+signalBW(x,&par[numDOFbkg]);
 }
 
-void drawParText(Double_t *par, int dof){
+void drawText(Double_t *par, int dof, string tag){
     //TLatex parText;
     //parText.SetTextAlign(12);
     //parText.SetTextSize(0.01);
@@ -90,9 +103,9 @@ void drawParText(Double_t *par, int dof){
     //    parText.DrawLatex(0.4,20,("par"+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
     //}
     //
-    TPaveText *pt = new TPaveText(0.1,0.8,0.3,0.9);
+    TPaveText *pt = new TPaveText(0.7,0.8,0.85,0.9);
     for (int iPar=0; iPar<dof; ++iPar){
-        pt->AddText(("par"+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
+        pt->AddText((tag+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
     }
     pt->Paint("NDC");
     pt->Draw();
@@ -287,6 +300,62 @@ class cumulativeStd{
         UInt_t _kDim;
 
 };
+
+//class rooFitML{
+//	private:
+//        	double peakWidtheta[2] = {0.545928, 0.0196892};
+//        	double peakWidthpi0[2] = {0.135399, 0.00760648};
+//        	double par0eta[3] = {3.4528, 1.7264, 0};
+//        	double par1eta[3] = {5.49805, 2.74902, 0}; 
+//        	double par2eta[3] = {0, 0.9, 1.18}; 
+//        	double par0pi0[3] = {7.30661, 3.6533, 0}; 
+//        	double par1pi0[3] = {30.05331, 15.2665, 0}; 
+//        	double par2pi0[3] = {0, 0.400002, 0.800003}; 
+//
+//		/// we had to make everything deal with pointers since we couldn't define and initialize at the same time here. It can only be done with static const primitive types
+//		RooRealVar par0_eta("par0_eta","par0_eta", 0, 1, 5.25);
+//		RooRealVar par1_eta("par1_eta","par1_eta", 0, -8.25, 8.25);
+//		RooRealVar par2_eta("par2_eta","par2_eta", 0, 0, 1.77);
+//		RooRealVar peak_eta("peak_eta","peak_eta",0.545928,0.52,0.58);
+//		RooRealVar x("x","x",0, 1);
+//		RooRealVar width_eta("width_eta","width_eta",0.0196892,0.017,0.027);
+//		RooDataSet data("data","data",RooArgSet(x));
+//
+//		RooPlot xframe = x->frame();
+//	public:
+//		//RooGaussian gauss("gauss","gauss(x,m,s)", x, peak_eta, width_eta) ;
+//		//RooFormulaVar poly("poly","polynomial",x,RooArgList(par0_eta,par1_eta)) ;
+//		//RooAddPdf sigWithBkg("sigWithBkg","gaus+polyBkg",RooArgList(gauss,poly),RooArgList(scale
+//		RooGenericPdf sigWithBkg("sigWithBkg","sigWithBkg","par0_eta+par1_eta*x+par2_eta*exp(-0.5*((x-peak_eta)/width_eta)**2)", RooArgSet(x,par0_eta,par1_eta,par2_eta,peak_eta,width_eta));
+//
+//
+//		void fillValues( double mass ){
+//			data.add(RooArgSet(mass));
+//		}
+//
+//		void fitToData( UInt_t iFit ){
+//			par0_eta.setVal(par0eta[iFit]);
+//			par1_eta.setVal(par1eta[iFit]);
+//			par2_eta.setVal(par2eta[iFit]); 
+//			// not sure what these flags do
+//			sigWithBkg.fitTo(data,"mhvr");
+//		}
+//
+//		void drawFitData(){
+//			data.plotOn(xframe);
+//			sigWithBkg.plotOn(xframe);
+//			xframe.Draw();
+//		}
+//
+//		void clear(){
+//			// think this deletes the pool of data
+//			data.Clear();
+//			// we might also have to reinitialize the RooRealVars if the fitTo function decides to change things, idky it would though
+//		}
+//
+//};
+
+
 
 
 //double gausAmplitude( double xmin, double binsize, int binsToStep, int kDim, Double_t *par){

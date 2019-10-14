@@ -8,14 +8,14 @@ subprocess.Popen("rm etaPlots/*", shell=True,  stdout=subprocess.PIPE, stderr=su
 start_time = time.time()
 
 kDim=200
-numberEventsToSavePerProcess=5
-nProcess=36
-seedShift=1261
+numberEventsToSavePerProcess=10
+nProcess=30
+seedShift=12151
 nentries=200000
-override_nentries=0
+override_nentries=1
 verbose=0
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
-varStringBase='cosTheta_X_cms;phi_X_cms;cosTheta_eta_gjs;phi_eta_gjs;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
+varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
 varVec=np.array(varStringBase.rstrip().split(";"))
 
 
@@ -23,7 +23,7 @@ def runOverCombo(combo,nentries):
     """ 
     This function takes in an arguement like (3,) to use the 3rd variable as the distance metric. (1,2) would be using the first 2
     """
-    tagVec=["0","0","0","0","0","0","0"]
+    tagVec=["0" for i in range(len(varVec))]
     for ele in combo:
         tagVec[ele]="1"
     tag="".join(tagVec)
@@ -33,9 +33,12 @@ def runOverCombo(combo,nentries):
     
     exchangeVar=["sed","-i","s@dim=dimNum@dim="+str(numVar)+"@g","main.h"]
     compileMain=["g++","-o","main","main.C"]
-    rootFlags = subprocess.check_output(["root-config","--cflags","--glibs"])
+    rootFlags = subprocess.check_output(["root-config","--cflags","--glibs", "--libs"])
     rootFlags = rootFlags.rstrip().split(" ")
+
+    rooFitFlags = ["-lRooStats","-lRooFitCore", "-lRooFit"]
     compileMain.extend(rootFlags)
+    compileMain.extend(rooFitFlags)
     replaceVar=["sed","-i","s@dim="+str(numVar)+"@dim=dimNum@g","main.h"]
     print "\nStarting new compilation\n----------------------"
     print " ".join(exchangeVar)
@@ -63,18 +66,19 @@ def runOverCombo(combo,nentries):
         
     subprocess.Popen("cat logs/log* > diagnostic_logs.txt",shell=True).wait()
     subprocess.Popen("rm qvalResults.root",shell=True).wait()
+    subprocess.Popen("rm nohup.out",shell=True).wait()
     subprocess.Popen("hadd qvalResults.root logs/results*",shell=True).wait()
 
     if not override_nentries:
         nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub.txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
-    subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+",\""+tag+"\")'",shell=True).wait()
+    #subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+",\""+tag+"\")'",shell=True).wait()
 
 
 
 #numVar=1
 #runOverCombo((3,))
-numVar=7
-runOverCombo((0, 1, 2, 3, 4, 5, 6),nentries)
+numVar=len(varVec)
+runOverCombo((0, 1, 2),nentries)#, 3, 4, 5, 6),nentries)
 counter=0
 for numVar in np.arange(len((varVec)))+1:
     combos=combinations(range(len(varVec)),numVar)
