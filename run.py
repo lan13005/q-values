@@ -9,9 +9,9 @@ start_time = time.time()
 
 kDim=200
 numberEventsToSavePerProcess=10
-nProcess=30
+nProcess=10
 seedShift=12151
-nentries=200000
+nentries=1000
 override_nentries=1
 verbose=0
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
@@ -51,6 +51,7 @@ def runOverCombo(combo,nentries):
     out, err = subprocess.Popen(compileMain, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate(); print out
     subprocess.Popen(replaceVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     subprocess.Popen("rm histograms/*",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+    subprocess.Popen("rm diagnosticPlots/*",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
     subprocess.Popen("rm logs/*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
@@ -66,17 +67,15 @@ def runOverCombo(combo,nentries):
         
     subprocess.Popen("cat logs/log* > diagnostic_logs.txt",shell=True).wait()
     subprocess.Popen("rm qvalResults.root",shell=True).wait()
-    subprocess.Popen("rm nohup.out",shell=True).wait()
+    #subprocess.Popen("rm nohup.out",shell=True).wait()
     subprocess.Popen("hadd qvalResults.root logs/results*",shell=True).wait()
 
     if not override_nentries:
         nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub.txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
-    #subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+",\""+tag+"\")'",shell=True).wait()
+    subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+",\""+tag+"\")'",shell=True).wait()
 
 
 
-#numVar=1
-#runOverCombo((3,))
 numVar=len(varVec)
 runOverCombo((0, 1, 2),nentries)#, 3, 4, 5, 6),nentries)
 counter=0

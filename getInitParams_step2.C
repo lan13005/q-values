@@ -3,8 +3,8 @@
 void getInitParams_step2(){
     //double binRange[3]={50,0.35,0.8};
     double binRange[3]={5000,0.35,0.8};
-    double fitRange[3]={0.425,0.7};
-    double binRange2[3]={5000,0.05,0.25};
+    double fitRange[3]={0.4,0.7};
+    double binRange2[3]={50,0.05,0.25};
     double fitRange2[2]={0.1,0.17};
     int dof=numDOFbkg+numDOFsig;
     double binsize = (binRange[2]-binRange[1])/binRange[0];
@@ -15,7 +15,7 @@ void getInitParams_step2(){
     //getParamInit(200,0, dof, false, fitRange2[0], fitRange2[1] ,binsize2);
     //getParamInit(100,100, dof, false, fitRange2[0], fitRange2[1] ,binsize2);
     //getParamInit(0,200, dof, false, fitRange2[0], fitRange2[1] ,binsize2);
-    getParamInit paramInit = getParamInit ( 200, 6, 0.425, 0.7, binsize, 0.1, 0.17, binsize2);
+    getParamInit paramInit = getParamInit ( 200, 6, 0.40, 0.7, binsize, 0.1, 0.17, binsize2);
     paramInit.loadData();
     std::vector<double> par0eta = {paramInit.getEta_par0(), paramInit.getEta_par0()/2, 0};
     std::vector<double> par1eta = {paramInit.getEta_par1(), paramInit.getEta_par1()/2, 0};

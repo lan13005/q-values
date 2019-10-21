@@ -77,11 +77,6 @@ Double_t signal(Double_t *x, Double_t *par){
 
 }
 
-Double_t fitFunc(Double_t *x, Double_t *par){
-	return background(x,par)+signal(x,&par[numDOFbkg]);
-}
-
-
 Double_t signalBW(Double_t* x, Double_t* par) {
     Double_t arg1 = 14.0/22.0; // 2 over pi
     Double_t arg2 = par[2]*par[2]*par[1]*par[1]; //Gamma=par[1]  M=par[2]
@@ -91,9 +86,11 @@ Double_t signalBW(Double_t* x, Double_t* par) {
     return par[0]*arg1*arg2/(arg3 + arg4);
 }
 
-Double_t fitFuncBW(Double_t *x, Double_t *par){
+Double_t fitFunc(Double_t *x, Double_t *par){
 	return background(x,par)+signalBW(x,&par[numDOFbkg]);
 }
+
+
 
 void drawText(Double_t *par, int dof, string tag){
     //TLatex parText;
