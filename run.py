@@ -7,12 +7,12 @@ import numpy as np
 subprocess.Popen("rm etaPlots/*", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 start_time = time.time()
 
-kDim=200
+kDim=100
 numberEventsToSavePerProcess=10
-nProcess=10
+nProcess=24
 seedShift=12151
 nentries=1000
-override_nentries=1
+override_nentries=0
 verbose=0
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
 varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'

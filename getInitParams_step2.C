@@ -15,7 +15,7 @@ void getInitParams_step2(){
     //getParamInit(200,0, dof, false, fitRange2[0], fitRange2[1] ,binsize2);
     //getParamInit(100,100, dof, false, fitRange2[0], fitRange2[1] ,binsize2);
     //getParamInit(0,200, dof, false, fitRange2[0], fitRange2[1] ,binsize2);
-    getParamInit paramInit = getParamInit ( 200, 6, 0.40, 0.7, binsize, 0.1, 0.17, binsize2);
+    getParamInit paramInit = getParamInit ( 100, 6, 0.40, 0.7, binsize, 0.1, 0.17, binsize2);
     paramInit.loadData();
     std::vector<double> par0eta = {paramInit.getEta_par0(), paramInit.getEta_par0()/2, 0};
     std::vector<double> par1eta = {paramInit.getEta_par1(), paramInit.getEta_par1()/2, 0};

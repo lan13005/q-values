@@ -6,7 +6,7 @@ bool verbose = true;
 void makeDiagnosticHists(Long64_t nentries, string tag){
 
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_meas_datatreeFlat_DSelector.root");
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
@@ -53,9 +53,9 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 	double cosTheta_eta_gj;
 	double phi_eta_gj;
 
-	dataTree->SetBranchAddress("Meta",&Meta);
-	dataTree->SetBranchAddress("Mpi0",&Mpi0);
-	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
+	dataTree->SetBranchAddress("Meta_meas",&Meta);
+	dataTree->SetBranchAddress("Mpi0_meas",&Mpi0);
+	dataTree->SetBranchAddress("Mpi0eta_meas",&Mpi0eta);
         dataTree->SetBranchAddress("AccWeight",&AccWeight);
         dataTree->SetBranchAddress("cosTheta_X_cm", &cosTheta_X_cm); 
         dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);

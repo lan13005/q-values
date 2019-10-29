@@ -87,12 +87,12 @@ Double_t signalBW(Double_t* x, Double_t* par) {
 }
 
 Double_t fitFunc(Double_t *x, Double_t *par){
-	return background(x,par)+signalBW(x,&par[numDOFbkg]);
+	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
 
 
 
-void drawText(Double_t *par, int dof, string tag){
+void drawText(Double_t *par, int dof, string tag, double qSigValue, double qBkgValue, double qTotValue){
     //TLatex parText;
     //parText.SetTextAlign(12);
     //parText.SetTextSize(0.01);
@@ -104,6 +104,9 @@ void drawText(Double_t *par, int dof, string tag){
     for (int iPar=0; iPar<dof; ++iPar){
         pt->AddText((tag+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
     }
+    pt->AddText(("qSigVal: "+std::to_string(qSigValue)).c_str());
+    pt->AddText(("qBkgVal: "+std::to_string(qBkgValue)).c_str());
+    pt->AddText(("qFitVal: "+std::to_string(qTotValue)).c_str());
     pt->Paint("NDC");
     pt->Draw();
 }

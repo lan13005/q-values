@@ -10,14 +10,14 @@ void getInitParams_step1(){
 	gStyle->SetOptFit(111);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
-	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_meas_datatreeFlat_DSelector.root");
 	TTree *dataTree;
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
 	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
 	double Meta;
 	double Mpi0;
-	dataTree->SetBranchAddress("Meta",&Meta);
-	dataTree->SetBranchAddress("Mpi0",&Mpi0);
+	dataTree->SetBranchAddress("Meta_meas",&Meta);
+	dataTree->SetBranchAddress("Mpi0_meas",&Mpi0);
 	nentries=dataTree->GetEntries();
 
         TH1F *massHist; 

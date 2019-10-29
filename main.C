@@ -73,7 +73,7 @@ int main( int argc, char* argv[] ){
 	
 	// setting up some basic root stuff and getting the file and tree
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
-	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_meas_datatreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
@@ -81,6 +81,8 @@ int main( int argc, char* argv[] ){
         auto legend_conv = new TLegend(0.1,0.8,0.3,0.9);
         TLine* etaLine;
         TLine* pi0Line;
+	TLine* qSigLine;
+	TLine* qBkgLine;
 	TH1F* discriminatorHist;
 	TH1F* discriminatorHist2;
 	double Meta;
@@ -146,16 +148,16 @@ int main( int argc, char* argv[] ){
         std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries);
         std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries);
         std::vector<double> cosTheta_X_cms; cosTheta_X_cms.reserve(c_nentries);
-        std::vector<double> phi_X_cms; phi_X_cms.reserve(c_nentries);
+        //std::vector<double> phi_X_cms; phi_X_cms.reserve(c_nentries);
         std::vector<double> cosTheta_eta_gjs; cosTheta_eta_gjs.reserve(c_nentries);
         std::vector<double> phi_eta_gjs; phi_eta_gjs.reserve(c_nentries);
-        std::vector<double> cosThetaHighestEphotonIneta_gjs; cosThetaHighestEphotonIneta_gjs.reserve(c_nentries);
-        std::vector<double> cosThetaHighestEphotonInpi0_cms; cosThetaHighestEphotonInpi0_cms.reserve(c_nentries);
-        std::vector<double> pi0_energies; pi0_energies.reserve(c_nentries);
-        std::vector<double> mandelstam_tps; mandelstam_tps.reserve(c_nentries);
-	std::vector<double> vanHove_xs; vanHove_xs.reserve(c_nentries);
-	std::vector<double> vanHove_ys; vanHove_ys.reserve(c_nentries);
-	std::vector<double> vanHove_omegas; vanHove_omegas.reserve(c_nentries);
+        //std::vector<double> cosThetaHighestEphotonIneta_gjs; cosThetaHighestEphotonIneta_gjs.reserve(c_nentries);
+        //std::vector<double> cosThetaHighestEphotonInpi0_cms; cosThetaHighestEphotonInpi0_cms.reserve(c_nentries);
+        //std::vector<double> pi0_energies; pi0_energies.reserve(c_nentries);
+        //std::vector<double> mandelstam_tps; mandelstam_tps.reserve(c_nentries);
+	//std::vector<double> vanHove_xs; vanHove_xs.reserve(c_nentries);
+	//std::vector<double> vanHove_ys; vanHove_ys.reserve(c_nentries);
+	//std::vector<double> vanHove_omegas; vanHove_omegas.reserve(c_nentries);
         std::vector<double> AccWeights; AccWeights.reserve(c_nentries);
         std::vector<Int_t> uniqueSpectroscopicPi0EtaIDs; uniqueSpectroscopicPi0EtaIDs.reserve(c_nentries);
         
@@ -170,16 +172,16 @@ int main( int argc, char* argv[] ){
 		Mpi0s.push_back(Mpi0);
 		Mpi0etas.push_back(Mpi0eta);
 		cosTheta_X_cms.push_back(cosTheta_X_cm);
-		phi_X_cms.push_back(phi_X_cm);
+		//phi_X_cms.push_back(phi_X_cm);
 		cosTheta_eta_gjs.push_back(cosTheta_eta_gj);
 		phi_eta_gjs.push_back(phi_eta_gj);
-		cosThetaHighestEphotonIneta_gjs.push_back(cosThetaHighestEphotonIneta_gj);	 
-		cosThetaHighestEphotonInpi0_cms.push_back(cosThetaHighestEphotonInpi0_cm);	 
-                vanHove_xs.push_back(vanHove_x);
-                vanHove_ys.push_back(vanHove_y);
-                vanHove_omegas.push_back(vanHove_omega);
-                pi0_energies.push_back(pi0_energy);
-                mandelstam_tps.push_back(mandelstam_tp);
+		//cosThetaHighestEphotonIneta_gjs.push_back(cosThetaHighestEphotonIneta_gj);	 
+		//cosThetaHighestEphotonInpi0_cms.push_back(cosThetaHighestEphotonInpi0_cm);	 
+                //vanHove_xs.push_back(vanHove_x);
+                //vanHove_ys.push_back(vanHove_y);
+                //vanHove_omegas.push_back(vanHove_omega);
+                //pi0_energies.push_back(pi0_energy);
+                //mandelstam_tps.push_back(mandelstam_tp);
                 AccWeights.push_back(AccWeight);
                 uniqueSpectroscopicPi0EtaIDs.push_back(uniqueSpectroscopicPi0EtaID);
 	}
@@ -223,31 +225,31 @@ int main( int argc, char* argv[] ){
 	// for(auto& cosTheta_X_cm1 : cosTheta_X_cms){ cout << cosTheta_X_cm1 << endl; }
 	// **** WE FIRST IMPORT THE DATA INTO A CLASS, SAVES AN INTERNAL COPY
         standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries);
-        standardizeArray class_phi_X_cms(phi_X_cms,nentries);
+        //standardizeArray class_phi_X_cms(phi_X_cms,nentries);
         standardizeArray class_cosTheta_eta_gjs(cosTheta_eta_gjs,nentries);
         standardizeArray class_phi_eta_gjs(phi_eta_gjs,nentries);
-        standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries);
-        standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries);
-        standardizeArray class_vanHove_xs(vanHove_xs,nentries);
-        standardizeArray class_vanHove_ys(vanHove_ys,nentries);
-        standardizeArray class_vanHove_omegas(vanHove_omegas,nentries);
-        standardizeArray class_pi0_energies(pi0_energies, nentries);
-        standardizeArray class_mandelstam_tps(mandelstam_tps, nentries);
+        //standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries);
+        //standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries);
+        //standardizeArray class_vanHove_xs(vanHove_xs,nentries);
+        //standardizeArray class_vanHove_ys(vanHove_ys,nentries);
+        //standardizeArray class_vanHove_omegas(vanHove_omegas,nentries);
+        //standardizeArray class_pi0_energies(pi0_energies, nentries);
+        //standardizeArray class_mandelstam_tps(mandelstam_tps, nentries);
         //standardizeArray class_Mpi0s(Mpi0s,nentries);
         //standardizeArray class_Metas(Metas,nentries);
 
         // ***** STANDARDIZES THE INTERAL COPY 
         class_cosTheta_X_cms.rangeStandardization();
-        class_phi_X_cms.rangeStandardization();
+        //class_phi_X_cms.rangeStandardization();
         class_cosTheta_eta_gjs.rangeStandardization();
         class_phi_eta_gjs.rangeStandardization();
-        class_cosThetaHighestEphotonIneta_gjs.rangeStandardization();
-        class_cosThetaHighestEphotonInpi0_cms.rangeStandardization();
-        class_vanHove_xs.rangeStandardization();
-        class_vanHove_ys.rangeStandardization();
-        class_vanHove_omegas.rangeStandardization();
-        class_pi0_energies.rangeStandardization();
-        class_mandelstam_tps.rangeStandardization();
+        //class_cosThetaHighestEphotonIneta_gjs.rangeStandardization();
+        //class_cosThetaHighestEphotonInpi0_cms.rangeStandardization();
+        //class_vanHove_xs.rangeStandardization();
+        //class_vanHove_ys.rangeStandardization();
+        //class_vanHove_omegas.rangeStandardization();
+        //class_pi0_energies.rangeStandardization();
+        //class_mandelstam_tps.rangeStandardization();
         //class_cosTheta_X_cms.stdevStandardization();
         //class_phi_X_cms.stdevStandardization();
         //class_cosTheta_eta_gjs.stdevStandardization();
@@ -264,31 +266,31 @@ int main( int argc, char* argv[] ){
     
         // ******* REPLACES THE ORIGNAL WITH THE STANDARDIZED COPY INSIDE THE ARRAY
         cosTheta_X_cms = class_cosTheta_X_cms.getVector();
-        phi_X_cms=class_phi_X_cms.getVector();
+        //phi_X_cms=class_phi_X_cms.getVector();
         cosTheta_eta_gjs=class_cosTheta_eta_gjs.getVector();
         phi_eta_gjs=class_phi_eta_gjs.getVector();
-        cosThetaHighestEphotonIneta_gjs=class_cosThetaHighestEphotonIneta_gjs.getVector();
-        cosThetaHighestEphotonInpi0_cms=class_cosThetaHighestEphotonInpi0_cms.getVector();
-        vanHove_xs=class_vanHove_xs.getVector();
-        vanHove_ys=class_vanHove_xs.getVector();
-        vanHove_omegas=class_vanHove_omegas.getVector();
-        pi0_energies=class_pi0_energies.getVector();
-        mandelstam_tps=class_mandelstam_tps.getVector();
+        //cosThetaHighestEphotonIneta_gjs=class_cosThetaHighestEphotonIneta_gjs.getVector();
+        //cosThetaHighestEphotonInpi0_cms=class_cosThetaHighestEphotonInpi0_cms.getVector();
+        //vanHove_xs=class_vanHove_xs.getVector();
+        //vanHove_ys=class_vanHove_xs.getVector();
+        //vanHove_omegas=class_vanHove_omegas.getVector();
+        //pi0_energies=class_pi0_energies.getVector();
+        //mandelstam_tps=class_mandelstam_tps.getVector();
         //Mpi0s=class_Mpi0s.getVector();
         //Metas=class_Metas.getVector();
 
         map<std::string, std::vector<double>> nameToVec;
         nameToVec["cosTheta_X_cms"] = cosTheta_X_cms;
-        nameToVec["phi_X_cms"] = phi_X_cms; 
+        //nameToVec["phi_X_cms"] = phi_X_cms; 
         nameToVec["cosTheta_eta_gjs"] = cosTheta_eta_gjs; 
         nameToVec["phi_eta_gjs"] = phi_eta_gjs; 
-        nameToVec["cosThetaHighestEphotonIneta_gjs"] = cosThetaHighestEphotonIneta_gjs; 
-        nameToVec["cosThetaHighestEphotonInpi0_cms"] = cosThetaHighestEphotonInpi0_cms; 
-        nameToVec["vanHove_omegas"] = vanHove_omegas; 
-        nameToVec["vanHove_xs"] = vanHove_xs; 
-        nameToVec["vanHove_ys"] = vanHove_ys; 
-        nameToVec["pi0_energies"] = pi0_energies; 
-        nameToVec["mandelstam_tps"] = mandelstam_tps; 
+        //nameToVec["cosThetaHighestEphotonIneta_gjs"] = cosThetaHighestEphotonIneta_gjs; 
+        //nameToVec["cosThetaHighestEphotonInpi0_cms"] = cosThetaHighestEphotonInpi0_cms; 
+        //nameToVec["vanHove_omegas"] = vanHove_omegas; 
+        //nameToVec["vanHove_xs"] = vanHove_xs; 
+        //nameToVec["vanHove_ys"] = vanHove_ys; 
+        //nameToVec["pi0_energies"] = pi0_energies; 
+        //nameToVec["mandelstam_tps"] = mandelstam_tps; 
         //nameToVec["Mpi0s"] = Mpi0s; 
         //nameToVec["Metas"] = Metas; 
 
@@ -344,7 +346,7 @@ int main( int argc, char* argv[] ){
         TFile *resultsFile = new TFile(("logs/results"+to_string(iProcess)+".root").c_str(),"RECREATE");
         TTree* resultsTree = new TTree("resultsTree","results");
         resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
-        resultsTree->Branch("qvalue",&qvalue_eta,"qvalue/D");
+        resultsTree->Branch("qvalue",&best_qvalue_eta,"qvalue/D");
         resultsTree->Branch("chisq_eta",&bestChiSq_eta,"chisq_eta/D");
         resultsTree->Branch("chisq_eta_01",&chiSq_eta_01,"chisq_eta/D");
         resultsTree->Branch("chisq_eta_02",&chiSq_eta_02,"chisq_eta/D");
@@ -360,10 +362,10 @@ int main( int argc, char* argv[] ){
 	TF1 *fit,*fit2;
         TF1 *bkgFit,*bkgFit2;
         TF1 *sigFit,*sigFit2;
-        binRange={500,0.4,0.7};
+        binRange={5000,0.35,0.8};
         fitRange={0.40,0.7};
         //fitRange={0.35,0.8};
-        binRange2={50,0.05,0.25};
+        binRange2={5000,0.05,0.25};
         //fitRange2={0.05,0.25};
         fitRange2={0.1,0.17};
 
@@ -410,16 +412,31 @@ int main( int argc, char* argv[] ){
 	//double par0eta[3] = { 5.38593, 2.69296, 0};
 	//double par1eta[3] = { 1.11649, 0.558246, 0};
 	//double par2eta[3] = { 0, 0.9, 1.8};
+	//
 	// BW for the eta
-	double peakWidtheta[2] =  {0.548531, 0.0466235};
-	double par0eta[3] = { -0.449614, -0.224807, 0};
-	double par1eta[3] = { 1.90839, 0.954194, 0};
-	double par2eta[3] = { 0, 0.0901173, 0.180235};
-	// These are for a guassian pi0
-	double peakWidthpi0[2] = { 0.135198, 0.00789097};
-	double par0pi0[3] = { 6.69442, 3.34721, 0};
-	double par1pi0[3] = { 35.0678, 17.5339, 0};
-	double par2pi0[3] = { 0, 0.400004, 0.800007};
+	// double peakWidtheta[2] =  {0.548531, 0.0466235};
+	// double par0eta[3] = { -0.449614, -0.224807, 0};
+	// double par1eta[3] = { 1.90839, 0.954194, 0};
+	// double par2eta[3] = { 0, 0.0901173, 0.180235};
+	// // These are for a guassian pi0
+	// double peakWidthpi0[2] = { 0.135198, 0.00789097};
+	// double par0pi0[3] = { 6.69442, 3.34721, 0};
+	// double par1pi0[3] = { 35.0678, 17.5339, 0};
+	// double par2pi0[3] = { 0, 0.400004, 0.800007};
+
+	// ********************** THIS IS FOR THE MEAS VALUES *********************
+	double peakWidtheta[2] = {0.540393, 0.0233083};
+	double peakWidthpi0[2] = { 0.134273, 0.00781488};
+		// kDim = 200
+	//double par0eta[3] = { 0.0220458, 0.0110229, 0};
+	//double par1eta[3] = { 0.0690077, 0.0345038, 0};
+	//double par2eta[3] = { 0, 0.405486, 0.810973};
+	double par0eta[3] = { 0.0110229, 0.00551144, 0};
+	double par1eta[3] = { 0.0345038, 0.0172519, 0};
+	double par2eta[3] = { 0, 0.202743, 0.405486};
+	double par0pi0[3] = { 8.58665, 4.29333, 0};
+	double par1pi0[3] = { 21.0513, 10.5256, 0};
+	double par2pi0[3] = { 0, 54.8886, 109.777};
 
         // with 5000 bins
         //double peakWidtheta[2] = {0.545949, 0.0194813};
@@ -535,6 +552,7 @@ int main( int argc, char* argv[] ){
 		int countBkg;
 
 	        Double_t par[numDOFbkg+numDOFsig]; // needed to calculate the qvalue
+	        Double_t parBest[numDOFbkg+numDOFsig]; // needed to calculate the qvalue
 	        Double_t par2[numDOFbkg+numDOFsig]; // needed to calculate the qvalue
 	        Double_t parFlat[numDOFbkg]; // needed to calculate the qvalue
 		
@@ -543,9 +561,9 @@ int main( int argc, char* argv[] ){
 			fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
 			bkgFit = new TF1("bkgFit",background,fitRange[0],fitRange[1],numDOFbkg);
 			sigFit = new TF1("sigFit",signal,fitRange[0],fitRange[1],numDOFsig);
-			fit2 = new TF1("fit2",fitFunc,fitRange2[0],fitRange2[1],numDOFbkg+numDOFsig);
-			bkgFit2 = new TF1("bkgFit2",background,fitRange2[0],fitRange2[1],numDOFbkg);
-			sigFit2 = new TF1("sigFit2",signal,fitRange2[0],fitRange2[1],numDOFsig);
+			//fit2 = new TF1("fit2",fitFunc,fitRange2[0],fitRange2[1],numDOFbkg+numDOFsig);
+			//bkgFit2 = new TF1("bkgFit2",background,fitRange2[0],fitRange2[1],numDOFbkg);
+			//sigFit2 = new TF1("sigFit2",signal,fitRange2[0],fitRange2[1],numDOFsig);
 			
 			//dataFit.fitToData(iFit);
 			
@@ -556,10 +574,10 @@ int main( int argc, char* argv[] ){
 			//fit->SetParLimits(4,0.025,0.035); 
 			//fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
 			//fit->FixParameter(1,0);
-			//fit->FixParameter(3,peakWidtheta[0]);
-			//fit->SetParLimits(3,0.50,0.59); 
-			//fit->FixParameter(4,peakWidtheta[1]);
-			fit->SetParLimits(4,peakWidtheta[1]*0.9,peakWidtheta[1]*1.1); 
+			//fit->SetParLimits(3,peakWidtheta[0]*0.9, peakWidtheta[0]*1.1);
+			fit->FixParameter(3,peakWidtheta[0]); 
+			fit->FixParameter(4,peakWidtheta[1]);
+			//fit->SetParLimits(4,peakWidtheta[1]*0.9, peakWidtheta[1]*1.1); 
 			//}
 			//else {
 			//fit2->SetParameters(par0pi0[iFit],0,par2pi0[iFit],peakWidthpi0[0],peakWidthpi0[1]);
@@ -570,8 +588,9 @@ int main( int argc, char* argv[] ){
 			////fit2->SetParLimits(3,0.005,0.015); 
 			////}
 			//// we have to enforce the functions to be positive. Easiest way is to make min=0 and max=kDim, the number of neighbors
-			////fit->SetParLimits(0,0,kDim); 
-			////fit->SetParLimits(2,0,kDim); 
+			fit->SetParLimits(0,0,0.02); 
+			fit->SetParLimits(0,0,0.04);
+			fit->SetParLimits(2,0,0.5); 
 			//fit2->SetParLimits(0,0,kDim); 
 			//fit2->SetParLimits(2,0,par2pi0[3]*1.2); 
 			
@@ -581,15 +600,16 @@ int main( int argc, char* argv[] ){
 			bkgFit->SetParameters(par);
 			sigFit->SetParameters(&par[numDOFbkg]);
 			qvalue_eta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-			cout << qvalue_eta << endl;
 			if (qvalue_eta>1 || qvalue_eta<0){
 				cout << "Using flat fit instead of linear" << endl;
 				fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
 				fit->FixParameter(1,0); 
-				fit->SetParLimits(4,0.017,0.027); 
-				//fit->FixParameter(4,peakWidtheta[1]);
+				fit->FixParameter(3,peakWidtheta[0]);
+				fit->FixParameter(4,peakWidtheta[1]); 
 				discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
 				fit->GetParameters(par);
+				fit->SetParLimits(0,0,kDim); 
+				fit->SetParLimits(2,0,kDim); 
 				bkgFit->SetParameters(par);
 				sigFit->SetParameters(&par[numDOFbkg]);
 				qvalue_eta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
@@ -615,6 +635,9 @@ int main( int argc, char* argv[] ){
 				best_qvalue_eta = qvalue_eta;
 				bestChiSq_eta=chiSq_eta;
 				best_iFit=iFit;
+				for (int i=0; i < sizeof(par)/sizeof(Double_t); ++i){
+					parBest[i]=par[i];
+				}
 				if(qvalue_eta>1 || qvalue_eta<0) {
 				      cout << "qvalue_eta out of bounds!\n-------------" << endl;
 				      for (double parVal : par){
@@ -663,12 +686,12 @@ int main( int argc, char* argv[] ){
 			etaLine->SetLineColor(kOrange);
 			pi0Line->SetLineColor(kOrange);
 			
-                  	fit->GetParameters(par);
+                  	fit->SetParameters(parBest);
                   	//fit2->GetParameters(par2);
-	          	bkgFit->SetParameters(par);
-	          	bkgFit2->SetParameters(par2);
-	          	sigFit->SetParameters(&par[numDOFbkg]);
-	          	sigFit2->SetParameters(&par2[numDOFbkg]);
+	          	bkgFit->SetParameters(parBest);
+	          	//bkgFit2->SetParameters(par2);
+	          	sigFit->SetParameters(&parBest[numDOFbkg]);
+	          	//sigFit2->SetParameters(&par2[numDOFbkg]);
 	          	fit->SetParName(0,"const");
 	          	fit->SetParName(1,"Amp_Gaus1");
 	          	fit->SetParName(2,"Mean_Gaus1");
@@ -678,26 +701,35 @@ int main( int argc, char* argv[] ){
   	          	bkgFit->SetFillColor(kMagenta);
                   	bkgFit->SetLineColor(kMagenta);
   	          	bkgFit->SetFillStyle(3004);
-  	          	bkgFit2->SetFillColor(kMagenta);
-                  	bkgFit2->SetLineColor(kMagenta);
-  	          	bkgFit2->SetFillStyle(3004);
+  	          	//bkgFit2->SetFillColor(kMagenta);
+                  	//bkgFit2->SetLineColor(kMagenta);
+  	          	//bkgFit2->SetFillStyle(3004);
   	          	sigFit->SetFillColor(kBlue);
                   	sigFit->SetLineColor(kBlue);
   	          	sigFit->SetFillStyle(3005);
-  	          	sigFit2->SetFillColor(kBlue);
-                  	sigFit2->SetLineColor(kBlue);
-  	          	sigFit2->SetFillStyle(3005);
+  	          	//sigFit2->SetFillColor(kBlue);
+                  	//sigFit2->SetLineColor(kBlue);
+  	          	//sigFit2->SetFillStyle(3005);
+
+			qSigLine = new TLine(0,sigFit->Eval(Metas[ientry]),binRange[2],sigFit->Eval(Metas[ientry]));
+			qBkgLine = new TLine(0,bkgFit->Eval(Metas[ientry]),binRange[2],bkgFit->Eval(Metas[ientry]));
+                  	qSigLine->SetLineColor(kBlue);
+			qSigLine->SetLineStyle(9);
+                  	qBkgLine->SetLineColor(kMagenta);
+			qBkgLine->SetLineStyle(9);
 
                   	allCanvases->cd(1);
 	          	discriminatorHist->Draw();
-                  	drawText(par,numDOFbkg+numDOFsig,"par");
+                  	drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(Metas[ientry]),bkgFit->Eval(Metas[ientry]),fit->Eval(Metas[ientry]));
 	          	etaLine->Draw("same");
                   	fit->Draw("SAME");
   	          	bkgFit->Draw("SAME FC");
   	          	sigFit->Draw("SAME FC");
+			qBkgLine->Draw("SAME");
+			qSigLine->Draw("SAME");
                   	allCanvases->cd(2);
 	          	discriminatorHist2->Draw();
-                  	drawText(par2,numDOFbkg+numDOFsig,"par");
+                  	//drawText(par2,numDOFbkg+numDOFsig,"par");
 	          	pi0Line->Draw("same");
                   	//fit2->Draw("SAME");
   	          	//bkgFit2->Draw("SAME FC");
@@ -726,7 +758,7 @@ int main( int argc, char* argv[] ){
         		allCanvases->cd(1);
         		legend_init->Draw();
         		allCanvases->cd(2);
-			drawText(chiSqs,3,"chiSq_eta");
+			drawText(chiSqs,3,"chiSq_eta",0,0,0);
         		legend_conv->Draw();
 			allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".png").c_str());
 
