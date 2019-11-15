@@ -73,7 +73,7 @@ int main( int argc, char* argv[] ){
 	
 	// setting up some basic root stuff and getting the file and tree
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
-	TFile* dataFile=new TFile("pi0eta_meas_datatreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_allmeas_datatreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
@@ -107,13 +107,13 @@ int main( int argc, char* argv[] ){
         bool isUniquePi0EtaB;
         Int_t uniqueSpectroscopicPi0EtaID;
 
-	dataTree->SetBranchAddress("Meta",&Meta);
-	dataTree->SetBranchAddress("Mpi0",&Mpi0);
-	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
-        dataTree->SetBranchAddress("cosTheta_X_cm", &cosTheta_X_cm); 
+	dataTree->SetBranchAddress("Meta_meas",&Meta);
+	dataTree->SetBranchAddress("Mpi0_meas",&Mpi0);
+	dataTree->SetBranchAddress("Mpi0eta_meas",&Mpi0eta);
+        dataTree->SetBranchAddress("cosTheta_X_cm_meas", &cosTheta_X_cm); 
         dataTree->SetBranchAddress("phi_X_cm",&phi_X_cm); 
-        dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);
-        dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj); 
+        dataTree->SetBranchAddress("cosTheta_eta_gj_meas",&cosTheta_eta_gj);
+        dataTree->SetBranchAddress("phi_eta_gj_meas",&phi_eta_gj); 
         dataTree->SetBranchAddress("cosThetaHighestEphotonIneta_gj",&cosThetaHighestEphotonIneta_gj);
         dataTree->SetBranchAddress("cosThetaHighestEphotonInpi0_cm",&cosThetaHighestEphotonInpi0_cm);
         dataTree->SetBranchAddress("vanHove_x",&vanHove_x);
@@ -428,12 +428,14 @@ int main( int argc, char* argv[] ){
 	double peakWidtheta[2] = {0.540393, 0.0233083};
 	double peakWidthpi0[2] = { 0.134273, 0.00781488};
 		// kDim = 200
-	//double par0eta[3] = { 0.0220458, 0.0110229, 0};
-	//double par1eta[3] = { 0.0690077, 0.0345038, 0};
-	//double par2eta[3] = { 0, 0.405486, 0.810973};
-	double par0eta[3] = { 0.0110229, 0.00551144, 0};
-	double par1eta[3] = { 0.0345038, 0.0172519, 0};
-	double par2eta[3] = { 0, 0.202743, 0.405486};
+	// old
+	//double par0eta[3] = { 0.0110229, 0.00551144, 0};
+	//double par1eta[3] = { 0.0345038, 0.0172519, 0};
+	//double par2eta[3] = { 0, 0.202743, 0.405486};
+	// Newly calculated 11/14/19
+	double par0eta[3] = { 0.01439571443, 0.007197857215, 0};
+	double par1eta[3] = { 0.04504964371, 0.02252482185, 0};
+	double par2eta[3] = { 0, 0.002861824998, 0.005723649995};
 	double par0pi0[3] = { 8.58665, 4.29333, 0};
 	double par1pi0[3] = { 21.0513, 10.5256, 0};
 	double par2pi0[3] = { 0, 54.8886, 109.777};
@@ -575,8 +577,8 @@ int main( int argc, char* argv[] ){
 			//fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
 			//fit->FixParameter(1,0);
 			//fit->SetParLimits(3,peakWidtheta[0]*0.9, peakWidtheta[0]*1.1);
-			fit->FixParameter(3,peakWidtheta[0]); 
-			fit->FixParameter(4,peakWidtheta[1]);
+			//fit->FixParameter(3,peakWidtheta[0]); 
+			//fit->FixParameter(4,peakWidtheta[1]);
 			//fit->SetParLimits(4,peakWidtheta[1]*0.9, peakWidtheta[1]*1.1); 
 			//}
 			//else {
@@ -589,8 +591,8 @@ int main( int argc, char* argv[] ){
 			////}
 			//// we have to enforce the functions to be positive. Easiest way is to make min=0 and max=kDim, the number of neighbors
 			fit->SetParLimits(0,0,0.02); 
-			fit->SetParLimits(0,0,0.04);
-			fit->SetParLimits(2,0,0.5); 
+			fit->SetParLimits(1,0,0.06);
+			fit->SetParLimits(2,0,0.8); 
 			//fit2->SetParLimits(0,0,kDim); 
 			//fit2->SetParLimits(2,0,par2pi0[3]*1.2); 
 			
@@ -604,8 +606,8 @@ int main( int argc, char* argv[] ){
 				cout << "Using flat fit instead of linear" << endl;
 				fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
 				fit->FixParameter(1,0); 
-				fit->FixParameter(3,peakWidtheta[0]);
-				fit->FixParameter(4,peakWidtheta[1]); 
+				//fit->FixParameter(3,peakWidtheta[0]);
+				//fit->FixParameter(4,peakWidtheta[1]); 
 				discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
 				fit->GetParameters(par);
 				fit->SetParLimits(0,0,kDim); 

@@ -6,7 +6,7 @@ bool verbose = true;
 void makeDiagnosticHists(Long64_t nentries, string tag){
 
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("pi0eta_meas_datatreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_allmeas_datatreeFlat_DSelector.root");
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
@@ -21,45 +21,78 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
         TH1F* dHist_std = new TH1F("dHist_std", "#sigma; Event/0.0033", 60, 0, 0.2);
 	TH1F* dHist_qvalues = new TH1F( "dHist_qvalues", "Q-Values; Events/0.01", 100, -1, 1);
 
-	TH1F* Meta_tot = new TH1F( "Meta_tot", "M(#eta) no Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
-	TH1F* Meta_sig = new TH1F( "Meta_sig", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
-	TH1F* Meta_bkg = new TH1F( "Meta_bkg", "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
-	TH1F* Mpi0_tot = new TH1F( "Mpi0_tot", "M(#pi_{0}) no Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
-	TH1F* Mpi0_sig = new TH1F( "Mpi0_sig", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
-	TH1F* Mpi0_bkg = new TH1F( "Mpi0_bkg", "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
-	TH1F* Mpi0eta_tot = new TH1F( "Mpi0eta_tot", "M(#pi_{0}#eta) no Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
-	TH1F* Mpi0eta_sig = new TH1F( "Mpi0eta_sig", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
-	TH1F* Mpi0eta_bkg = new TH1F( "Mpi0eta_bkg", "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
 
-	TH1F* cosThetaEta_GJ_tot = new TH1F( "cosThetaEta_GJ_tot", "cos(#theta) GJ of #eta no Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
-	TH1F* cosThetaEta_GJ_sig = new TH1F( "cosThetaEta_GJ_sig", "cos(#theta) GJ of #eta after Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
-	TH1F* cosThetaEta_GJ_bkg = new TH1F( "cosThetaEta_GJ_bkg", "cos(#theta) GJ of #eta after Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
-	TH1F* cosThetaX_CM_tot = new TH1F( "cosThetaX_CM_tot", "cos(#theta) of CM #eta no Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, 0.9, 1 );
-	TH1F* cosThetaX_CM_sig = new TH1F( "cosThetaX_CM_sig", "cos(#theta) of CM #eta after Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, 0.9, 1 );
-	TH1F* cosThetaX_CM_bkg = new TH1F( "cosThetaX_CM_bkg", "cos(#theta) of CM #eta after Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, 0.9, 1 );
-	TH1F* phiEta_GJ_tot = new TH1F( "phiEta_GJ_tot", "#phi of #eta no Q-Value Weighting;#phi of #eta ;Events/0.02 GeV", 90, -180, 180 );
-	TH1F* phiEta_GJ_sig = new TH1F( "phiEta_GJ_sig", "#phi of #eta after Q-Value Weighting;#phi of #eta ;Events/0.02 GeV", 90, -180, 180 );
-	TH1F* phiEta_GJ_bkg = new TH1F( "phiEta_GJ_bkg", "#phi of #eta after Q-Value Weighting;#phi of #eta ;Events/0.02 GeV", 90, -180, 180 );
+	TH1F* Meta_tot[2];
+	TH1F* Meta_sig[2];
+	TH1F* Meta_bkg[2];
+	TH1F* Mpi0_tot[2];
+	TH1F* Mpi0_sig[2];
+	TH1F* Mpi0_bkg[2];
+	TH1F* Mpi0eta_tot[2];
+	TH1F* Mpi0eta_sig[2];
+	TH1F* Mpi0eta_bkg[2];
+	TH1F* cosThetaEta_GJ_tot[2];
+	TH1F* cosThetaEta_GJ_sig[2];
+	TH1F* cosThetaEta_GJ_bkg[2];
+	TH1F* cosThetaX_CM_tot[2];
+	TH1F* cosThetaX_CM_sig[2];
+	TH1F* cosThetaX_CM_bkg[2];
+	TH1F* phiEta_GJ_tot[2];
+	TH1F* phiEta_GJ_sig[2];
+	TH1F* phiEta_GJ_bkg[2];
 
+	for (int i=0; i<2; i++){
+		string tag="";
+		if (i==0){ tag="meas"; }
+		else { tag="kin"; } 
+		Meta_tot[i] = new TH1F( ("Meta_tot_"+tag).c_str(), "M(#eta) no Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
+		Meta_sig[i] = new TH1F( ("Meta_sig_"+tag).c_str(), "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
+		Meta_bkg[i] = new TH1F( ("Meta_bkg_"+tag).c_str(), "M(#eta) after Q-Value Weighting; M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
+		Mpi0_tot[i] = new TH1F( ("Mpi0_tot_"+tag).c_str(), "M(#pi_{0}) no Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+		Mpi0_sig[i] = new TH1F( ("Mpi0_sig_"+tag).c_str(), "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+		Mpi0_bkg[i] = new TH1F( ("Mpi0_bkg_"+tag).c_str(), "M(#pi_{0}) after Q-Value Weighting; M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+		Mpi0eta_tot[i] = new TH1F( ("Mpi0eta_tot_"+tag).c_str(), "M(#pi_{0}#eta) no Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+		Mpi0eta_sig[i] = new TH1F( ("Mpi0eta_sig_"+tag).c_str(), "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+		Mpi0eta_bkg[i] = new TH1F( ("Mpi0eta_bkg_"+tag).c_str(), "M(#pi_{0}#eta) after Q-Value Weighting; M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+		cosThetaEta_GJ_tot[i] = new TH1F( ("cosThetaEta_GJ_tot_"+tag).c_str(), "cos(#theta) GJ of #eta no Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
+		cosThetaEta_GJ_sig[i] = new TH1F( ("cosThetaEta_GJ_sig_"+tag).c_str(), "cos(#theta) GJ of #eta after Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
+		cosThetaEta_GJ_bkg[i] = new TH1F( ("cosThetaEta_GJ_bkg_"+tag).c_str(), "cos(#theta) GJ of #eta after Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
+		cosThetaX_CM_tot[i] = new TH1F( ("cosThetaX_CM_tot_"+tag).c_str(), "cos(#theta) of CM #eta no Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, 0.9, 1 );
+		cosThetaX_CM_sig[i] = new TH1F( ("cosThetaX_CM_sig_"+tag).c_str(), "cos(#theta) of CM #eta after Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, 0.9, 1 );
+		cosThetaX_CM_bkg[i] = new TH1F( ("cosThetaX_CM_bkg_"+tag).c_str(), "cos(#theta) of CM #eta after Q-Value Weighting; cos(#theta) of #eta; Events/0.02 GeV", 100, 0.9, 1 );
+		phiEta_GJ_tot[i] = new TH1F( ("phiEta_GJ_tot_"+tag).c_str(), "#phi of #eta no Q-Value Weighting;#phi of #eta ;Events/0.02 GeV", 90, -180, 180 );
+		phiEta_GJ_sig[i] = new TH1F( ("phiEta_GJ_sig_"+tag).c_str(), "#phi of #eta after Q-Value Weighting;#phi of #eta ;Events/0.02 GeV", 90, -180, 180 );
+		phiEta_GJ_bkg[i] = new TH1F( ("phiEta_GJ_bkg_"+tag).c_str(), "#phi of #eta after Q-Value Weighting;#phi of #eta ;Events/0.02 GeV", 90, -180, 180 );
+	}
 
-
-        
         TLine* etaLine;
+        double AccWeight;
 	double Meta;
 	double Mpi0;
 	double Mpi0eta;
-        double AccWeight;
 	double cosTheta_X_cm;
 	double cosTheta_eta_gj;
 	double phi_eta_gj;
+	double Meta_kin;
+	double Mpi0_kin;
+	double Mpi0eta_kin;
+	double cosTheta_X_cm_kin;
+	double cosTheta_eta_gj_kin;
+	double phi_eta_gj_kin;
 
+        dataTree->SetBranchAddress("AccWeight",&AccWeight);
 	dataTree->SetBranchAddress("Meta_meas",&Meta);
 	dataTree->SetBranchAddress("Mpi0_meas",&Mpi0);
 	dataTree->SetBranchAddress("Mpi0eta_meas",&Mpi0eta);
-        dataTree->SetBranchAddress("AccWeight",&AccWeight);
-        dataTree->SetBranchAddress("cosTheta_X_cm", &cosTheta_X_cm); 
-        dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);
-        dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj); 
+        dataTree->SetBranchAddress("cosTheta_X_cm_meas", &cosTheta_X_cm); 
+        dataTree->SetBranchAddress("cosTheta_eta_gj_meas",&cosTheta_eta_gj);
+        dataTree->SetBranchAddress("phi_eta_gj_meas",&phi_eta_gj); 
+	dataTree->SetBranchAddress("Meta",&Meta_kin);
+	dataTree->SetBranchAddress("Mpi0",&Mpi0_kin);
+	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta_kin);
+        dataTree->SetBranchAddress("cosTheta_X_cm", &cosTheta_X_cm_kin); 
+        dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj_kin);
+        dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj_kin); 
 
         // continue to do uniqueness tracking for the histograms we care about
         bool isUniqueEtaB;
@@ -74,27 +107,39 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 	const int c_nentries = (const int)nentries;
         cout << "c_nentries: " << c_nentries << endl;
 
-        std::vector<double> Metas; Metas.reserve(c_nentries); 
-        std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries); 
-        std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries); 
         std::vector<double> AccWeights; AccWeights.reserve(c_nentries); 
         std::vector<bool> isUniqueEtaBs; isUniqueEtaBs.reserve(c_nentries); 
         std::vector<bool> isUniquePi0Bs; isUniquePi0Bs.reserve(c_nentries); 
         std::vector<bool> isUniquePi0EtaBs; isUniquePi0EtaBs.reserve(c_nentries); 
+        std::vector<double> Metas; Metas.reserve(c_nentries); 
+        std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries); 
+        std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries); 
 	std::vector<double> cosTheta_X_cms; cosTheta_X_cms.reserve(c_nentries);
 	std::vector<double> cosTheta_eta_gjs; cosTheta_eta_gjs.reserve(c_nentries);
 	std::vector<double> phi_eta_gjs; phi_eta_gjs.reserve(c_nentries);
+        std::vector<double> Metas_kin; Metas_kin.reserve(c_nentries); 
+        std::vector<double> Mpi0s_kin; Mpi0s_kin.reserve(c_nentries); 
+        std::vector<double> Mpi0etas_kin; Mpi0etas_kin.reserve(c_nentries); 
+	std::vector<double> cosTheta_X_cms_kin; cosTheta_X_cms_kin.reserve(c_nentries);
+	std::vector<double> cosTheta_eta_gjs_kin; cosTheta_eta_gjs_kin.reserve(c_nentries);
+	std::vector<double> phi_eta_gjs_kin; phi_eta_gjs_kin.reserve(c_nentries);
 
 	for (int ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
+                AccWeights.push_back(AccWeight);
 		Metas.push_back(Meta);
 		Mpi0s.push_back(Mpi0);
 		Mpi0etas.push_back(Mpi0eta);
 		cosTheta_X_cms.push_back(cosTheta_X_cm);
 		cosTheta_eta_gjs.push_back(cosTheta_eta_gj);
 		phi_eta_gjs.push_back(phi_eta_gj);
-                AccWeights.push_back(AccWeight);
+		Metas_kin.push_back(Meta_kin);
+		Mpi0s_kin.push_back(Mpi0_kin);
+		Mpi0etas_kin.push_back(Mpi0eta_kin);
+		cosTheta_X_cms_kin.push_back(cosTheta_X_cm_kin);
+		cosTheta_eta_gjs_kin.push_back(cosTheta_eta_gj_kin);
+		phi_eta_gjs_kin.push_back(phi_eta_gj_kin);
 
                 isUniqueEtaBs.push_back(isUniqueEtaB);
                 isUniquePi0Bs.push_back(isUniquePi0B);
@@ -217,52 +262,80 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
                 }
                 //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
                 if ( isUniqueEtaBs[ientry] ) {
-			cosThetaEta_GJ_sig->Fill(cosTheta_eta_gjs[ientry], qvalue*AccWeights[ientry]);
-			cosThetaEta_GJ_tot->Fill(cosTheta_eta_gjs[ientry], AccWeights[ientry]);
-			cosThetaEta_GJ_bkg->Fill(cosTheta_eta_gjs[ientry], conjugate_qvalue*AccWeights[ientry]);
-			cosThetaX_CM_sig->Fill(cosTheta_X_cms[ientry], qvalue*AccWeights[ientry]);
-			cosThetaX_CM_tot->Fill(cosTheta_X_cms[ientry], AccWeights[ientry]);
-			cosThetaX_CM_bkg->Fill(cosTheta_X_cms[ientry], conjugate_qvalue*AccWeights[ientry]);
-			Meta_sig->Fill(Metas[ientry],qvalue*AccWeights[ientry]);
-			Meta_tot->Fill(Metas[ientry],AccWeights[ientry]);
-			Meta_bkg->Fill(Metas[ientry],conjugate_qvalue*AccWeights[ientry]);
+			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs[ientry], qvalue*AccWeights[ientry]);
+			cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs[ientry], AccWeights[ientry]);
+			cosThetaEta_GJ_bkg[0]->Fill(cosTheta_eta_gjs[ientry], conjugate_qvalue*AccWeights[ientry]);
+			cosThetaX_CM_sig[0]->Fill(cosTheta_X_cms[ientry], qvalue*AccWeights[ientry]);
+			cosThetaX_CM_tot[0]->Fill(cosTheta_X_cms[ientry], AccWeights[ientry]);
+			cosThetaX_CM_bkg[0]->Fill(cosTheta_X_cms[ientry], conjugate_qvalue*AccWeights[ientry]);
+			Meta_sig[0]->Fill(Metas[ientry],qvalue*AccWeights[ientry]);
+			Meta_tot[0]->Fill(Metas[ientry],AccWeights[ientry]);
+			Meta_bkg[0]->Fill(Metas[ientry],conjugate_qvalue*AccWeights[ientry]);
+
+			cosThetaEta_GJ_sig[1]->Fill(cosTheta_eta_gjs_kin[ientry], qvalue*AccWeights[ientry]);
+			cosThetaEta_GJ_tot[1]->Fill(cosTheta_eta_gjs_kin[ientry], AccWeights[ientry]);
+			cosThetaEta_GJ_bkg[1]->Fill(cosTheta_eta_gjs_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
+			cosThetaX_CM_sig[1]->Fill(cosTheta_X_cms_kin[ientry], qvalue*AccWeights[ientry]);
+			cosThetaX_CM_tot[1]->Fill(cosTheta_X_cms_kin[ientry], AccWeights[ientry]);
+			cosThetaX_CM_bkg[1]->Fill(cosTheta_X_cms_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
+			Meta_sig[1]->Fill(Metas_kin[ientry],qvalue*AccWeights[ientry]);
+			Meta_tot[1]->Fill(Metas_kin[ientry],AccWeights[ientry]);
+			Meta_bkg[1]->Fill(Metas_kin[ientry],conjugate_qvalue*AccWeights[ientry]);
                 }
                 if ( isUniquePi0Bs[ientry] ) { 
-			Mpi0_sig->Fill(Mpi0s[ientry],qvalue*AccWeights[ientry]);
-			Mpi0_tot->Fill(Mpi0s[ientry],AccWeights[ientry]);
-			Mpi0_bkg->Fill(Mpi0s[ientry], conjugate_qvalue*AccWeights[ientry]);
+			Mpi0_sig[0]->Fill(Mpi0s[ientry],qvalue*AccWeights[ientry]);
+			Mpi0_tot[0]->Fill(Mpi0s[ientry],AccWeights[ientry]);
+			Mpi0_bkg[0]->Fill(Mpi0s[ientry], conjugate_qvalue*AccWeights[ientry]);
+
+			Mpi0_sig[1]->Fill(Mpi0s_kin[ientry],qvalue*AccWeights[ientry]);
+			Mpi0_tot[1]->Fill(Mpi0s_kin[ientry],AccWeights[ientry]);
+			Mpi0_bkg[1]->Fill(Mpi0s_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
                 }
                 if ( isUniquePi0EtaBs[ientry] ) { 
-			phiEta_GJ_sig->Fill(phi_eta_gjs[ientry], qvalue*AccWeights[ientry]);
-			phiEta_GJ_tot->Fill(phi_eta_gjs[ientry], AccWeights[ientry]);
-			phiEta_GJ_bkg->Fill(phi_eta_gjs[ientry], conjugate_qvalue*AccWeights[ientry]);
-			Mpi0eta_sig->Fill(Mpi0etas[ientry],qvalue*AccWeights[ientry]);
-			Mpi0eta_tot->Fill(Mpi0etas[ientry],AccWeights[ientry]);
-			Mpi0eta_bkg->Fill(Mpi0etas[ientry], conjugate_qvalue*AccWeights[ientry]);
+			phiEta_GJ_sig[0]->Fill(phi_eta_gjs[ientry], qvalue*AccWeights[ientry]);
+			phiEta_GJ_tot[0]->Fill(phi_eta_gjs[ientry], AccWeights[ientry]);
+			phiEta_GJ_bkg[0]->Fill(phi_eta_gjs[ientry], conjugate_qvalue*AccWeights[ientry]);
+			Mpi0eta_sig[0]->Fill(Mpi0etas[ientry],qvalue*AccWeights[ientry]);
+			Mpi0eta_tot[0]->Fill(Mpi0etas[ientry],AccWeights[ientry]);
+			Mpi0eta_bkg[0]->Fill(Mpi0etas[ientry], conjugate_qvalue*AccWeights[ientry]);
+
+			phiEta_GJ_sig[1]->Fill(phi_eta_gjs_kin[ientry], qvalue*AccWeights[ientry]);
+			phiEta_GJ_tot[1]->Fill(phi_eta_gjs_kin[ientry], AccWeights[ientry]);
+			phiEta_GJ_bkg[1]->Fill(phi_eta_gjs_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
+			Mpi0eta_sig[1]->Fill(Mpi0etas_kin[ientry],qvalue*AccWeights[ientry]);
+			Mpi0eta_tot[1]->Fill(Mpi0etas_kin[ientry],AccWeights[ientry]);
+			Mpi0eta_bkg[1]->Fill(Mpi0etas_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
                 }
 	}
         cout << "Made the histograms" << endl;
 
 	// HERE WE WILL JUST DRAW SOME OF THE HISTOGRAMS WITH THE BKG FILLED IN TO SEE THEIR CONTRIBUTION
-	makeStackedHist(Meta_tot,Meta_sig,Meta_bkg,"Meta");
-	makeStackedHist(Mpi0_tot,Mpi0_sig,Mpi0_bkg,"Mpi0");
-	makeStackedHist(Mpi0eta_tot,Mpi0eta_sig,Mpi0eta_bkg,"Mpi0eta");
-	makeStackedHist(cosThetaEta_GJ_tot,cosThetaEta_GJ_sig,cosThetaEta_GJ_bkg,"cosThetaEta_GJ");	
-	makeStackedHist(cosThetaX_CM_tot,cosThetaX_CM_sig,cosThetaX_CM_bkg,"cosThetaX_CM");	
-	makeStackedHist(phiEta_GJ_tot,phiEta_GJ_sig,phiEta_GJ_bkg,"phiEta_GJ");	
+	for (int i=0; i<2; i++){
+		string tag="";
+		if (i==0){ tag="meas"; }
+		else { tag="kin"; } 
+		makeStackedHist(Meta_tot[i],Meta_sig[i],Meta_bkg[i],"Meta"+tag,"diagnosticPlots");
+		makeStackedHist(Mpi0_tot[i],Mpi0_sig[i],Mpi0_bkg[i],"Mpi0"+tag,"diagnosticPlots");
+		makeStackedHist(Mpi0eta_tot[i],Mpi0eta_sig[i],Mpi0eta_bkg[i],"Mpi0eta"+tag,"diagnosticPlots");
+		makeStackedHist(cosThetaEta_GJ_tot[i],cosThetaEta_GJ_sig[i],cosThetaEta_GJ_bkg[i],"cosThetaEta_GJ"+tag,"diagnosticPlots");	
+		makeStackedHist(cosThetaX_CM_tot[i],cosThetaX_CM_sig[i],cosThetaX_CM_bkg[i],"cosThetaX_CM"+tag,"diagnosticPlots");	
+		makeStackedHist(phiEta_GJ_tot[i],phiEta_GJ_sig[i],phiEta_GJ_bkg[i],"phiEta_GJ"+tag,"diagnosticPlots");	
+	}
 
         cout << "FINIHSED!"<<endl;
 
 	TFile* dataFile3 = new TFile("postQValHists.root","RECREATE");
-        Meta_bkg->Write();
-        Meta_sig->Write();
-        Meta_tot->Write();
-        Mpi0_sig->Write();
-        Mpi0_bkg->Write();
-        Mpi0_tot->Write();
-        Mpi0eta_sig->Write();
-        Mpi0eta_bkg->Write();
-        Mpi0eta_tot->Write();
+	for (int i=0; i<2; i++){
+        	Meta_bkg[i]->Write();
+        	Meta_sig[i]->Write();
+        	Meta_tot[i]->Write();
+        	Mpi0_sig[i]->Write();
+        	Mpi0_bkg[i]->Write();
+        	Mpi0_tot[i]->Write();
+        	Mpi0eta_sig[i]->Write();
+        	Mpi0eta_bkg[i]->Write();
+        	Mpi0eta_tot[i]->Write();
+	}
         
 }
 

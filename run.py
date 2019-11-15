@@ -7,11 +7,11 @@ import numpy as np
 subprocess.Popen("rm etaPlots/*", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 start_time = time.time()
 
-kDim=100
+kDim=300
 numberEventsToSavePerProcess=10
-nProcess=24
+nProcess=30
 seedShift=12151
-nentries=1000
+nentries=200000
 override_nentries=0
 verbose=0
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program

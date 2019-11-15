@@ -1,4 +1,5 @@
 #include "main.h"
+#include "/d/grid15/ln16/pi0eta/092419/makeGraphs.h"
 
 void getInitParams_step1(){
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
@@ -7,7 +8,8 @@ void getInitParams_step1(){
     	logFile_eta.open("fitResults/etaFitNoAccSub.txt");
     	logFile_pi0.open("fitResults/pi0FitNoAccSub.txt");
 
-	gStyle->SetOptFit(111);
+	//gStyle->SetOptFit(111);
+	gStyle->SetOptStat(0);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
 	TFile* dataFile=new TFile("pi0eta_meas_datatreeFlat_DSelector.root");
@@ -39,11 +41,13 @@ void getInitParams_step1(){
             std::vector<double> binRange;
             std::vector<double> fitRange;
             if (useEta){
-                binRange={5000,0.35,0.8};
+                binRange={5000,0.25,0.8};
+                //binRange={300,0.25,0.8};
                 fitRange={0.4,0.7};
             } 
             else{ 
-                binRange={50,0.05,0.25};
+                binRange={5000,0.05,0.25};
+                //binRange={200,0.05,0.25};
                 fitRange={0.1,0.17};
             }
 	    fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
@@ -75,8 +79,10 @@ void getInitParams_step1(){
 	    massHist->Fit("fit","RQB"); // B will enforce the bounds
 	    fit->GetParameters(par);
             if (useEta){
+		massHist->SetTitle(";M(#eta) (GeV)");
                 logFile_eta << namePar[0] << " " << nentries << endl;
             } else {
+		massHist->SetTitle(";M(#pi^{0}) (GeV)");
                 logFile_pi0 << namePar[0] << " " << nentries << endl;
             }
             for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
@@ -91,9 +97,11 @@ void getInitParams_step1(){
             massHist->SetTitle(("Peak: "+to_string(par[2])+"    width: "+to_string(par[3])).c_str());
             //fit->Draw();
             if (useEta){
+		drawLineRectSB(0.540383-2*0.0233172, 0.540383+2*0.0233172, 0.02, massHist->GetMaximum() );
                 allCanvases->SaveAs("fitResults/Meta_fit.png");
             }
             else{
+		drawLineRectSB(0.134285-2*0.00769639, 0.134285+2*0.00769639, 0.01, massHist->GetMaximum() );
                 allCanvases->SaveAs("fitResults/Mpi0_fit.png");
             }
             cout << "Saved for a specific fit!" << endl;

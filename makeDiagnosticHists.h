@@ -2,7 +2,7 @@
 #define MAKEDIAGNOSTICHISTS_H
 using namespace std;
 
-void makeStackedHist(TH1F* tot, TH1F* sig, TH1F* bkg, string name){
+void makeStackedHist(TH1F* tot, TH1F* sig, TH1F* bkg, string name,string baseDir){
     	TCanvas *allCanvases = new TCanvas(name.c_str(),"",1440,900);
 	stackedHists = new THStack("stackedHists","");
 	bkg->SetFillColorAlpha(kMagenta,0.5);
@@ -13,10 +13,15 @@ void makeStackedHist(TH1F* tot, TH1F* sig, TH1F* bkg, string name){
 	stackedHists->GetXaxis()->SetTitle(tot->GetXaxis()->GetTitle());
 	stackedHists->GetYaxis()->SetTitle(tot->GetYaxis()->GetTitle());
 	stackedHists->SetTitle(tot->GetTitle());
+	allCanvases->SaveAs((baseDir+"/"+name+"_totBkg.png").c_str());
+	
+	allCanvases->Clear();
 	sig->SetLineColorAlpha(kGreen+2,1);
 	sig->SetLineWidth(2);
-	sig->Draw("HIST SAME");
-	allCanvases->SaveAs(("diagnosticPlots/"+name+".png").c_str());
+	sig->Draw("HIST");
+	sig->SetAxisRange( 1.05*(sig->GetMinimum()) , 1.05*(tot->GetMaximum()), "Y" ); 
+	allCanvases->SaveAs((baseDir+"/"+name+"_sig.png").c_str());
+
 	//allCanvases->Clear();
 	//sig->Draw("HIST");
 	//allCanvases->SaveAs(("diagnosticPlots/"+name+"_sig.png").c_str());
