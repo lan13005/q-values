@@ -362,10 +362,10 @@ int main( int argc, char* argv[] ){
 	TF1 *fit,*fit2;
         TF1 *bkgFit,*bkgFit2;
         TF1 *sigFit,*sigFit2;
-        binRange={5000,0.35,0.8};
+        binRange={50,0.35,0.8};
         fitRange={0.40,0.7};
         //fitRange={0.35,0.8};
-        binRange2={5000,0.05,0.25};
+        binRange2={50,0.05,0.25};
         //fitRange2={0.05,0.25};
         fitRange2={0.1,0.17};
 
@@ -425,20 +425,25 @@ int main( int argc, char* argv[] ){
 	// double par2pi0[3] = { 0, 0.400004, 0.800007};
 
 	// ********************** THIS IS FOR THE MEAS VALUES *********************
-	double peakWidtheta[2] = {0.540393, 0.0233083};
+	double peakWidtheta[2] = {0.540358, 0.0234706};
 	double peakWidthpi0[2] = { 0.134273, 0.00781488};
 		// kDim = 200
 	// old
 	//double par0eta[3] = { 0.0110229, 0.00551144, 0};
 	//double par1eta[3] = { 0.0345038, 0.0172519, 0};
 	//double par2eta[3] = { 0, 0.202743, 0.405486};
-	// Newly calculated 11/14/19
-	double par0eta[3] = { 0.01439571443, 0.007197857215, 0};
-	double par1eta[3] = { 0.04504964371, 0.02252482185, 0};
-	double par2eta[3] = { 0, 0.002861824998, 0.005723649995};
+	// Newly calculated 11/14/19 5000 Bins
+	//double par0eta[3] = { 0.0288, 0.01438, 0};
+	//double par1eta[3] = { 0.09, 0.045, 0};
+	//double par2eta[3] = { 0, 0.005722, 0.01144};
+	// Newly calculated 11/16/19 5000 Bins
+	double par0eta[3] = { 3, 1.5, 0};
+	double par1eta[3] = { 9, 4.5, 0 };
+	double par2eta[3] = { 0, 0.574, 1.14 };
 	double par0pi0[3] = { 8.58665, 4.29333, 0};
 	double par1pi0[3] = { 21.0513, 10.5256, 0};
 	double par2pi0[3] = { 0, 54.8886, 109.777};
+
 
         // with 5000 bins
         //double peakWidtheta[2] = {0.545949, 0.0194813};
@@ -576,10 +581,10 @@ int main( int argc, char* argv[] ){
 			//fit->SetParLimits(4,0.025,0.035); 
 			//fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
 			//fit->FixParameter(1,0);
-			//fit->SetParLimits(3,peakWidtheta[0]*0.9, peakWidtheta[0]*1.1);
+			fit->SetParLimits(3,peakWidtheta[0]*0.9, peakWidtheta[0]*1.1);
 			//fit->FixParameter(3,peakWidtheta[0]); 
 			//fit->FixParameter(4,peakWidtheta[1]);
-			//fit->SetParLimits(4,peakWidtheta[1]*0.9, peakWidtheta[1]*1.1); 
+			fit->SetParLimits(4,peakWidtheta[1]*0.9, peakWidtheta[1]*1.1); 
 			//}
 			//else {
 			//fit2->SetParameters(par0pi0[iFit],0,par2pi0[iFit],peakWidthpi0[0],peakWidthpi0[1]);
@@ -590,11 +595,12 @@ int main( int argc, char* argv[] ){
 			////fit2->SetParLimits(3,0.005,0.015); 
 			////}
 			//// we have to enforce the functions to be positive. Easiest way is to make min=0 and max=kDim, the number of neighbors
-			fit->SetParLimits(0,0,0.02); 
-			fit->SetParLimits(1,0,0.06);
-			fit->SetParLimits(2,0,0.8); 
-			//fit2->SetParLimits(0,0,kDim); 
-			//fit2->SetParLimits(2,0,par2pi0[3]*1.2); 
+			// Newly calculated 11/14/19 5000 Bins
+			//fit->SetParLimits(0,0,0.05); 
+			//fit->SetParLimits(2,0,0.025); 
+			// Newly calculated 11/16/19 50 Bins
+			fit->SetParLimits(0,0,6);
+			fit->SetParLimits(2,0,2.2);
 			
 			// we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
 			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
@@ -610,13 +616,15 @@ int main( int argc, char* argv[] ){
 				//fit->FixParameter(4,peakWidtheta[1]); 
 				discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
 				fit->GetParameters(par);
-				fit->SetParLimits(0,0,kDim); 
-				fit->SetParLimits(2,0,kDim); 
 				bkgFit->SetParameters(par);
 				sigFit->SetParameters(&par[numDOFbkg]);
 				qvalue_eta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
 				if (qvalue_eta>1 || qvalue_eta<0){
 				    cout << "Not sure why qvalue_eta is still >1 or <0. Need to fix this!" << endl;
+				    cout << "These are the parameters:"<<endl;
+				    for ( double parVal : par ){
+						cout << " " << parVal << endl;
+				    }
 				    cout << " **************** BREAKING ****************** " << endl;
 				    //exit(0);
 				}

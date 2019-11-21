@@ -7,7 +7,7 @@ import numpy as np
 subprocess.Popen("rm etaPlots/*", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 start_time = time.time()
 
-kDim=300
+kDim=400
 numberEventsToSavePerProcess=10
 nProcess=30
 seedShift=12151
