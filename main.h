@@ -38,7 +38,7 @@
 double peakWidth_eta[2] = {0.544,0.022};
 double peakWidth_pi0[2] = {0.134,0.0069};
 
-const int dim=3;
+const int dim=dimNum;
 bool verbose2=true;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
@@ -69,9 +69,18 @@ Double_t background(Double_t *x, Double_t *par){
 	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0]+par[3]*x[0]*x[0]*x[0]+par[4]*x[0]*x[0]*x[0]*x[0];
 }
 
-int numDOFsig = 3;
+int numDOFsig = 5;
 Double_t signal(Double_t *x, Double_t *par){
-	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[1])/par[4])*((x[0]-par[1])/par[4]));
+	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
+	     + par[3]/par[4]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[4])*((x[0]-par[1])/par[4]));
+	//return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
+	//return (x[0]-par[0])*(x[0]-par[0]);
+
+}
+
+Double_t signalDG(Double_t *x, Double_t *par){
+	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
+	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
 	//return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
 	//return (x[0]-par[0])*(x[0]-par[0]);
 
@@ -87,7 +96,7 @@ Double_t signalBW(Double_t* x, Double_t* par) {
 }
 
 Double_t fitFunc(Double_t *x, Double_t *par){
-	return background(x,par)+signal(x,&par[numDOFbkg]);
+	return background(x,par)+signalDG(x,&par[numDOFbkg]);
 }
 
 
@@ -100,7 +109,7 @@ void drawText(Double_t *par, int dof, string tag, double qSigValue, double qBkgV
     //    parText.DrawLatex(0.4,20,("par"+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
     //}
     //
-    TPaveText *pt = new TPaveText(0.7,0.8,0.85,0.9);
+    TPaveText *pt = new TPaveText(0.675,0.7,0.875,0.9);
     for (int iPar=0; iPar<dof; ++iPar){
         pt->AddText((tag+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
     }

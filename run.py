@@ -8,10 +8,10 @@ subprocess.Popen("rm etaPlots/*", shell=True,  stdout=subprocess.PIPE, stderr=su
 start_time = time.time()
 
 kDim=400
-numberEventsToSavePerProcess=10
+numberEventsToSavePerProcess=5
 nProcess=30
 seedShift=12151
-nentries=200000
+nentries=20000
 override_nentries=0
 verbose=0
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program

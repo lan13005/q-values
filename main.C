@@ -107,13 +107,16 @@ int main( int argc, char* argv[] ){
         bool isUniquePi0EtaB;
         Int_t uniqueSpectroscopicPi0EtaID;
 
-	dataTree->SetBranchAddress("Meta_meas",&Meta);
-	dataTree->SetBranchAddress("Mpi0_meas",&Mpi0);
-	dataTree->SetBranchAddress("Mpi0eta_meas",&Mpi0eta);
-        dataTree->SetBranchAddress("cosTheta_X_cm_meas", &cosTheta_X_cm); 
+	// tree contains measured and kinfit values for these, except phi_X_cm
+	dataTree->SetBranchAddress("Meta",&Meta);
+	dataTree->SetBranchAddress("Mpi0",&Mpi0);
+	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
+        dataTree->SetBranchAddress("cosTheta_X_cm", &cosTheta_X_cm); 
         dataTree->SetBranchAddress("phi_X_cm",&phi_X_cm); 
-        dataTree->SetBranchAddress("cosTheta_eta_gj_meas",&cosTheta_eta_gj);
-        dataTree->SetBranchAddress("phi_eta_gj_meas",&phi_eta_gj); 
+        dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);
+        dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj); 
+
+	// doesn't contain measured values I think
         dataTree->SetBranchAddress("cosThetaHighestEphotonIneta_gj",&cosThetaHighestEphotonIneta_gj);
         dataTree->SetBranchAddress("cosThetaHighestEphotonInpi0_cm",&cosThetaHighestEphotonInpi0_cm);
         dataTree->SetBranchAddress("vanHove_x",&vanHove_x);
@@ -363,7 +366,7 @@ int main( int argc, char* argv[] ){
         TF1 *bkgFit,*bkgFit2;
         TF1 *sigFit,*sigFit2;
         binRange={50,0.35,0.8};
-        fitRange={0.40,0.7};
+        fitRange={0.42,0.68};
         //fitRange={0.35,0.8};
         binRange2={50,0.05,0.25};
         //fitRange2={0.05,0.25};
@@ -425,8 +428,6 @@ int main( int argc, char* argv[] ){
 	// double par2pi0[3] = { 0, 0.400004, 0.800007};
 
 	// ********************** THIS IS FOR THE MEAS VALUES *********************
-	double peakWidtheta[2] = {0.540358, 0.0234706};
-	double peakWidthpi0[2] = { 0.134273, 0.00781488};
 		// kDim = 200
 	// old
 	//double par0eta[3] = { 0.0110229, 0.00551144, 0};
@@ -437,13 +438,22 @@ int main( int argc, char* argv[] ){
 	//double par1eta[3] = { 0.09, 0.045, 0};
 	//double par2eta[3] = { 0, 0.005722, 0.01144};
 	// Newly calculated 11/16/19 5000 Bins
-	double par0eta[3] = { 3, 1.5, 0};
-	double par1eta[3] = { 9, 4.5, 0 };
-	double par2eta[3] = { 0, 0.574, 1.14 };
+	//double peakWidtheta[2] = {0.540358, 0.0234706};
+	//double peakWidthpi0[2] = { 0.134273, 0.00781488};
+	//double par0eta[3] = { 3, 1.5, 0};
+	//double par1eta[3] = { 9, 4.5, 0 };
+	//double par2eta[3] = { 0, 0.574, 1.14 };
 	double par0pi0[3] = { 8.58665, 4.29333, 0};
 	double par1pi0[3] = { 21.0513, 10.5256, 0};
 	double par2pi0[3] = { 0, 54.8886, 109.777};
 
+	// Newly calculated 11/21/19 for double gaussian
+	double peakWidtheta[2] = {0.54625, 0.00994868};
+	double ampRatio = 463.361/131.364;
+	double widthRatio = 0.023968/0.00994868;
+	double par0eta[3] = { 0.71, 0.3547 , 0};
+	double par1eta[3] = { 0.946, 0.472, 0 };
+	double par2eta[3] = { 0, 0.022, 0.04414 };
 
         // with 5000 bins
         //double peakWidtheta[2] = {0.545949, 0.0194813};
@@ -455,9 +465,9 @@ int main( int argc, char* argv[] ){
         //double par1pi0[3] = {0.264456, 0.132228, 0}; 
         //double par2pi0[3] = {0, 0.00400001, 0.00800002}; 
 
-        showInit[0]->SetParameters(par0eta[0],par1eta[0],par2eta[0],peakWidtheta[0],peakWidtheta[1]);
-        showInit[1]->SetParameters(par0eta[1],par1eta[1],par2eta[1],peakWidtheta[0],peakWidtheta[1]);
-        showInit[2]->SetParameters(par0eta[2],par1eta[2],par2eta[2],peakWidtheta[0],peakWidtheta[1]);
+        showInit[0]->SetParameters(par0eta[0],par1eta[0],par2eta[0],peakWidtheta[0],peakWidtheta[1], ampRatio, widthRatio);
+        showInit[1]->SetParameters(par0eta[1],par1eta[1],par2eta[1],peakWidtheta[0],peakWidtheta[1], ampRatio, widthRatio);
+        showInit[2]->SetParameters(par0eta[2],par1eta[2],par2eta[2],peakWidtheta[0],peakWidtheta[1], ampRatio, widthRatio);
 
         // phasePoint1 will consider all events from lowest to largest since these will be our attached q values. phasePoint2 on the other hand will only look at a subset of the events where the
         // elements must be spectroscopically distinct, i.e. the 4 photons in consideration are different. Not sure if this is the value I should consider or is it better to do a pair of maps
@@ -567,7 +577,7 @@ int main( int argc, char* argv[] ){
 			// We use a normalized gaussian and a flat function. 
 			fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
 			bkgFit = new TF1("bkgFit",background,fitRange[0],fitRange[1],numDOFbkg);
-			sigFit = new TF1("sigFit",signal,fitRange[0],fitRange[1],numDOFsig);
+			sigFit = new TF1("sigFit",signalDG,fitRange[0],fitRange[1],numDOFsig);
 			//fit2 = new TF1("fit2",fitFunc,fitRange2[0],fitRange2[1],numDOFbkg+numDOFsig);
 			//bkgFit2 = new TF1("bkgFit2",background,fitRange2[0],fitRange2[1],numDOFbkg);
 			//sigFit2 = new TF1("sigFit2",signal,fitRange2[0],fitRange2[1],numDOFsig);
@@ -576,15 +586,16 @@ int main( int argc, char* argv[] ){
 			
 			// Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
 			//if (useEta) { 
-			fit->SetParameters(par0eta[iFit],par1eta[iFit],par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
+			fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1],ampRatio,widthRatio);
+
 			//fit->SetParLimits(3,0.544,0.558); 
 			//fit->SetParLimits(4,0.025,0.035); 
 			//fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
-			//fit->FixParameter(1,0);
-			fit->SetParLimits(3,peakWidtheta[0]*0.9, peakWidtheta[0]*1.1);
+			fit->FixParameter(1,0);
+			fit->SetParLimits(3,peakWidtheta[0]*0.95, peakWidtheta[0]*1.05);
 			//fit->FixParameter(3,peakWidtheta[0]); 
 			//fit->FixParameter(4,peakWidtheta[1]);
-			fit->SetParLimits(4,peakWidtheta[1]*0.9, peakWidtheta[1]*1.1); 
+			fit->SetParLimits(4,peakWidtheta[1]*0.95, peakWidtheta[1]*1.05); 
 			//}
 			//else {
 			//fit2->SetParameters(par0pi0[iFit],0,par2pi0[iFit],peakWidthpi0[0],peakWidthpi0[1]);
@@ -599,36 +610,38 @@ int main( int argc, char* argv[] ){
 			//fit->SetParLimits(0,0,0.05); 
 			//fit->SetParLimits(2,0,0.025); 
 			// Newly calculated 11/16/19 50 Bins
-			fit->SetParLimits(0,0,6);
-			fit->SetParLimits(2,0,2.2);
-			
+			//fit->SetParLimits(0,0,par0eta[0]*4);
+			//fit->SetParLimits(2,0,par2eta[2]*4);
+			fit->SetParLimits( 5,ampRatio*0.95,ampRatio*1.05 );
+			fit->SetParLimits( 6,widthRatio*0.95, widthRatio*1.05 );
+
 			// we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
 			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
 			fit->GetParameters(par);
 			bkgFit->SetParameters(par);
 			sigFit->SetParameters(&par[numDOFbkg]);
 			qvalue_eta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-			if (qvalue_eta>1 || qvalue_eta<0){
-				cout << "Using flat fit instead of linear" << endl;
-				fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
-				fit->FixParameter(1,0); 
-				//fit->FixParameter(3,peakWidtheta[0]);
-				//fit->FixParameter(4,peakWidtheta[1]); 
-				discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
-				fit->GetParameters(par);
-				bkgFit->SetParameters(par);
-				sigFit->SetParameters(&par[numDOFbkg]);
-				qvalue_eta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-				if (qvalue_eta>1 || qvalue_eta<0){
-				    cout << "Not sure why qvalue_eta is still >1 or <0. Need to fix this!" << endl;
-				    cout << "These are the parameters:"<<endl;
-				    for ( double parVal : par ){
-						cout << " " << parVal << endl;
-				    }
-				    cout << " **************** BREAKING ****************** " << endl;
-				    //exit(0);
-				}
-			}
+			//if (qvalue_eta>1 || qvalue_eta<0){
+			//	cout << "Using flat fit instead of linear" << endl;
+			//	fit->SetParameters(par0eta[iFit],0,par2eta[iFit],peakWidtheta[0],peakWidtheta[1]);
+			//	fit->FixParameter(1,0); 
+			//	//fit->FixParameter(3,peakWidtheta[0]);
+			//	//fit->FixParameter(4,peakWidtheta[1]); 
+			//	discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
+			//	fit->GetParameters(par);
+			//	bkgFit->SetParameters(par);
+			//	sigFit->SetParameters(&par[numDOFbkg]);
+			//	qvalue_eta=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+			//	if (qvalue_eta>1 || qvalue_eta<0){
+			//	    cout << "Not sure why qvalue_eta is still >1 or <0. Need to fix this!" << endl;
+			//	    cout << "These are the parameters:"<<endl;
+			//	    for ( double parVal : par ){
+			//			cout << " " << parVal << endl;
+			//	    }
+			//	    cout << " **************** BREAKING ****************** " << endl;
+			//	    //exit(0);
+			//	}
+			//}
 			chiSq_eta = fit->GetChisquare()/(fit->GetNDF());
 			
 			// save some fit and the chiSq_eta for all the fits
@@ -702,10 +715,6 @@ int main( int argc, char* argv[] ){
 	          	//bkgFit2->SetParameters(par2);
 	          	sigFit->SetParameters(&parBest[numDOFbkg]);
 	          	//sigFit2->SetParameters(&par2[numDOFbkg]);
-	          	fit->SetParName(0,"const");
-	          	fit->SetParName(1,"Amp_Gaus1");
-	          	fit->SetParName(2,"Mean_Gaus1");
-	          	fit->SetParName(3,"Sigma_Gaus1");
                   	fit->SetLineColor(kRed);
                   	//fit2->SetLineColor(kRed);
   	          	bkgFit->SetFillColor(kMagenta);
@@ -745,7 +754,7 @@ int main( int argc, char* argv[] ){
   	          	//bkgFit2->Draw("SAME FC");
   	          	//sigFit2->Draw("SAME FC");
 
-			allCanvases->SaveAs(("histograms/Mass-event"+std::to_string(ientry)+".png").c_str());
+			allCanvases->SaveAs(("histograms/Mass-event"+std::to_string(ientry)+".pdf").c_str());
 
         		allCanvases->Clear();
         		allCanvases->Divide(2,1);
@@ -770,7 +779,7 @@ int main( int argc, char* argv[] ){
         		allCanvases->cd(2);
 			drawText(chiSqs,3,"chiSq_eta",0,0,0);
         		legend_conv->Draw();
-			allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".png").c_str());
+			//allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".pdf").c_str());
 
 			//if(verbose2){
 			//     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();

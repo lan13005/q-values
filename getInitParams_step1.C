@@ -8,7 +8,7 @@ void getInitParams_step1(){
     	logFile_eta.open("fitResults/etaFitNoAccSub.txt");
     	logFile_pi0.open("fitResults/pi0FitNoAccSub.txt");
 
-	//gStyle->SetOptFit(111);
+	gStyle->SetOptFit(111);
 	gStyle->SetOptStat(0);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
@@ -18,8 +18,8 @@ void getInitParams_step1(){
 	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
 	double Meta;
 	double Mpi0;
-	dataTree->SetBranchAddress("Meta_meas",&Meta);
-	dataTree->SetBranchAddress("Mpi0_meas",&Mpi0);
+	dataTree->SetBranchAddress("Meta",&Meta);
+	dataTree->SetBranchAddress("Mpi0",&Mpi0);
 	nentries=dataTree->GetEntries();
 
         TH1F *massHist; 
@@ -31,9 +31,9 @@ void getInitParams_step1(){
         double par[5];
 
         cout <<"Initialized" << endl;
-        string namePar[6] = {"nentries","par0","par1","par2","par3","par4"};
+        string namePar[8] = {"nentries","const","linear","amp1","mass","sigma1","amp2","sigma2"};
 
-        for (int i=0; i<2; ++i){
+        for (int i=0; i<1; ++i){
             allCanvases->Clear();
             if (i==0) {useEta=true;}
             else {useEta=false; }
@@ -41,28 +41,24 @@ void getInitParams_step1(){
             std::vector<double> binRange;
             std::vector<double> fitRange;
             if (useEta){
-                binRange={5000,0.25,0.8};
+                binRange={50,0.25,0.8};
                 //binRange={300,0.25,0.8};
-                fitRange={0.4,0.7};
+                fitRange={0.42,0.68};
             } 
-            else{ 
-                binRange={5000,0.05,0.25};
-                //binRange={200,0.05,0.25};
-                fitRange={0.1,0.17};
-            }
+            //else{ 
+            //    //binRange={50,0.05,0.25};
+            //    binRange={200,0.05,0.25};
+            //    fitRange={0.1,0.17};
+            //}
 	    fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
             if (useEta){
-	        fit->SetParameters(100,60,600,0.55,0.025);
+	        fit->SetParameters(100,60,500,0.55,0.017,300,0.28);
             }
-            else {
-	        fit->SetParameters(10,0,140,0.136,0.01);
-            }
+            //else {
+	    //    fit->SetParameters(10,0,140,0.136,0.01);
+            //}
 	    massHist = new TH1F("","",binRange[0],binRange[1],binRange[2]);
             cout << "Initialized for a specific mass (eta/pi0) fit" << endl;
-
-
-	    // FOR BW SIGNAL
-
 
 	    for (int ientry=0; ientry<nentries; ientry++)
 	    {
@@ -70,9 +66,9 @@ void getInitParams_step1(){
                 if ( useEta){
                     massHist->Fill(Meta);
                 }
-                else{
-                    massHist->Fill(Mpi0);
-                }
+                //else{
+                //    massHist->Fill(Mpi0);
+                //}
             }
             cout << "Filled all entries into histogram for a specific fit" << endl;
 
@@ -81,29 +77,30 @@ void getInitParams_step1(){
             if (useEta){
 		massHist->SetTitle(";M(#eta) (GeV)");
                 logFile_eta << namePar[0] << " " << nentries << endl;
-            } else {
-		massHist->SetTitle(";M(#pi^{0}) (GeV)");
-                logFile_pi0 << namePar[0] << " " << nentries << endl;
-            }
+            } 
+	    //else {
+	    //    massHist->SetTitle(";M(#pi^{0}) (GeV)");
+            //    logFile_pi0 << namePar[0] << " " << nentries << endl;
+            //}
             for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
                 if ( useEta ) {
                     logFile_eta << namePar[iPar+1] << " " << par[iPar] << endl;
                 }
-                else { 
-                    logFile_pi0 << namePar[iPar+1] << " " << par[iPar] << endl;
-                }
+                //else { 
+                //    logFile_pi0 << namePar[iPar+1] << " " << par[iPar] << endl;
+                //}
             }
             massHist->Draw();
             massHist->SetTitle(("Peak: "+to_string(par[2])+"    width: "+to_string(par[3])).c_str());
             //fit->Draw();
             if (useEta){
-		drawLineRectSB(0.540383-2*0.0233172, 0.540383+2*0.0233172, 0.02, massHist->GetMaximum() );
+		//drawLineRectSB(0.540383-2*0.0233172, 0.540383+2*0.0233172, 0.02, massHist->GetMaximum() );
                 allCanvases->SaveAs("fitResults/Meta_fit.png");
             }
-            else{
-		drawLineRectSB(0.134285-2*0.00769639, 0.134285+2*0.00769639, 0.01, massHist->GetMaximum() );
-                allCanvases->SaveAs("fitResults/Mpi0_fit.png");
-            }
+            //else{
+	    //    //drawLineRectSB(0.134285-2*0.00769639, 0.134285+2*0.00769639, 0.01, massHist->GetMaximum() );
+            //    allCanvases->SaveAs("fitResults/Mpi0_fit.png");
+            //}
             cout << "Saved for a specific fit!" << endl;
         }
 
