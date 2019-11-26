@@ -99,6 +99,10 @@ int main( int argc, char* argv[] ){
         double vanHove_omega;
         double pi0_energy;
         double mandelstam_tp;
+	double pi0DetectedIn;
+	double etaDetectedIn;
+	
+
         ULong64_t eventNumber;
         double uniqueComboID;
         double AccWeight;
@@ -124,6 +128,8 @@ int main( int argc, char* argv[] ){
         dataTree->SetBranchAddress("vanHove_omega",&vanHove_omega);
         dataTree->SetBranchAddress("pi0_energy", &pi0_energy);
         dataTree->SetBranchAddress("mandelstam_tp", &mandelstam_tp);
+	dataTree->SetBranchAddress("pi0DetectedIn", &pi0DetectedIn);
+	dataTree->SetBranchAddress("etaDetectedIn", &etaDetectedIn);
         dataTree->SetBranchAddress("uniqueComboID",&uniqueComboID);
         dataTree->SetBranchAddress("event",&eventNumber);
         dataTree->SetBranchAddress("AccWeight",&AccWeight);
@@ -147,6 +153,9 @@ int main( int argc, char* argv[] ){
 	const Long64_t c_nentries = (const Long64_t)nentries;
 
 	// importing all the data to RAM instead of reading from root file
+	std::vector<double> pi0DetectedIns; pi0DetectedIns.reserve(c_nentries);
+	std::vector<double> etaDetectedIns; etaDetectedIns.reserve(c_nentries);
+	std::vector<double> Metas; Metas.reserve(c_nentries);
 	std::vector<double> Metas; Metas.reserve(c_nentries);
         std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries);
         std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries);
@@ -171,6 +180,8 @@ int main( int argc, char* argv[] ){
                 //if ( ientry != eventNumber){ cout << "ientry != eventNumber. The events are in the root tree are out of order or missing!" <<
                 //        "\n ientry,eventNumber: " << ientry << ", " << eventNumber << endl; break; }
                 //                ***** THE COMBINATIONS COME IN AT RANDOM ORDERS! ***** DOESNT MATTER I THINK
+		pi0DetectedIns.push_back(pi0DetectedIn);
+		etaDetectedIns.push_back(etaDetectedIn);
 		Metas.push_back(Meta);
 		Mpi0s.push_back(Mpi0);
 		Mpi0etas.push_back(Mpi0eta);
@@ -474,14 +485,33 @@ int main( int argc, char* argv[] ){
         // where I am tracking the two photon pairs that make up the eta and pi0.         
         set<Int_t> setUsedSpectroscopicIDs;
         std::vector<int> phasePoint2PotentailNeighbor; phasePoint2PotentailNeighbor.reserve(nentries);
+	int nPi0DetectedInFCAL=0; 
+	int nEtaDetectedInFCAL=0;
+	int nPi0DetectedInBCAL=0; 
+	int nEtaDetectedInBCAL=0;
+	int nPi0DetectedInSPLIT=0; 
+	int nEtaDetectedInSPLIT=0;
         for (Int_t ientry=0; ientry<nentries; ientry++){ 
             if ( setUsedSpectroscopicIDs.find( uniqueSpectroscopicPi0EtaIDs[ientry] ) == setUsedSpectroscopicIDs.end() ) {
                 setUsedSpectroscopicIDs.insert( uniqueSpectroscopicPi0EtaIDs[ientry] );
                 phasePoint2PotentailNeighbor.push_back(ientry);
+		if ( pi0DetectedIns[ientry] == 0 ) { ++nPi0DetectedInFCAL; } 
+		if ( pi0DetectedIns[ientry] == 1 ) { ++nPi0DetectedInBCAL; } 
+		if ( pi0DetectedIns[ientry] == 2 ) { ++nPi0DetectedInSPLIT; } 
+		if ( etaDetectedIns[ientry] == 0 ) { ++nEtaDetectedInFCAL; } 
+		if ( etaDetectedIns[ientry] == 1 ) { ++nEtaDetectedInBCAL; } 
+		if ( etaDetectedIns[ientry] == 2 ) { ++nEtaDetectedInSPLIT; } 
             }
             ///phasePoint2PotentailNeighbor.push_back(ientry);
         }
         cout << phasePoint2PotentailNeighbor.size() << "/" << nentries << " are used as potential neighbors" << endl;
+	cout << "of these potential neighbors there are: " << endl;
+	cout << nPi0DetectedInFCAL << " pi0's detected in the FCAL" << endl;
+	cout << nPi0DetectedInBCAL << " pi0's detected in the BCAL" << endl;
+	cout << nPi0DetectedInSPLIT << " pi0's detected in SPLIT" << endl;
+	cout << nEtaDetectedInFCAL << " eta's detected in the FCAL" << endl;
+	cout << nEtaDetectedInBCAL << " eta's detected in the BCAL" << endl;
+	cout << nEtaDetectedInSPLIT << " eta's detected in SPLIT" << endl;
 
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
 	// Then we can plot the k nearest neighbors in the discriminating distribution which happens to be a double gaussian and flat bkg. Calculate Q-Value from event
