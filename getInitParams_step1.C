@@ -12,7 +12,7 @@ void getInitParams_step1(){
 	gStyle->SetOptStat(0);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
-	TFile* dataFile=new TFile("pi0eta_meas_datatreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_fcal_treeFlat_DSelector.root");
 	TTree *dataTree;
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
 	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
@@ -52,7 +52,7 @@ void getInitParams_step1(){
             //}
 	    fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
             if (useEta){
-	        fit->SetParameters(100,60,500,0.55,0.017,300,0.28);
+	        fit->SetParameters(49965.9,7668.6,2000,0.547,0.02,0.2,5);
             }
             //else {
 	    //    fit->SetParameters(10,0,140,0.136,0.01);

@@ -9,11 +9,12 @@ start_time = time.time()
 
 kDim=400
 numberEventsToSavePerProcess=5
-nProcess=30
+nProcess=24
 seedShift=12151
-nentries=20000
+nentries=10000
 override_nentries=0
 verbose=0
+
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
 varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
 varVec=np.array(varStringBase.rstrip().split(";"))

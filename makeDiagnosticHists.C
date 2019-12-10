@@ -6,7 +6,7 @@ bool verbose = true;
 void makeDiagnosticHists(Long64_t nentries, string tag){
 
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("pi0eta_allmeas_datatreeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_fcal_treeFlat_DSelector.root");
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
 	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
@@ -193,8 +193,8 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 	for (int ientry=0; ientry<c_nentries; ientry++)
 	{
         	dataTree2->GetEntry(ientry);
-        	//cout << "ientry, flatEntryNumber: " << ientry << "," << flatEntryNumber << endl;            
-        	//
+        	cout << "ientry, flatEntryNumber: " << ientry << "," << flatEntryNumber << endl;            
+        	
         	all_ientries.insert(ientry);
         	all_flatEntryNumber.insert(flatEntryNumber);
         	qvalues[flatEntryNumber]=qvalue;

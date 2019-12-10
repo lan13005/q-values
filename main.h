@@ -78,6 +78,8 @@ Double_t signal(Double_t *x, Double_t *par){
 
 }
 
+// ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS. SO SINCE getInitParams_step1.C SO SINCE fitFunc USES signalDG WHEN WE ACTUALLY INPUT THE INIT PARAMS INTO 
+// ******* main.C WE CAN JUST USE THEM DIRECTLY, DONT HAVE TO CALCULATE ANYTHING
 Double_t signalDG(Double_t *x, Double_t *par){
 	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
 	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
