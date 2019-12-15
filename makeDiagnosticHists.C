@@ -6,10 +6,10 @@ bool verbose = true;
 void makeDiagnosticHists(Long64_t nentries, string tag){
 
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("pi0eta_fcal_treeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_fcal_tLT1_treeFlat_DSelector.root");
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
+	dataFile->GetObject("pi0eta_fcaltree_flat",dataTree);
 	gStyle->SetOptFit(111);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);

@@ -12,10 +12,10 @@ void getInitParams_step1(){
 	gStyle->SetOptStat(0);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
-	TFile* dataFile=new TFile("pi0eta_fcal_treeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_fcal_tLT1_treeFlat_DSelector.root");
 	TTree *dataTree;
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
-	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
+	dataFile->GetObject("pi0eta_fcaltree_flat",dataTree);
 	double Meta;
 	double Mpi0;
 	dataTree->SetBranchAddress("Meta",&Meta);
@@ -27,81 +27,67 @@ void getInitParams_step1(){
         TF1* bkgFit;
         TF1* sigFit;
         std::vector<double> binRange;
-        bool useEta;
+	double binWidth;
         double par[5];
-
+	
         cout <<"Initialized" << endl;
-        string namePar[8] = {"nentries","const","linear","amp1","mass","sigma1","amp2","sigma2"};
+        string namePar[8] = {"nentries","const","linear","amp1","mass","sigma1","ampRatio","sigmaRatio"};
 
         for (int i=0; i<1; ++i){
-            allCanvases->Clear();
-            if (i==0) {useEta=true;}
-            else {useEta=false; }
+		allCanvases->Clear();
 
-            std::vector<double> binRange;
-            std::vector<double> fitRange;
-            if (useEta){
-                binRange={50,0.25,0.8};
-                //binRange={300,0.25,0.8};
-                fitRange={0.42,0.68};
-            } 
-            //else{ 
-            //    //binRange={50,0.05,0.25};
-            //    binRange={200,0.05,0.25};
-            //    fitRange={0.1,0.17};
-            //}
-	    fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
-            if (useEta){
-	        fit->SetParameters(49965.9,7668.6,2000,0.547,0.02,0.2,5);
-            }
-            //else {
-	    //    fit->SetParameters(10,0,140,0.136,0.01);
-            //}
-	    massHist = new TH1F("","",binRange[0],binRange[1],binRange[2]);
-            cout << "Initialized for a specific mass (eta/pi0) fit" << endl;
+		std::vector<double> binRange;
+		std::vector<double> fitRange;
+		binRange={100,0.25,0.8};
+		//binRange={300,0.25,0.8};
+		fitRange={0.38,0.65};
 
-	    for (int ientry=0; ientry<nentries; ientry++)
-	    {
-	    	dataTree->GetEntry(ientry);
-                if ( useEta){
-                    massHist->Fill(Meta);
-                }
-                //else{
-                //    massHist->Fill(Mpi0);
-                //}
-            }
-            cout << "Filled all entries into histogram for a specific fit" << endl;
+		binWidth=(binRange[2]-binRange[1])/binRange[0];
+		fit = new TF1("fit",fitFunc,fitRange[0],fitRange[1],numDOFbkg+numDOFsig);
+		bkgFit = new TF1("bkgFit",background,fitRange[0],fitRange[1],numDOFbkg);
+		sigFit = new TF1("sigFit",signalDG,fitRange[0],fitRange[1],numDOFsig);
 
-	    massHist->Fit("fit","RQB"); // B will enforce the bounds
-	    fit->GetParameters(par);
-            if (useEta){
+		//fit->SetParameters(49965.9,7668.6,2000,0.547,0.02,0.2,5);
+		fit->SetParameters(11500,250,1750,0.547,0.003,10,5);
+		//fit->SetParameters(229,5,34,0.547,0.007,10,5);
+
+		massHist = new TH1F("","",binRange[0],binRange[1],binRange[2]);
+		cout << "Initialized for a specific mass (eta/pi0) fit" << endl;
+		
+		for (int ientry=0; ientry<nentries; ientry++)
+		{
+			dataTree->GetEntry(ientry);
+		        massHist->Fill(Meta);
+		}
+		cout << "Filled all entries into histogram for a specific fit" << endl;
+		
+		massHist->Fit("fit","RQB"); // B will enforce the bounds
+		fit->GetParameters(par);
+		bkgFit->SetParameters(par);
+		sigFit->SetParameters(&par[numDOFbkg]);
 		massHist->SetTitle(";M(#eta) (GeV)");
-                logFile_eta << namePar[0] << " " << nentries << endl;
-            } 
-	    //else {
-	    //    massHist->SetTitle(";M(#pi^{0}) (GeV)");
-            //    logFile_pi0 << namePar[0] << " " << nentries << endl;
-            //}
-            for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
-                if ( useEta ) {
-                    logFile_eta << namePar[iPar+1] << " " << par[iPar] << endl;
-                }
-                //else { 
-                //    logFile_pi0 << namePar[iPar+1] << " " << par[iPar] << endl;
-                //}
-            }
-            massHist->Draw();
-            massHist->SetTitle(("Peak: "+to_string(par[2])+"    width: "+to_string(par[3])).c_str());
-            //fit->Draw();
-            if (useEta){
-		//drawLineRectSB(0.540383-2*0.0233172, 0.540383+2*0.0233172, 0.02, massHist->GetMaximum() );
-                allCanvases->SaveAs("fitResults/Meta_fit.png");
-            }
-            //else{
-	    //    //drawLineRectSB(0.134285-2*0.00769639, 0.134285+2*0.00769639, 0.01, massHist->GetMaximum() );
-            //    allCanvases->SaveAs("fitResults/Mpi0_fit.png");
-            //}
-            cout << "Saved for a specific fit!" << endl;
+		logFile_eta << namePar[0] << " " << nentries << endl;
+		
+		for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
+		        logFile_eta << namePar[iPar+1] << " " << par[iPar] << endl;
+		}
+		
+		double integralBKG = bkgFit->Integral(fitRange[0],fitRange[1]);
+		double integralSIG = sigFit->Integral(fitRange[0],fitRange[1]);
+		cout << "IntegralBKG before scaling: " << integralBKG << endl;
+		cout << "IntegralSIG before scaling: " << integralSIG << endl;
+		integralBKG *= 1/binWidth;
+		integralSIG *= 1/binWidth;
+
+		cout << "IntegralBKG after scaling: " << integralBKG << endl;
+		cout << "IntegralSIG after scaling: " << integralSIG << endl;
+		cout << "nentries: " << nentries << endl;
+
+		
+		massHist->Draw();
+		massHist->SetTitle(("Peak: "+to_string(par[2])+"    width: "+to_string(par[3])).c_str());
+		allCanvases->SaveAs("fitResults/Meta_fit.png");
+		cout << "Saved for a specific fit!" << endl;
         }
 
 

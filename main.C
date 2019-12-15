@@ -73,9 +73,9 @@ int main( int argc, char* argv[] ){
 	
 	// setting up some basic root stuff and getting the file and tree
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
-	TFile* dataFile=new TFile("pi0eta_fcal_treeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_fcal_tLT1_treeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
+	dataFile->GetObject("pi0eta_fcaltree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
     	TCanvas *allCanvases_badFit = new TCanvas("anyHists_badFit","",1440,900);
         auto legend_init = new TLegend(0.1,0.8,0.3,0.9);
@@ -366,9 +366,10 @@ int main( int argc, char* argv[] ){
 	TF1 *fit,*fit2;
         TF1 *bkgFit,*bkgFit2;
         TF1 *sigFit,*sigFit2;
-        binRange={50,0.35,0.8};
-        fitRange={0.42,0.68};
-        //fitRange={0.35,0.8};
+        binRange={100,0.25,0.8};
+        //fitRange={0.42,0.68};
+        fitRange={0.38,0.65};
+
         binRange2={50,0.05,0.25};
         //fitRange2={0.05,0.25};
         fitRange2={0.1,0.17};
@@ -463,16 +464,24 @@ int main( int argc, char* argv[] ){
 	//double par1eta[3] = { -2.92 , -1.462, 0 };
 	//double par2eta[3] = { 0, 0.6, 1.2 };
 	//
-	// () fcal - calculated 12/9/18 - 400 neighbors
-	double peakWidtheta[2] = {0.54655, 0.0262712};
-	double ampRatio = 0.474188;
-	double widthRatio = 0.398465;
-	//double par0eta[3] = { 5.18 , 2.59, 0 };
-	//double par1eta[3] = { 1.017 , 0.5085, 0 };
-	//double par2eta[3] = { 0, 0.65, 1.3 };
-	double par0eta[3] = { 5.18 , 0, 0 };
-	double par1eta[3] = { 1.017 , 0, 0 };
-	double par2eta[3] = { 1.3, 0, 0 };
+	// (Not work) fcal - calculated 12/9/18 - 400 neighbors
+	//double peakWidtheta[2] = {0.548405, 0.00773};
+	//double ampRatio = 2.90;
+	//double widthRatio = 3.27;
+	//double par0eta[3] = { 0.058 , 0, 0 };
+	//double par1eta[3] = { -0.0024 , 0, 0 };
+	//double par2eta[3] = { 0.0049, 0, 0 };
+	// () fcal - 100 bins - 400 neighbors
+	double peakWidtheta[2] = {0.548275, 0.00781353};
+	double ampRatio = 3.09;
+	double widthRatio = 3.07;
+	//double par0eta[3] = { 2.35 , 0, 0 };
+	//double par1eta[3] = { 0 , 0, 0 };
+	////double par1eta[3] = { 1.04 , 0, 0 };
+	//double par2eta[3] = { 0.23, 0, 0 };
+	double par0eta[3] = { 3.77 , 0, 0 };
+	double par1eta[3] = { -0.39 , 0, 0 };
+	double par2eta[3] = { 0.147, 0, 0 };
 
         // with 5000 bins
         //double peakWidtheta[2] = {0.545949, 0.0194813};
@@ -507,9 +516,10 @@ int main( int argc, char* argv[] ){
 	// i's discriminating variable's value. This value will be plugged into the signal PDF and the total PDF. The ratio of these two values are taken which is the Q-Value.
 	//logFile << std::fixed << std::setprecision(6);
 	int randomEntry;
-	int saveN_badEvents=1;
+	int saveN_badEvents=5;
 	int savedN_badEvents=0;
         for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
+		//if (ientry % 100 == 0) { logFile << "Current event: " << ientry << "/" << largest_nentry <<  endl; }
 		legend_init->Clear();
 		legend_conv->Clear();
 		flatEntryNumber=ientry;
@@ -519,7 +529,7 @@ int main( int argc, char* argv[] ){
 		if(verbose) { cout << "Getting next event!\n--------------------------------\n" << endl;  }
 		auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 		auto duration_beginEvent = std::chrono::high_resolution_clock::now();
-		if(verbose2){logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
+		if(verbose2) { logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
 		
 		// clear data from previous events
 		mapDistToJ.clear();
@@ -612,8 +622,11 @@ int main( int argc, char* argv[] ){
 			
 			// Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
 			fit->SetParameters(par0eta[iFit],par1eta[iFit],par2eta[iFit],peakWidtheta[0],peakWidtheta[1],ampRatio,widthRatio);
-			fit->SetParLimits(3,peakWidtheta[0]*0.95, peakWidtheta[0]*1.05);
-			fit->SetParLimits(4,peakWidtheta[1]*0.95, peakWidtheta[1]*1.05); 
+			fit->SetParLimits(0,0,kDim);
+			fit->FixParameter(1,par1eta[iFit]); 
+			fit->SetParLimits(2,0,kDim);
+			fit->SetParLimits(3,peakWidtheta[0]*0.9, peakWidtheta[0]*1.1);
+			fit->SetParLimits(4,peakWidtheta[1]*0.8, peakWidtheta[1]*1.2); 
 			fit->SetParLimits( 5,ampRatio*0.95,ampRatio*1.05 );
 			fit->SetParLimits( 6,widthRatio*0.95, widthRatio*1.05 );
 
@@ -647,7 +660,6 @@ int main( int argc, char* argv[] ){
 				      for (double parVal : par){
 				          cout << parVal << endl;
 				      } 
-				      cout << "---- BREAKING ----" << endl;
 				      //exit(0);
 				}
 			} 
@@ -658,7 +670,7 @@ int main( int argc, char* argv[] ){
 		// need to calcuclate new q-value since it is out of bounds
 		// /////////////////////////////////////////
 		if (best_qvalue_eta>1 || best_qvalue_eta<0){
-			cout << "Using flat fit instead of linear on event:" << ientry << endl;
+			cout << "Using flat fit instead of linear on event:\n" << ientry << endl;
 			if ( savedN_badEvents < saveN_badEvents ) {
 				allCanvases_badFit->cd();
                 		fit->SetLineColor(kRed+2);
@@ -681,6 +693,10 @@ int main( int argc, char* argv[] ){
 			
 		        fit->SetParameters(par0eta[0],0,par2eta[0],peakWidtheta[0],peakWidtheta[1],ampRatio,widthRatio);
 			fit->FixParameter(1,0); 
+			fit->SetParLimits(3,peakWidtheta[0]*0.95, peakWidtheta[0]*1.05);
+			fit->SetParLimits(4,peakWidtheta[1]*0.95, peakWidtheta[1]*1.05); 
+			fit->SetParLimits( 5,ampRatio*0.95,ampRatio*1.05 );
+			fit->SetParLimits( 6,widthRatio*0.95, widthRatio*1.05 );
 			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
 			fit->GetParameters(par);
 			bkgFit->SetParameters(par);
