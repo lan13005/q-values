@@ -38,7 +38,7 @@
 double peakWidth_eta[2] = {0.544,0.022};
 double peakWidth_pi0[2] = {0.134,0.0069};
 
-const int dim=dimNum;
+const int dim=3;
 bool verbose2=true;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
@@ -100,7 +100,6 @@ Double_t signalBW(Double_t* x, Double_t* par) {
 Double_t fitFunc(Double_t *x, Double_t *par){
 	return background(x,par)+signalDG(x,&par[numDOFbkg]);
 }
-
 
 
 void drawText(Double_t *par, int dof, string tag, double qSigValue, double qBkgValue, double qTotValue){
