@@ -1,6 +1,8 @@
 #include "main.h"
 #include "/d/grid15/ln16/pi0eta/092419/makeGraphs.h"
 
+bool isEta2g=true;
+
 void getInitParams_step1(){
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
     	ofstream logFile_eta;
@@ -12,10 +14,17 @@ void getInitParams_step1(){
 	gStyle->SetOptStat(0);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
-	TFile* dataFile=new TFile("pi0eta_datatreeFlat_DSelector.root");
 	TTree *dataTree;
+	if (isEta2g) {
+		TFile* dataFile=new TFile("pi0eta_fcal_treeFlat_DSelector.root");
+		dataFile->GetObject("pi0eta_fcaltree_flat",dataTree);
+	}
+	else {
+		TFile* dataFile=new TFile("pi0eta_reco_3pi0treeFlat_DSelector.root");
+		dataFile->GetObject("pi0eta_reco_3pi0tree_flat",dataTree);
+	}
+
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
-	dataFile->GetObject("pi0eta_datatree_flat",dataTree);
 	double Meta;
 	double Mpi0;
 	dataTree->SetBranchAddress("Meta",&Meta);
@@ -32,8 +41,6 @@ void getInitParams_step1(){
         cout <<"Initialized" << endl;
         string namePar[8] = {"nentries","const","linear","amp1","mass","sigma1","ampRatio","sigmaRatio"};
 
-
-
 	allCanvases->Clear();
 	std::vector<double> binRangeEta;
 	std::vector<double> fitRangeEta;
@@ -49,12 +56,19 @@ void getInitParams_step1(){
 	// ///////////////////////////////////////////////////
 	// START ETA FIT
 	// ///////////////////////////////////////////////////
+	//// eta -> 2g
+	//binRangeEta={100,0.25,0.8};
+	//fitRangeEta={0.38,0.65};
+	//binRangePi0={100,0.05,0.25};
+	//fitRangePi0={0.1,0.17};
+	// eta->3pi0
 	binRangeEta={100,0.25,0.8};
-	fitRangeEta={0.38,0.65};
-	binWidthEta=(binRangeEta[2]-binRangeEta[1])/binRangeEta[0];
+	fitRangeEta={0.44,0.65};
 	binRangePi0={100,0.05,0.25};
 	fitRangePi0={0.1,0.17};
-	binWidth=(binRangePi0[2]-binRangePi0[1])/binRangePi0[0];
+
+	binWidthEta=(binRangeEta[2]-binRangeEta[1])/binRangeEta[0];
+	binWidthPi0=(binRangePi0[2]-binRangePi0[1])/binRangePi0[0];
 
 
 
@@ -62,7 +76,14 @@ void getInitParams_step1(){
 	bkgFit = new TF1("bkgFit",background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
 	sigFit = new TF1("sigFit",signalDG,fitRangeEta[0],fitRangeEta[1],numDOFsig);
 
-	fit->SetParameters(11500,250,1750,0.547,0.003,10,5);
+	// eta->gg
+	if (isEta2g) {
+		fit->SetParameters(11500,250,1750,0.547,0.003,10,5);
+	}
+	// eta->3pi0
+	else {
+		fit->SetParameters(100,250,1750,0.547,0.003,1,1);
+	}
 
 	massHistEta = new TH1F("","",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
 	massHistPi0 = new TH1F("","",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
@@ -114,7 +135,14 @@ void getInitParams_step1(){
 	bkgFit = new TF1("bkgFit",background,fitRangePi0[0],fitRangePi0[1],numDOFbkg);
 	sigFit = new TF1("sigFit",signalDG,fitRangePi0[0],fitRangePi0[1],numDOFsig);
 
-	fit->SetParameters(11500,250,1750,0.134,0.001,5,2);
+	// eta->gg
+	if (isEta2g) {
+		fit->SetParameters(11500,250,1750,0.134,0.001,5,2);
+	}
+	// eta->3pi0
+	else { 
+		fit->SetParameters(700,0,300,0.134,0.01,1,1);
+	}
 
 	massHistPi0->Fit("fit","RQB"); // B will enforce the bounds
 	fit->GetParameters(par);

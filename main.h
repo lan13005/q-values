@@ -38,7 +38,7 @@
 double peakWidth_eta[2] = {0.544,0.022};
 double peakWidth_pi0[2] = {0.134,0.0069};
 
-const int dim=3;
+const int dim=dimNum;
 bool verbose2=true;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
