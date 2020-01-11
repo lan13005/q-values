@@ -279,7 +279,7 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 			cosThetaX_CM_tot[1]->Fill(cosTheta_X_cms_kin[ientry], AccWeights[ientry]);
 			cosThetaX_CM_bkg[1]->Fill(cosTheta_X_cms_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
 			Meta_sig[1]->Fill(Metas_kin[ientry],qvalue*AccWeights[ientry]);
-			Meta_tot[1]->Fill(Metas_kin[ientry],AccWeights[ientry]);
+			Meta_tot[1]->Fill(Metas_kin[ientry], AccWeights[ientry]);
 			Meta_bkg[1]->Fill(Metas_kin[ientry],conjugate_qvalue*AccWeights[ientry]);
                 }
                 if ( isUniquePi0Bs[ientry] ) { 
@@ -314,12 +314,12 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 		string tag="";
 		if (i==0){ tag="meas"; }
 		else { tag="kin"; } 
-		makeStackedHist(Meta_tot[i],Meta_sig[i],Meta_bkg[i],"Meta"+tag,"diagnosticPlots");
-		makeStackedHist(Mpi0_tot[i],Mpi0_sig[i],Mpi0_bkg[i],"Mpi0"+tag,"diagnosticPlots");
-		makeStackedHist(Mpi0eta_tot[i],Mpi0eta_sig[i],Mpi0eta_bkg[i],"Mpi0eta"+tag,"diagnosticPlots");
-		makeStackedHist(cosThetaEta_GJ_tot[i],cosThetaEta_GJ_sig[i],cosThetaEta_GJ_bkg[i],"cosThetaEta_GJ"+tag,"diagnosticPlots");	
-		makeStackedHist(cosThetaX_CM_tot[i],cosThetaX_CM_sig[i],cosThetaX_CM_bkg[i],"cosThetaX_CM"+tag,"diagnosticPlots");	
-		makeStackedHist(phiEta_GJ_tot[i],phiEta_GJ_sig[i],phiEta_GJ_bkg[i],"phiEta_GJ"+tag,"diagnosticPlots");	
+		makeStackedHist(Meta_tot[i],Meta_sig[i],Meta_bkg[i],"Meta"+tag, "diagnosticPlots");
+		makeStackedHist(Mpi0_tot[i],Mpi0_sig[i],Mpi0_bkg[i],"Mpi0"+tag, "diagnosticPlots");
+		makeStackedHist(Mpi0eta_tot[i],Mpi0eta_sig[i],Mpi0eta_bkg[i],"Mpi0eta"+tag, "diagnosticPlots");
+		makeStackedHist(cosThetaEta_GJ_tot[i],cosThetaEta_GJ_sig[i],cosThetaEta_GJ_bkg[i],"cosThetaEta_GJ"+tag, "diagnosticPlots");	
+		makeStackedHist(cosThetaX_CM_tot[i],cosThetaX_CM_sig[i],cosThetaX_CM_bkg[i],"cosThetaX_CM"+tag, "diagnosticPlots");	
+		makeStackedHist(phiEta_GJ_tot[i],phiEta_GJ_sig[i],phiEta_GJ_bkg[i],"phiEta_GJ"+tag, "diagnosticPlots");	
 	}
 
         cout << "FINIHSED!"<<endl;

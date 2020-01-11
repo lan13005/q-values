@@ -412,22 +412,42 @@ int main( int argc, char* argv[] ){
 	double widthRatio;
 	double peakLoc;
 	double sigValue;
+	/////////////////////////////////// FCAL ///////////////////////////////////////
+	///////// Eta
+	//double fittedConst_eta = 13676.6;
+	//double fittedLinear_eta = -8789.43;
+	//double fittedAmp_eta = 570.464;
+	//double peak_eta = 0.548348;
+	//double sigma_eta = 0.00822843;
+	//double ampRatio_eta = 2.8897;
+	//double sigmaRatio_eta = 3.11508;
+	///////// Pi0
+	//double fittedConst_pi0 = 8010.81;
+	//double fittedLinear_pi0 = 11349.5;
+	//double fittedAmp_pi0 = 577.718;
+	//double ampRatio_pi0 = 1.00257;
+	//double sigmaRatio_pi0 = 1.89312;
+	//double peak_pi0 = 0.135069;
+	//double sigma_pi0 = 0.00558194;
+	/////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////// BCAL ///////////////////////////////////////
 	/////// Eta
-	double fittedConst_eta = 13676.6;
-	double fittedLinear_eta = -8789.43;
-	double fittedAmp_eta = 570.464;
-	double peak_eta = 0.548348;
-	double sigma_eta = 0.00822843;
-	double ampRatio_eta = 2.8897;
-	double sigmaRatio_eta = 3.11508;
+	double fittedConst_eta = 5709.2;
+	double fittedLinear_eta = -3972.86;
+	double fittedAmp_eta = 1009.12;
+	double peak_eta = 0.54577;
+	double sigma_eta = 0.0112105;
+	double ampRatio_eta = 0.983809;
+	double sigmaRatio_eta = 2.12843;
 	/////// Pi0
-	double fittedConst_pi0 = 8010.81;
-	double fittedLinear_pi0 = 11349.5;
-	double fittedAmp_pi0 = 577.718;
-	double ampRatio_pi0 = 1.00257;
-	double sigmaRatio_pi0 = 1.89312;
-	double peak_pi0 = 0.135069;
-	double sigma_pi0 = 0.00558194;
+	double fittedConst_pi0 = 742.542;
+	double fittedLinear_pi0 = 3851.38;
+	double fittedAmp_pi0 = 638.884;
+	double peak_pi0 = 0.13555;
+	double sigma_pi0 = 0.00588751;
+	double ampRatio_pi0 = 0.823905;
+	double sigmaRatio_pi0 = 1.7646;
+	/////////////////////////////////////////////////////////////////////////////////
 
 	if (useEta) { 
 		fittedConst = fittedConst_eta;
@@ -592,16 +612,15 @@ int main( int argc, char* argv[] ){
 				bkgFit = new TF1("bkgFit",background,fitRange2[0],fitRange2[1],numDOFbkg);
 				sigFit = new TF1("sigFit",signalDG,fitRange2[0],fitRange2[1],numDOFsig);
 			}
-			
 			// Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
 			fit->SetParameters(par0[iFit],par1[iFit],par2[iFit],peakLoc,sigValue,ampRatio,widthRatio);
 			fit->SetParLimits(0,0,kDim);
-			fit->FixParameter(1,par1[iFit]); 
+			//fit->FixParameter(1,par1[iFit]); 
 			fit->SetParLimits(2,0,kDim);
-			fit->SetParLimits(3,peakLoc*0.9, peakLoc*1.1);
-			fit->SetParLimits(4,sigValue*0.8, sigValue*1.2); 
-			fit->SetParLimits( 5,ampRatio*0.95,ampRatio*1.05 );
-			fit->SetParLimits( 6,widthRatio*0.95, widthRatio*1.05 );
+			fit->SetParLimits(3,peakLoc*0.975, peakLoc*1.025);
+			fit->SetParLimits(4,sigValue*0.975, sigValue*1.025); 
+			//fit->SetParLimits( 5,ampRatio*0.95,ampRatio*1.05 );
+			//fit->SetParLimits( 6,widthRatio*0.95, widthRatio*1.05 );
 
 			// we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
 			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
@@ -670,10 +689,6 @@ int main( int argc, char* argv[] ){
 			
 		        fit->SetParameters(par0[0],0,par2[0],peakLoc,sigValue,ampRatio,widthRatio);
 			fit->FixParameter(1,0); 
-			fit->SetParLimits(3,peakLoc*0.95, peakLoc*1.05);
-			fit->SetParLimits(4,sigValue*0.95, sigValue*1.05); 
-			fit->SetParLimits( 5,ampRatio*0.95,ampRatio*1.05 );
-			fit->SetParLimits( 6,widthRatio*0.95, widthRatio*1.05 );
 			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
 			fit->GetParameters(par);
 			bkgFit->SetParameters(par);
