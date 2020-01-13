@@ -73,9 +73,9 @@ int main( int argc, char* argv[] ){
 	
 	// setting up some basic root stuff and getting the file and tree
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
-	TFile* dataFile=new TFile("pi0eta_fcal_treeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_bcal_treeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject("pi0eta_fcaltree_flat",dataTree);
+	dataFile->GetObject("pi0eta_bcaltree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
     	TCanvas *allCanvases_badFit = new TCanvas("anyHists_badFit","",1440,900);
         auto legend_init = new TLegend(0.1,0.8,0.3,0.9);
@@ -413,6 +413,24 @@ int main( int argc, char* argv[] ){
 	double peakLoc;
 	double sigValue;
 	/////////////////////////////////// FCAL ///////////////////////////////////////
+	// ----------- Acc Sub
+	///////// Eta
+	//double fittedConst_eta = 6152.89;
+	//double fittedLinear_eta = -4006.7;
+	//double fittedAmp_eta = 555.8;
+	//double peak_eta = 0.549878;
+	//double sigma_eta = 0.00800079;
+	//double ampRatio_eta = 0.965167;
+	//double sigmaRatio_eta = 2.91789;
+	///////// Pi0
+	//double fittedConst_pi0 = 3586.65;
+	//double fittedLinear_pi0 = 6736.5;
+	//double fittedAmp_pi0 = 262.888;
+	//double peak_pi0 = 0.135425;
+	//double sigma_pi0 = 0.00519501;
+	//double ampRatio_pi0 = 1.03564;
+	//double sigmaRatio_pi0 = 1.92709;
+	// ----------- No Acc Sub
 	///////// Eta
 	//double fittedConst_eta = 13676.6;
 	//double fittedLinear_eta = -8789.43;
@@ -425,28 +443,46 @@ int main( int argc, char* argv[] ){
 	//double fittedConst_pi0 = 8010.81;
 	//double fittedLinear_pi0 = 11349.5;
 	//double fittedAmp_pi0 = 577.718;
-	//double ampRatio_pi0 = 1.00257;
-	//double sigmaRatio_pi0 = 1.89312;
 	//double peak_pi0 = 0.135069;
 	//double sigma_pi0 = 0.00558194;
+	//double ampRatio_pi0 = 1.00257;
+	//double sigmaRatio_pi0 = 1.89312;
 	/////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////// BCAL ///////////////////////////////////////
+	// ----------- Acc Sub
 	/////// Eta
-	double fittedConst_eta = 5709.2;
-	double fittedLinear_eta = -3972.86;
-	double fittedAmp_eta = 1009.12;
-	double peak_eta = 0.54577;
-	double sigma_eta = 0.0112105;
-	double ampRatio_eta = 0.983809;
-	double sigmaRatio_eta = 2.12843;
+	double fittedConst_eta = 2533.8;
+	double fittedLinear_eta = -1670.85;
+	double fittedAmp_eta = 513.012;
+	double peak_eta = 0.546213;
+	double sigma_eta = 0.0106321;
+	double ampRatio_eta = 0.861947;
+	double sigmaRatio_eta = 2.18799;
 	/////// Pi0
-	double fittedConst_pi0 = 742.542;
-	double fittedLinear_pi0 = 3851.38;
-	double fittedAmp_pi0 = 638.884;
-	double peak_pi0 = 0.13555;
-	double sigma_pi0 = 0.00588751;
-	double ampRatio_pi0 = 0.823905;
-	double sigmaRatio_pi0 = 1.7646;
+	double fittedConst_pi0 = 306.983;
+	double fittedLinear_pi0 = 1696.79;
+	double fittedAmp_pi0 = 335.871;
+	double peak_pi0 = 0.135904;
+	double sigma_pi0 = 0.00527227;
+	double ampRatio_pi0 = 0.650453;
+	double sigmaRatio_pi0 = 1.85376;
+	// ----------- No Acc Sub
+	///////// Eta
+	//double fittedConst_eta = 5709.2;
+	//double fittedLinear_eta = -3972.86;
+	//double fittedAmp_eta = 1009.12;
+	//double peak_eta = 0.54577;
+	//double sigma_eta = 0.0112105;
+	//double ampRatio_eta = 0.983809;
+	//double sigmaRatio_eta = 2.12843;
+	///////// Pi0
+	//double fittedConst_pi0 = 742.542;
+	//double fittedLinear_pi0 = 3851.38;
+	//double fittedAmp_pi0 = 638.884;
+	//double peak_pi0 = 0.13555;
+	//double sigma_pi0 = 0.00588751;
+	//double ampRatio_pi0 = 0.823905;
+	//double sigmaRatio_pi0 = 1.7646;
 	/////////////////////////////////////////////////////////////////////////////////
 
 	if (useEta) { 
@@ -495,7 +531,7 @@ int main( int argc, char* argv[] ){
 	// i's discriminating variable's value. This value will be plugged into the signal PDF and the total PDF. The ratio of these two values are taken which is the Q-Value.
 	//logFile << std::fixed << std::setprecision(6);
 	int randomEntry;
-	int saveN_badEvents=5;
+	int saveN_badEvents=1;
 	int savedN_badEvents=0;
         for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
 		//if (ientry % 100 == 0) { logFile << "Current event: " << ientry << "/" << largest_nentry <<  endl; }
@@ -559,14 +595,14 @@ int main( int argc, char* argv[] ){
 		        newPair = distKNN.kNN.top();
 		        distKNN.kNN.pop();
 			if(useEta){
-		        	discriminatorHist->Fill(Metas[newPair.second]);//,AccWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Mpi0s[newPair.second]);//,AccWeights[newPair.second]);
+		        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);
 		        	stdCalc.insertValue(Metas[newPair.second]);
 		        	stdCalc2.insertValue(Mpi0s[newPair.second]);
 			}
 			else{
-		        	discriminatorHist->Fill(Mpi0s[newPair.second]);//,AccWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Metas[newPair.second]);//,AccWeights[newPair.second]);
+		        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]);
 		        	stdCalc.insertValue(Mpi0s[newPair.second]);
 		        	stdCalc2.insertValue(Metas[newPair.second]);
 			}
@@ -613,14 +649,14 @@ int main( int argc, char* argv[] ){
 				sigFit = new TF1("sigFit",signalDG,fitRange2[0],fitRange2[1],numDOFsig);
 			}
 			// Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
-			fit->SetParameters(par0[iFit],par1[iFit],par2[iFit],peakLoc,sigValue,ampRatio,widthRatio);
+			fit->SetParameters(par0[iFit],0,par2[iFit],peakLoc,sigValue,ampRatio,widthRatio);
 			fit->SetParLimits(0,0,kDim);
-			//fit->FixParameter(1,par1[iFit]); 
+			fit->FixParameter(1,0); 
 			fit->SetParLimits(2,0,kDim);
 			fit->SetParLimits(3,peakLoc*0.975, peakLoc*1.025);
 			fit->SetParLimits(4,sigValue*0.975, sigValue*1.025); 
-			//fit->SetParLimits( 5,ampRatio*0.95,ampRatio*1.05 );
-			//fit->SetParLimits( 6,widthRatio*0.95, widthRatio*1.05 );
+			fit->SetParLimits(5,ampRatio*0.975,ampRatio*1.025 );
+			fit->SetParLimits(6,widthRatio*0.975, widthRatio*1.025 );
 
 			// we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
 			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw

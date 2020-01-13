@@ -9,10 +9,10 @@ start_time = time.time()
 
 kDim=400
 numberEventsToSavePerProcess=1
-nProcess=36
+nProcess=16
 seedShift=12151
 nentries=10000
-override_nentries=0
+override_nentries=1
 verbose=0
 
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
@@ -55,6 +55,10 @@ def runOverCombo(combo,nentries):
 	subprocess.Popen("rm histograms/*",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
 	subprocess.Popen("rm diagnosticPlots/*",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
 	subprocess.Popen("rm logs/*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+	subprocess.Popen("mkdir histograms",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("mkdir diagnosticPlots",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("mkdir logs", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+
 	subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 	
 	print './main "$iProcess" "$kDim" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" $varString &'
