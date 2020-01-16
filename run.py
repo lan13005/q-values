@@ -7,12 +7,12 @@ from itertools import combinations
 subprocess.Popen("rm etaPlots/*", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 start_time = time.time()
 
-kDim=400
+kDim=500
 numberEventsToSavePerProcess=1
-nProcess=16
+nProcess=36
 seedShift=12151
 nentries=10000
-override_nentries=1
+override_nentries=0
 verbose=0
 
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
@@ -51,7 +51,7 @@ def runOverCombo(combo,nentries):
 	# most processes shoudl have a wait but for some it doesnt matter. i.e. we have to wait for exchangeVar to run before compileMain
 	subprocess.Popen(exchangeVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait() # we have to wait for this command to finish before compiling...
 	out, err = subprocess.Popen(compileMain, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate(); print out
-	subprocess.Popen(replaceVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	#subprocess.Popen(replaceVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	subprocess.Popen("rm histograms/*",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
 	subprocess.Popen("rm diagnosticPlots/*",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
 	subprocess.Popen("rm logs/*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()

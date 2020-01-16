@@ -16,8 +16,8 @@ void getInitParams_step1(){
 	gStyle->SetStatW(0.1);
 	TTree *dataTree;
 	if (isEta2g) {
-		TFile* dataFile=new TFile("pi0eta_bcal_treeFlat_DSelector.root");
-		dataFile->GetObject("pi0eta_bcaltree_flat",dataTree);
+		TFile* dataFile=new TFile("pi0eta_fcal_tLT1treeFlat_DSelector.root");
+		dataFile->GetObject("pi0eta_fcal_tLT1tree_flat",dataTree);
 	}
 	else {
 		TFile* dataFile=new TFile("pi0eta_reco_3pi0treeFlat_DSelector.root");
@@ -27,14 +27,17 @@ void getInitParams_step1(){
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
 	double Meta;
 	double Mpi0;
+	double Mpi0eta;
 	double AccWeight;
 	dataTree->SetBranchAddress("Meta",&Meta);
 	dataTree->SetBranchAddress("Mpi0",&Mpi0);
+	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
 	dataTree->SetBranchAddress("AccWeight",&AccWeight);
 	nentries=dataTree->GetEntries();
 
         TH1F *massHistEta; 
         TH1F *massHistPi0; 
+        TH1F *massHistPi0Eta; 
 	TF1* fit;
         TF1* bkgFit;
         TF1* sigFit;
@@ -89,15 +92,32 @@ void getInitParams_step1(){
 
 	massHistEta = new TH1F("","",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
 	massHistPi0 = new TH1F("","",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
+	massHistPi0Eta = new TH1F("","", 350, 0, 3.5);
 	cout << "Initialized for a specific mass (eta/pi0) fit" << endl;
 	
+	double sbRL = 0.08; // Right sideband left line
+	double sbRR = 0.10; // Right sideband right line
+	double sigL = 0.115;
+	double sigR = 0.155;
+	double sbLL = 0.17;
+	double sbLR = 0.19;
+	double sbWeight;
 	for (int ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
-	        massHistEta->Fill(Meta,AccWeight);
-	        massHistPi0->Fill(Mpi0,AccWeight);
+		if ( Mpi0 > sbRL && Mpi0 < sbRR ) { sbWeight = -1; } 
+		else if ( Mpi0 > sbLL && Mpi0 < sbLR ) { sbWeight = -1; } 
+		else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
+		else { sbWeight = 0; }
+	        massHistEta->Fill(Meta,AccWeight*sbWeight);
+	        massHistPi0->Fill(Mpi0,AccWeight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
+		massHistPi0Eta->Fill(Mpi0eta,AccWeight*sbWeight);
 	}
 	cout << "Filled all entries into histogram for a specific fit" << endl;
+
+	massHistPi0Eta->Draw("HIST");
+	allCanvases->SaveAs("fitResults/Mpi0eta_fit.png");
+	allCanvases->Clear();
 	
 	massHistEta->Fit("fit","RQB"); // B will enforce the bounds
 	fit->GetParameters(par);
@@ -173,6 +193,51 @@ void getInitParams_step1(){
 	
 	massHistPi0->Draw();
 	massHistPi0->SetTitle(("Peak: "+to_string(par[2])+"    width: "+to_string(par[3])).c_str());
+	TLine *line = new TLine( sbRL, 0, sbRL, massHistPi0->GetMaximum());
+	line->SetLineColor(kRed);
+	line->Draw("SAME");
+	line->DrawLine( sbRR, 0, sbRR, massHistPi0->GetMaximum());
+	line->DrawLine( sigL, 0, sigL, massHistPi0->GetMaximum());
+	line->DrawLine( sigR, 0, sigR, massHistPi0->GetMaximum());
+	line->DrawLine( sbLL, 0, sbLL, massHistPi0->GetMaximum());
+	line->DrawLine( sbLR, 0, sbLR, massHistPi0->GetMaximum());
+
 	allCanvases->SaveAs("fitResults/Mpi0_fit.png");
 	cout << "Saved for a specific fit!" << endl;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

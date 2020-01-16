@@ -73,9 +73,9 @@ int main( int argc, char* argv[] ){
 	
 	// setting up some basic root stuff and getting the file and tree
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
-	TFile* dataFile=new TFile("pi0eta_bcal_treeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_fcal_tLT1treeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject("pi0eta_bcaltree_flat",dataTree);
+	dataFile->GetObject("pi0eta_fcal_tLT1tree_flat",dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
     	TCanvas *allCanvases_badFit = new TCanvas("anyHists_badFit","",1440,900);
         auto legend_init = new TLegend(0.1,0.8,0.3,0.9);
@@ -163,7 +163,16 @@ int main( int argc, char* argv[] ){
 	//std::vector<double> vanHove_ys; vanHove_ys.reserve(c_nentries);
 	//std::vector<double> vanHove_omegas; vanHove_omegas.reserve(c_nentries);
         std::vector<double> AccWeights; AccWeights.reserve(c_nentries);
+        std::vector<double> sbWeights; sbWeights.reserve(c_nentries);
         std::vector<ULong64_t> spectroscopicComboIDs; spectroscopicComboIDs.reserve(c_nentries);
+
+	double sbRL = 0.08; // Right sideband left line
+	double sbRR = 0.10; // Right sideband right line
+	double sigL = 0.115;
+	double sigR = 0.155;
+	double sbLL = 0.17;
+	double sbLR = 0.19;
+	double sbWeight;
         
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
 	for (Long64_t ientry=0; ientry<nentries; ientry++)
@@ -187,6 +196,12 @@ int main( int argc, char* argv[] ){
                 //pi0_energies.push_back(pi0_energy);
                 //mandelstam_tps.push_back(mandelstam_tp);
                 AccWeights.push_back(AccWeight);
+		if ( Mpi0 > sbRL && Mpi0 < sbRR ) { sbWeight = -1; } 
+		else if ( Mpi0 > sbLL && Mpi0 < sbLR ) { sbWeight = -1; } 
+		else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
+		else { sbWeight = 0; }
+		sbWeights.push_back(sbWeight);
+
                 spectroscopicComboIDs.push_back(spectroscopicComboID);
 	}
 
@@ -346,6 +361,7 @@ int main( int argc, char* argv[] ){
 
         TFile *resultsFile = new TFile(("logs/results"+to_string(iProcess)+".root").c_str(),"RECREATE");
         TTree* resultsTree = new TTree("resultsTree","results");
+        resultsTree->Branch("sbWeight",&sbWeight,"sbWeight/D");
         resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
         resultsTree->Branch("qvalue",&best_qvalue,"qvalue/D");
         resultsTree->Branch("chisq_eta",&bestChiSq,"chisq_eta/D");
@@ -430,60 +446,60 @@ int main( int argc, char* argv[] ){
 	//double sigma_pi0 = 0.00519501;
 	//double ampRatio_pi0 = 1.03564;
 	//double sigmaRatio_pi0 = 1.92709;
-	// ----------- No Acc Sub
+	// ------------- tLT1 --- SB subtracted
 	///////// Eta
-	//double fittedConst_eta = 13676.6;
-	//double fittedLinear_eta = -8789.43;
-	//double fittedAmp_eta = 570.464;
-	//double peak_eta = 0.548348;
-	//double sigma_eta = 0.00822843;
-	//double ampRatio_eta = 2.8897;
-	//double sigmaRatio_eta = 3.11508;
-	///////// Pi0
-	//double fittedConst_pi0 = 8010.81;
-	//double fittedLinear_pi0 = 11349.5;
-	//double fittedAmp_pi0 = 577.718;
-	//double peak_pi0 = 0.135069;
-	//double sigma_pi0 = 0.00558194;
-	//double ampRatio_pi0 = 1.00257;
-	//double sigmaRatio_pi0 = 1.89312;
+	double fittedConst_eta = 620.329;
+	double fittedLinear_eta = 76.205;
+	double fittedAmp_eta = 202.532;
+	double peak_eta = 0.549629;
+	double sigma_eta = 0.00824107;
+	double ampRatio_eta = 1.07651;
+	double sigmaRatio_eta = 2.76162;
+	///////// Pi0 --- NOT SB subtracted
+	double fittedConst_pi0 = 3079.35;
+	double fittedLinear_pi0 = 4669.49;
+	double fittedAmp_pi0 = 60.2984;
+	double peak_pi0 = 0.135627;
+	double sigma_pi0 = 0.00413197;
+	double ampRatio_pi0 = 3.46526;
+	double sigmaRatio_pi0 = 2.05715;
 	/////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////// BCAL ///////////////////////////////////////
 	// ----------- Acc Sub
-	/////// Eta
-	double fittedConst_eta = 2533.8;
-	double fittedLinear_eta = -1670.85;
-	double fittedAmp_eta = 513.012;
-	double peak_eta = 0.546213;
-	double sigma_eta = 0.0106321;
-	double ampRatio_eta = 0.861947;
-	double sigmaRatio_eta = 2.18799;
-	/////// Pi0
-	double fittedConst_pi0 = 306.983;
-	double fittedLinear_pi0 = 1696.79;
-	double fittedAmp_pi0 = 335.871;
-	double peak_pi0 = 0.135904;
-	double sigma_pi0 = 0.00527227;
-	double ampRatio_pi0 = 0.650453;
-	double sigmaRatio_pi0 = 1.85376;
-	// ----------- No Acc Sub
 	///////// Eta
-	//double fittedConst_eta = 5709.2;
-	//double fittedLinear_eta = -3972.86;
-	//double fittedAmp_eta = 1009.12;
-	//double peak_eta = 0.54577;
-	//double sigma_eta = 0.0112105;
-	//double ampRatio_eta = 0.983809;
-	//double sigmaRatio_eta = 2.12843;
+	//double fittedConst_eta = 2533.8;
+	//double fittedLinear_eta = -1670.85;
+	//double fittedAmp_eta = 513.012;
+	//double peak_eta = 0.546213;
+	//double sigma_eta = 0.0106321;
+	//double ampRatio_eta = 0.861947;
+	//double sigmaRatio_eta = 2.18799;
 	///////// Pi0
-	//double fittedConst_pi0 = 742.542;
-	//double fittedLinear_pi0 = 3851.38;
-	//double fittedAmp_pi0 = 638.884;
-	//double peak_pi0 = 0.13555;
-	//double sigma_pi0 = 0.00588751;
-	//double ampRatio_pi0 = 0.823905;
-	//double sigmaRatio_pi0 = 1.7646;
+	//double fittedConst_pi0 = 306.983;
+	//double fittedLinear_pi0 = 1696.79;
+	//double fittedAmp_pi0 = 335.871;
+	//double peak_pi0 = 0.135904;
+	//double sigma_pi0 = 0.00527227;
+	//double ampRatio_pi0 = 0.650453;
+	//double sigmaRatio_pi0 = 1.85376;
 	/////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////// ALL /////////////////////////////////
+	/////////// Eta
+	//double fittedConst_eta = 9752.99;
+	//double fittedLinear_eta = 3177.53;
+	//double fittedAmp_eta = 1654.86;
+	//double peak_eta = 0.548131;
+	//double sigma_eta = 0.00920633;
+	//double ampRatio_eta = 1.24808;
+	//double sigmaRatio_eta = 2.49027;
+	/////////// Pi0
+	//double fittedConst_pi0 = 5969.2;
+	//double fittedLinear_pi0 = 32315.1;
+	//double fittedAmp_pi0 = 1127.38;
+	//double peak_pi0 = 0.135757;
+	//double sigma_pi0 = 0.00518819;
+	//double ampRatio_pi0 = 0.827743;
+	//double sigmaRatio_pi0 = 1.91248;
 
 	if (useEta) { 
 		fittedConst = fittedConst_eta;
@@ -595,14 +611,14 @@ int main( int argc, char* argv[] ){
 		        newPair = distKNN.kNN.top();
 		        distKNN.kNN.pop();
 			if(useEta){
-		        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);
+		        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
 		        	stdCalc.insertValue(Metas[newPair.second]);
 		        	stdCalc2.insertValue(Mpi0s[newPair.second]);
 			}
 			else{
-		        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]);
+		        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
 		        	stdCalc.insertValue(Mpi0s[newPair.second]);
 		        	stdCalc2.insertValue(Metas[newPair.second]);
 			}
@@ -675,9 +691,6 @@ int main( int argc, char* argv[] ){
 			showConv[iFit]->SetParameters(par); // save all the fits
 			chiSqs[iFit]=chiSq;
 			
-			// The pi0 fit
-			//discriminatorHist2->Fit("fit2","RQBNL"); // B will enforce the bounds, N will be no draw
-			//chiSq_pi0 = fit2->GetChisquare()/(fit2->GetNDF());
 			if (verbose2) { logFile << "current ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
 			
 			if (chiSq < bestChiSq){
@@ -696,7 +709,6 @@ int main( int argc, char* argv[] ){
 				}
 			} 
 		}
-
 
 		// /////////////////////////////////////////
 		// need to calcuclate new q-value since it is out of bounds
@@ -844,6 +856,7 @@ int main( int argc, char* argv[] ){
 			//     logFile << "	Delta T to finish event: " << duration2 <<  "ms" << endl;
 			//}
 		} 
+		sbWeight = sbWeights[ientry];
 		resultsTree->Fill();
 	}
 

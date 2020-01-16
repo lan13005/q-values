@@ -6,10 +6,10 @@ bool verbose = true;
 void makeDiagnosticHists(Long64_t nentries, string tag){
 
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile("pi0eta_bcal_treeFlat_DSelector.root");
+	TFile* dataFile=new TFile("pi0eta_fcal_tLT1treeFlat_DSelector.root");
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject("pi0eta_bcaltree_flat",dataTree);
+	dataFile->GetObject("pi0eta_fcal_tLT1tree_flat",dataTree);
 	gStyle->SetOptFit(111);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
@@ -163,6 +163,7 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 	ULong64_t flatEntryNumber;
 	Double_t chiSq_eta_01;
 	Double_t chiSq_eta_02;
+	Double_t sbWeight;
 
 	dataTree2->SetBranchAddress("qvalue",&qvalue);
 	dataTree2->SetBranchAddress("chisq_eta",&chisq);
@@ -170,6 +171,7 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 	dataTree2->SetBranchAddress("chisq_eta_02", &chiSq_eta_02);
 	dataTree2->SetBranchAddress("combostd",&combostd);
 	dataTree2->SetBranchAddress("flatEntryNumber",&flatEntryNumber);
+	dataTree2->SetBranchAddress("sbWeight",&sbWeight);
 
 
 	nentries=dataTree2->GetEntries();
@@ -190,6 +192,7 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
 	std::vector< double > chisqs(c_nentries,0);
 	std::vector< double > combostds(c_nentries,0);
         std::vector<ULong64_t> flatEntryNumbers(c_nentries,0);
+	std::vector< double > sbWeights(c_nentries,0);
 	for (int ientry=0; ientry<c_nentries; ientry++)
 	{
         	dataTree2->GetEntry(ientry);
@@ -201,6 +204,7 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
         	chisqs[flatEntryNumber]=chisq;
         	combostds[flatEntryNumber]=combostd;
         	flatEntryNumbers[flatEntryNumber] = flatEntryNumber;
+		sbWeights[flatEntryNumber] = sbWeight;
         	
         	dHist_qvalues->Fill(qvalue);
         	dHist_chisq->Fill(chisq);
@@ -254,6 +258,10 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
     
         cout << "Drew the imported data" << endl;
 
+
+	double sigWeight;
+	double totWeight;
+	double bkgWeight;
 	for (int ientry=0; ientry<nentries; ientry++){
 		qvalue = qvalues[ientry];
 		conjugate_qvalue = 1-qvalue;
@@ -261,50 +269,53 @@ void makeDiagnosticHists(Long64_t nentries, string tag){
                     cout << "ientry is nan: " << ientry << endl;
                 }
                 //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
+		sigWeight = qvalue*AccWeights[ientry]*sbWeights[ientry];
+		totWeight = AccWeights[ientry]*sbWeights[ientry];
+		bkgWeight = conjugate_qvalue*AccWeights[ientry]*sbWeights[ientry];
                 if ( isUniqueEtaBs[ientry] ) {
-			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs[ientry], qvalue*AccWeights[ientry]);
-			cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs[ientry], AccWeights[ientry]);
-			cosThetaEta_GJ_bkg[0]->Fill(cosTheta_eta_gjs[ientry], conjugate_qvalue*AccWeights[ientry]);
-			cosThetaX_CM_sig[0]->Fill(cosTheta_X_cms[ientry], qvalue*AccWeights[ientry]);
-			cosThetaX_CM_tot[0]->Fill(cosTheta_X_cms[ientry], AccWeights[ientry]);
-			cosThetaX_CM_bkg[0]->Fill(cosTheta_X_cms[ientry], conjugate_qvalue*AccWeights[ientry]);
-			Meta_sig[0]->Fill(Metas[ientry],qvalue*AccWeights[ientry]);
-			Meta_tot[0]->Fill(Metas[ientry],AccWeights[ientry]);
-			Meta_bkg[0]->Fill(Metas[ientry],conjugate_qvalue*AccWeights[ientry]);
+			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs[ientry], sigWeight);
+			cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs[ientry], totWeight);
+			cosThetaEta_GJ_bkg[0]->Fill(cosTheta_eta_gjs[ientry], bkgWeight);
+			cosThetaX_CM_sig[0]->Fill(cosTheta_X_cms[ientry], sigWeight);
+			cosThetaX_CM_tot[0]->Fill(cosTheta_X_cms[ientry], totWeight);
+			cosThetaX_CM_bkg[0]->Fill(cosTheta_X_cms[ientry], bkgWeight);
+			Meta_sig[0]->Fill(Metas[ientry],sigWeight);
+			Meta_tot[0]->Fill(Metas[ientry],totWeight);
+			Meta_bkg[0]->Fill(Metas[ientry],bkgWeight);
 
-			cosThetaEta_GJ_sig[1]->Fill(cosTheta_eta_gjs_kin[ientry], qvalue*AccWeights[ientry]);
-			cosThetaEta_GJ_tot[1]->Fill(cosTheta_eta_gjs_kin[ientry], AccWeights[ientry]);
-			cosThetaEta_GJ_bkg[1]->Fill(cosTheta_eta_gjs_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
-			cosThetaX_CM_sig[1]->Fill(cosTheta_X_cms_kin[ientry], qvalue*AccWeights[ientry]);
-			cosThetaX_CM_tot[1]->Fill(cosTheta_X_cms_kin[ientry], AccWeights[ientry]);
-			cosThetaX_CM_bkg[1]->Fill(cosTheta_X_cms_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
-			Meta_sig[1]->Fill(Metas_kin[ientry],qvalue*AccWeights[ientry]);
-			Meta_tot[1]->Fill(Metas_kin[ientry], AccWeights[ientry]);
-			Meta_bkg[1]->Fill(Metas_kin[ientry],conjugate_qvalue*AccWeights[ientry]);
+			cosThetaEta_GJ_sig[1]->Fill(cosTheta_eta_gjs_kin[ientry], sigWeight);
+			cosThetaEta_GJ_tot[1]->Fill(cosTheta_eta_gjs_kin[ientry], totWeight);
+			cosThetaEta_GJ_bkg[1]->Fill(cosTheta_eta_gjs_kin[ientry], bkgWeight);
+			cosThetaX_CM_sig[1]->Fill(cosTheta_X_cms_kin[ientry], sigWeight);
+			cosThetaX_CM_tot[1]->Fill(cosTheta_X_cms_kin[ientry], totWeight);
+			cosThetaX_CM_bkg[1]->Fill(cosTheta_X_cms_kin[ientry], bkgWeight);
+			Meta_sig[1]->Fill(Metas_kin[ientry],sigWeight);
+			Meta_tot[1]->Fill(Metas_kin[ientry], totWeight);
+			Meta_bkg[1]->Fill(Metas_kin[ientry],bkgWeight);
                 }
                 if ( isUniquePi0Bs[ientry] ) { 
-			Mpi0_sig[0]->Fill(Mpi0s[ientry],qvalue*AccWeights[ientry]);
-			Mpi0_tot[0]->Fill(Mpi0s[ientry],AccWeights[ientry]);
-			Mpi0_bkg[0]->Fill(Mpi0s[ientry], conjugate_qvalue*AccWeights[ientry]);
+			Mpi0_sig[0]->Fill(Mpi0s[ientry],sigWeight);
+			Mpi0_tot[0]->Fill(Mpi0s[ientry],totWeight);
+			Mpi0_bkg[0]->Fill(Mpi0s[ientry], bkgWeight);
 
-			Mpi0_sig[1]->Fill(Mpi0s_kin[ientry],qvalue*AccWeights[ientry]);
-			Mpi0_tot[1]->Fill(Mpi0s_kin[ientry],AccWeights[ientry]);
-			Mpi0_bkg[1]->Fill(Mpi0s_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
+			Mpi0_sig[1]->Fill(Mpi0s_kin[ientry],sigWeight);
+			Mpi0_tot[1]->Fill(Mpi0s_kin[ientry],totWeight);
+			Mpi0_bkg[1]->Fill(Mpi0s_kin[ientry], bkgWeight);
                 }
                 if ( isUniquePi0EtaBs[ientry] ) { 
-			phiEta_GJ_sig[0]->Fill(phi_eta_gjs[ientry], qvalue*AccWeights[ientry]);
-			phiEta_GJ_tot[0]->Fill(phi_eta_gjs[ientry], AccWeights[ientry]);
-			phiEta_GJ_bkg[0]->Fill(phi_eta_gjs[ientry], conjugate_qvalue*AccWeights[ientry]);
-			Mpi0eta_sig[0]->Fill(Mpi0etas[ientry],qvalue*AccWeights[ientry]);
-			Mpi0eta_tot[0]->Fill(Mpi0etas[ientry],AccWeights[ientry]);
-			Mpi0eta_bkg[0]->Fill(Mpi0etas[ientry], conjugate_qvalue*AccWeights[ientry]);
+			phiEta_GJ_sig[0]->Fill(phi_eta_gjs[ientry], sigWeight);
+			phiEta_GJ_tot[0]->Fill(phi_eta_gjs[ientry], totWeight);
+			phiEta_GJ_bkg[0]->Fill(phi_eta_gjs[ientry], bkgWeight);
+			Mpi0eta_sig[0]->Fill(Mpi0etas[ientry],sigWeight);
+			Mpi0eta_tot[0]->Fill(Mpi0etas[ientry],totWeight);
+			Mpi0eta_bkg[0]->Fill(Mpi0etas[ientry], bkgWeight);
 
-			phiEta_GJ_sig[1]->Fill(phi_eta_gjs_kin[ientry], qvalue*AccWeights[ientry]);
-			phiEta_GJ_tot[1]->Fill(phi_eta_gjs_kin[ientry], AccWeights[ientry]);
-			phiEta_GJ_bkg[1]->Fill(phi_eta_gjs_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
-			Mpi0eta_sig[1]->Fill(Mpi0etas_kin[ientry],qvalue*AccWeights[ientry]);
-			Mpi0eta_tot[1]->Fill(Mpi0etas_kin[ientry],AccWeights[ientry]);
-			Mpi0eta_bkg[1]->Fill(Mpi0etas_kin[ientry], conjugate_qvalue*AccWeights[ientry]);
+			phiEta_GJ_sig[1]->Fill(phi_eta_gjs_kin[ientry], sigWeight);
+			phiEta_GJ_tot[1]->Fill(phi_eta_gjs_kin[ientry], totWeight);
+			phiEta_GJ_bkg[1]->Fill(phi_eta_gjs_kin[ientry], bkgWeight);
+			Mpi0eta_sig[1]->Fill(Mpi0etas_kin[ientry],sigWeight);
+			Mpi0eta_tot[1]->Fill(Mpi0etas_kin[ientry],totWeight);
+			Mpi0eta_bkg[1]->Fill(Mpi0etas_kin[ientry], bkgWeight);
                 }
 	}
         cout << "Made the histograms" << endl;
