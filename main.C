@@ -10,6 +10,7 @@
 
 bool useEta=true;
 using namespace RooFit;
+string detector="bcal";
 
 //void main(int iProcess, int kDim, int numberEventsToSavePerProcess, int nProcess, int seedShift, Long64_t nentries, bool override_nentries, bool verbose){
 int main( int argc, char* argv[] ){
@@ -71,11 +72,53 @@ int main( int argc, char* argv[] ){
 	auto start2 = std::chrono::high_resolution_clock::now();
 	//start = clock();
 	
+	
+	///////////////////// INITIALIZING THE PARAMETERS ////////////////////
+	///////// Pi0 --- NOT SB subtracted
+	double fittedConst_pi0 = 1;
+	double fittedLinear_pi0 = 1;
+	double fittedAmp_pi0 = 1;
+	double peak_pi0 = 1;
+	double sigma_pi0 = 1;
+	double ampRatio_pi0 = 1;
+	double sigmaRatio_pi0 = 1;
+	// ------------- tLT1 --- SB subtracted --- AccSub
+	double fittedConst_eta;
+	double fittedLinear_eta;
+	double fittedAmp_eta;
+	double peak_eta;
+	double sigma_eta;
+	double ampRatio_eta;
+	double sigmaRatio_eta;
+
+	string varName;
+	double varVal;
+	ifstream inFile;
+	inFile.open(("fitResults/etaFitNoAccSub_"+detector+".txt").c_str());
+	while (inFile >> varName >> varVal){
+		if (varName == "const"){ fittedConst_eta = varVal; }
+		if (varName == "linear"){ fittedLinear_eta = varVal;}
+		if (varName == "amp1"){ fittedAmp_eta = varVal;}
+		if (varName == "mass"){ peak_eta = varVal;}
+		if (varName == "sigma1"){ sigma_eta = varVal;}
+		if (varName == "ampRatio"){ ampRatio_eta = varVal;}
+		if (varName == "sigmaRatio"){ sigmaRatio_eta = varVal;}
+	}
+	cout << detector << endl;
+	cout << "const: " << fittedConst_eta << endl;
+	cout << "linear: " << fittedLinear_eta << endl;
+	cout << "amp1: " << fittedAmp_eta << endl;
+	cout << "mass: " << peak_eta << endl;
+	cout << "sigma1: " << sigma_eta << endl;
+	cout << "ampRatio: " << ampRatio_eta << endl;
+	cout << "sigmaRatio: " << sigmaRatio_eta << endl;
+	inFile.close();
+	
 	// setting up some basic root stuff and getting the file and tree
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
-	TFile* dataFile=new TFile("pi0eta_fcal_tLT1treeFlat_DSelector.root");
+	TFile* dataFile=new TFile(("pi0eta_"+detector+"_tLT1treeFlat_DSelector.root").c_str());
 	TTree *dataTree;
-	dataFile->GetObject("pi0eta_fcal_tLT1tree_flat",dataTree);
+	dataFile->GetObject(("pi0eta_"+detector+"_tLT1tree_flat").c_str(),dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
     	TCanvas *allCanvases_badFit = new TCanvas("anyHists_badFit","",1440,900);
         auto legend_init = new TLegend(0.1,0.8,0.3,0.9);
@@ -141,7 +184,7 @@ int main( int argc, char* argv[] ){
 
 	// opening a file to write my log data to
     	ofstream logFile;
-    	logFile.open(("logs/logEventChiSqQValue_process"+to_string(iProcess)+".txt").c_str());
+    	logFile.open(("logs/processLog"+detector+"_"+to_string(iProcess)+".txt").c_str());
 	//logFile << "Event\tQ-Value\tChiSq\tMpi0" << endl;
 	
 
@@ -166,12 +209,12 @@ int main( int argc, char* argv[] ){
         std::vector<double> sbWeights; sbWeights.reserve(c_nentries);
         std::vector<ULong64_t> spectroscopicComboIDs; spectroscopicComboIDs.reserve(c_nentries);
 
-	double sbRL = 0.08; // Right sideband left line
-	double sbRR = 0.10; // Right sideband right line
-	double sigL = 0.115;
-	double sigR = 0.155;
-	double sbLL = 0.17;
-	double sbLR = 0.19;
+	double sbRL = 0.09; // Right sideband left line
+	double sbRR = 0.105; // Right sideband right line
+	double sigL = 0.12;
+	double sigR = 0.15;
+	double sbLL = 0.165;
+	double sbLR = 0.18;
 	double sbWeight;
         
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
@@ -359,9 +402,11 @@ int main( int argc, char* argv[] ){
 	double chiSq_eta_01;
 	double chiSq_eta_02;
 
+
+	TBranch* b_sbWeight;
+	TBranch* b_flatEntryNumber;
         TFile *resultsFile = new TFile(("logs/results"+to_string(iProcess)+".root").c_str(),"RECREATE");
         TTree* resultsTree = new TTree("resultsTree","results");
-        resultsTree->Branch("sbWeight",&sbWeight,"sbWeight/D");
         resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
         resultsTree->Branch("qvalue",&best_qvalue,"qvalue/D");
         resultsTree->Branch("chisq_eta",&bestChiSq,"chisq_eta/D");
@@ -428,78 +473,6 @@ int main( int argc, char* argv[] ){
 	double widthRatio;
 	double peakLoc;
 	double sigValue;
-	/////////////////////////////////// FCAL ///////////////////////////////////////
-	// ----------- Acc Sub
-	///////// Eta
-	//double fittedConst_eta = 6152.89;
-	//double fittedLinear_eta = -4006.7;
-	//double fittedAmp_eta = 555.8;
-	//double peak_eta = 0.549878;
-	//double sigma_eta = 0.00800079;
-	//double ampRatio_eta = 0.965167;
-	//double sigmaRatio_eta = 2.91789;
-	///////// Pi0
-	//double fittedConst_pi0 = 3586.65;
-	//double fittedLinear_pi0 = 6736.5;
-	//double fittedAmp_pi0 = 262.888;
-	//double peak_pi0 = 0.135425;
-	//double sigma_pi0 = 0.00519501;
-	//double ampRatio_pi0 = 1.03564;
-	//double sigmaRatio_pi0 = 1.92709;
-	// ------------- tLT1 --- SB subtracted
-	///////// Eta
-	double fittedConst_eta = 620.329;
-	double fittedLinear_eta = 76.205;
-	double fittedAmp_eta = 202.532;
-	double peak_eta = 0.549629;
-	double sigma_eta = 0.00824107;
-	double ampRatio_eta = 1.07651;
-	double sigmaRatio_eta = 2.76162;
-	///////// Pi0 --- NOT SB subtracted
-	double fittedConst_pi0 = 3079.35;
-	double fittedLinear_pi0 = 4669.49;
-	double fittedAmp_pi0 = 60.2984;
-	double peak_pi0 = 0.135627;
-	double sigma_pi0 = 0.00413197;
-	double ampRatio_pi0 = 3.46526;
-	double sigmaRatio_pi0 = 2.05715;
-	/////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////// BCAL ///////////////////////////////////////
-	// ----------- Acc Sub
-	///////// Eta
-	//double fittedConst_eta = 2533.8;
-	//double fittedLinear_eta = -1670.85;
-	//double fittedAmp_eta = 513.012;
-	//double peak_eta = 0.546213;
-	//double sigma_eta = 0.0106321;
-	//double ampRatio_eta = 0.861947;
-	//double sigmaRatio_eta = 2.18799;
-	///////// Pi0
-	//double fittedConst_pi0 = 306.983;
-	//double fittedLinear_pi0 = 1696.79;
-	//double fittedAmp_pi0 = 335.871;
-	//double peak_pi0 = 0.135904;
-	//double sigma_pi0 = 0.00527227;
-	//double ampRatio_pi0 = 0.650453;
-	//double sigmaRatio_pi0 = 1.85376;
-	/////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////// ALL /////////////////////////////////
-	/////////// Eta
-	//double fittedConst_eta = 9752.99;
-	//double fittedLinear_eta = 3177.53;
-	//double fittedAmp_eta = 1654.86;
-	//double peak_eta = 0.548131;
-	//double sigma_eta = 0.00920633;
-	//double ampRatio_eta = 1.24808;
-	//double sigmaRatio_eta = 2.49027;
-	/////////// Pi0
-	//double fittedConst_pi0 = 5969.2;
-	//double fittedLinear_pi0 = 32315.1;
-	//double fittedAmp_pi0 = 1127.38;
-	//double peak_pi0 = 0.135757;
-	//double sigma_pi0 = 0.00518819;
-	//double ampRatio_pi0 = 0.827743;
-	//double sigmaRatio_pi0 = 1.91248;
 
 	if (useEta) { 
 		fittedConst = fittedConst_eta;
@@ -860,7 +833,6 @@ int main( int argc, char* argv[] ){
 		resultsTree->Fill();
 	}
 
-    
         resultsFile->cd();
         resultsTree->Write();
         //resultsFile->Write();

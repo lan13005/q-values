@@ -12,7 +12,7 @@ void makeStackedHist(TH1F* tot, TH1F* sig, TH1F* bkg, string name,string baseDir
 	stackedHists->Draw("nostack");
 	stackedHists->GetXaxis()->SetTitle(tot->GetXaxis()->GetTitle());
 	stackedHists->GetYaxis()->SetTitle(tot->GetYaxis()->GetTitle());
-	stackedHists->SetTitle(tot->GetTitle());
+	stackedHists->SetTitle((tot->GetTitle()+" overlay total and bkg");
 	allCanvases->SaveAs((baseDir+"/"+name+"_totBkg.png").c_str());
 	
 	allCanvases->Clear();
@@ -20,13 +20,13 @@ void makeStackedHist(TH1F* tot, TH1F* sig, TH1F* bkg, string name,string baseDir
 	sig->SetLineWidth(2);
 	sig->Draw("HIST");
 	sig->SetAxisRange( 1.05*(sig->GetMinimum()) , 1.05*(tot->GetMaximum()), "Y" ); 
+	sig->SetTitle((sig->GetTitle()+" signal");
 	allCanvases->SaveAs((baseDir+"/"+name+"_sig.png").c_str());
 
 	//allCanvases->Clear();
 	//sig->Draw("HIST");
 	//allCanvases->SaveAs(("diagnosticPlots/"+name+"_sig.png").c_str());
 }
-
 
 
 #endif
