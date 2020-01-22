@@ -45,15 +45,15 @@ int main( int argc, char* argv[] ){
         if ( atoi(argv[8])==1 ){ verbose=true;}
         else{ verbose=false;}
         std::string varString=argv[9];
-        if(verbose){cout << "----------------------------" << endl;}
-        if(verbose){cout << "iProcess: " << iProcess << endl;}
-        if(verbose){cout << "kDim: " << kDim << endl;}
-        if(verbose){cout << "numberEventsToSavePerProcess: " << numberEventsToSavePerProcess << endl;}
-        if(verbose){cout << "nProcess: " << nProcess << endl;}
-        if(verbose){cout << "seedShift: " << seedShift << endl;}
-        if(verbose){cout << "nentries: " << nentries << endl; }
-        if(verbose){cout << "override_nentries: " << override_nentries << endl;}
-        if(verbose){cout << "verbose: " << verbose  << endl; }
+        cout << "----------------------------" << endl;
+        cout << "iProcess: " << iProcess << endl;
+        cout << "kDim: " << kDim << endl;
+        cout << "numberEventsToSavePerProcess: " << numberEventsToSavePerProcess << endl;
+        cout << "nProcess: " << nProcess << endl;
+        cout << "seedShift: " << seedShift << endl;
+        cout << "nentries: " << nentries << endl; 
+        cout << "override_nentries: " << override_nentries << endl;
+        cout << "verbose: " << verbose  << endl; 
     
         parseVarString parse(varString);
         parse.parseString();
@@ -176,6 +176,9 @@ int main( int argc, char* argv[] ){
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
         dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
 
+
+
+	const Long64_t total_nentries = (const Long64_t)dataTree->GetEntries();
 	if (!override_nentries){
 		nentries=dataTree->GetEntries();
 	}
@@ -188,26 +191,25 @@ int main( int argc, char* argv[] ){
 	//logFile << "Event\tQ-Value\tChiSq\tMpi0" << endl;
 	
 
-	const Long64_t c_nentries = (const Long64_t)nentries;
 
 	// importing all the data to RAM instead of reading from root file
-	std::vector<double> Metas; Metas.reserve(c_nentries);
-        std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries);
-        std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries);
-        std::vector<double> cosTheta_X_cms; cosTheta_X_cms.reserve(c_nentries);
-        //std::vector<double> phi_X_cms; phi_X_cms.reserve(c_nentries);
-        std::vector<double> cosTheta_eta_gjs; cosTheta_eta_gjs.reserve(c_nentries);
-        std::vector<double> phi_eta_gjs; phi_eta_gjs.reserve(c_nentries);
-        //std::vector<double> cosThetaHighestEphotonIneta_gjs; cosThetaHighestEphotonIneta_gjs.reserve(c_nentries);
-        //std::vector<double> cosThetaHighestEphotonInpi0_cms; cosThetaHighestEphotonInpi0_cms.reserve(c_nentries);
-        //std::vector<double> pi0_energies; pi0_energies.reserve(c_nentries);
-        //std::vector<double> mandelstam_tps; mandelstam_tps.reserve(c_nentries);
-	//std::vector<double> vanHove_xs; vanHove_xs.reserve(c_nentries);
-	//std::vector<double> vanHove_ys; vanHove_ys.reserve(c_nentries);
-	//std::vector<double> vanHove_omegas; vanHove_omegas.reserve(c_nentries);
-        std::vector<double> AccWeights; AccWeights.reserve(c_nentries);
-        std::vector<double> sbWeights; sbWeights.reserve(c_nentries);
-        std::vector<ULong64_t> spectroscopicComboIDs; spectroscopicComboIDs.reserve(c_nentries);
+	std::vector<double> Metas; Metas.reserve(nentries);
+        std::vector<double> Mpi0s; Mpi0s.reserve(nentries);
+        std::vector<double> Mpi0etas; Mpi0etas.reserve(nentries);
+        std::vector<double> cosTheta_X_cms; cosTheta_X_cms.reserve(nentries);
+        //std::vector<double> phi_X_cms; phi_X_cms.reserve(nentries);
+        std::vector<double> cosTheta_eta_gjs; cosTheta_eta_gjs.reserve(nentries);
+        std::vector<double> phi_eta_gjs; phi_eta_gjs.reserve(nentries);
+        //std::vector<double> cosThetaHighestEphotonIneta_gjs; cosThetaHighestEphotonIneta_gjs.reserve(nentries);
+        //std::vector<double> cosThetaHighestEphotonInpi0_cms; cosThetaHighestEphotonInpi0_cms.reserve(nentries);
+        //std::vector<double> pi0_energies; pi0_energies.reserve(nentries);
+        //std::vector<double> mandelstam_tps; mandelstam_tps.reserve(nentries);
+	//std::vector<double> vanHove_xs; vanHove_xs.reserve(nentries);
+	//std::vector<double> vanHove_ys; vanHove_ys.reserve(nentries);
+	//std::vector<double> vanHove_omegas; vanHove_omegas.reserve(nentries);
+        std::vector<double> AccWeights; AccWeights.reserve(nentries);
+        std::vector<double> sbWeights; sbWeights.reserve(nentries);
+        std::vector<ULong64_t> spectroscopicComboIDs; spectroscopicComboIDs.reserve(nentries);
 
 	double sbRL = 0.09; // Right sideband left line
 	double sbRR = 0.105; // Right sideband right line
@@ -465,7 +467,8 @@ int main( int argc, char* argv[] ){
 	
 	
 	// Measured values
-	double scaleFactor = kDim/nentries;
+	double scaleFactor = (double)kDim/total_nentries;
+	cout << "scaleFactor: " << scaleFactor << endl;
 	double fittedConst;
 	double fittedLinear;
 	double fittedAmp;
@@ -492,10 +495,13 @@ int main( int argc, char* argv[] ){
 		peakLoc = peak_pi0;
 		sigValue = sigma_pi0;
 	}
+	cout << "Scaled Const: " << scaleFactor*fittedConst << endl;
+	cout << "Scaled Linear: " << scaleFactor*fittedLinear << endl;
+	cout << "Scaled Amp: " << scaleFactor*fittedAmp << endl;
+
 	std::vector<double> par0 = { scaleFactor*fittedConst, scaleFactor/2*fittedConst, 0 }; 
 	std::vector<double> par1 = { scaleFactor*fittedLinear, scaleFactor/2*fittedLinear, 0 }; 
 	std::vector<double> par2 = { 0, scaleFactor/2*fittedAmp, scaleFactor*fittedAmp }; 
-
 
         showInit[0]->SetParameters(par0[0],par1[0],par2[0],peakLoc,sigValue, ampRatio, widthRatio);
         showInit[1]->SetParameters(par0[1],par1[1],par2[1],peakLoc,sigValue, ampRatio, widthRatio);
@@ -584,14 +590,14 @@ int main( int argc, char* argv[] ){
 		        newPair = distKNN.kNN.top();
 		        distKNN.kNN.pop();
 			if(useEta){
-		        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
+		        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
 		        	stdCalc.insertValue(Metas[newPair.second]);
 		        	stdCalc2.insertValue(Mpi0s[newPair.second]);
 			}
 			else{
-		        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
+		        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
 		        	stdCalc.insertValue(Mpi0s[newPair.second]);
 		        	stdCalc2.insertValue(Metas[newPair.second]);
 			}
@@ -642,10 +648,10 @@ int main( int argc, char* argv[] ){
 			fit->SetParLimits(0,0,kDim);
 			fit->FixParameter(1,0); 
 			fit->SetParLimits(2,0,kDim);
-			fit->SetParLimits(3,peakLoc*0.975, peakLoc*1.025);
-			fit->SetParLimits(4,sigValue*0.975, sigValue*1.025); 
-			fit->SetParLimits(5,ampRatio*0.975,ampRatio*1.025 );
-			fit->SetParLimits(6,widthRatio*0.975, widthRatio*1.025 );
+			fit->SetParLimits(3,peakLoc*0.95, peakLoc*1.05);
+			fit->SetParLimits(4,sigValue*0.95, sigValue*1.05); 
+			fit->SetParLimits(5,ampRatio*0.95,ampRatio*1.05 );
+			fit->SetParLimits(6,widthRatio*0.95, widthRatio*1.05 );
 
 			// we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
 			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
@@ -658,6 +664,55 @@ int main( int argc, char* argv[] ){
 			else{
 				qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
 			}
+			
+
+			// /////////////////////////////////////////
+			// need to calcuclate new q-value since it is out of bounds
+			// /////////////////////////////////////////
+			if (qvalue>1 || qvalue<0){
+				cout << "Using flat fit instead of linear on event:\n" << ientry << endl;
+				// first we will save the bad event then fix the linear component of the bkg
+				if ( savedN_badEvents < saveN_badEvents ) {
+					allCanvases_badFit->cd();
+                			fit->SetLineColor(kRed+2);
+  	        			bkgFit->SetFillColor(kMagenta+2);
+                			bkgFit->SetLineColor(kMagenta+2);
+  	        			bkgFit->SetFillStyle(3004);
+  	        			sigFit->SetFillColor(kBlue+2);
+                			sigFit->SetLineColor(kBlue+2);
+  	        			sigFit->SetFillStyle(3005);
+	        			discriminatorHist->Draw();
+                			fit->Draw("SAME");
+  	        			bkgFit->Draw("SAME FC");
+  	        			sigFit->Draw("SAME FC");
+					etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
+					etaLine->SetLineColor(kOrange);
+	        			etaLine->Draw("same");
+					allCanvases_badFit->SaveAs(("histograms/bad-Mass-event"+std::to_string(ientry)+".pdf").c_str());
+					++savedN_badEvents;
+				}
+				
+			        fit->SetParameters(par0[iFit],0,par2[iFit],peakLoc,sigValue,ampRatio,widthRatio);
+				fit->FixParameter(1,0); 
+				discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
+				fit->GetParameters(par);
+				bkgFit->SetParameters(par);
+				sigFit->SetParameters(&par[numDOFbkg]);
+
+				qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+				if (qvalue>1 || qvalue<0){
+				    cout << "Not sure why qvalue is still >1 or <0. Need to fix this!" << endl;
+				    cout << "These are the parameters:"<<endl;
+				    for ( double parVal : par ){
+						cout << " " << parVal << endl;
+				    }
+				    cout << " **************** BREAKING ****************** " << endl;
+				    //exit(0);
+				}
+			}
+
+
+			// now that the q-value is found we can get the chiSq and save the parameters with the best chiSq
 			chiSq = fit->GetChisquare()/(fit->GetNDF());
 			
 			// save some fit and the chiSq for all the fits
@@ -683,57 +738,6 @@ int main( int argc, char* argv[] ){
 			} 
 		}
 
-		// /////////////////////////////////////////
-		// need to calcuclate new q-value since it is out of bounds
-		// /////////////////////////////////////////
-		if (best_qvalue>1 || best_qvalue<0){
-			cout << "Using flat fit instead of linear on event:\n" << ientry << endl;
-			if ( savedN_badEvents < saveN_badEvents ) {
-				allCanvases_badFit->cd();
-                		fit->SetLineColor(kRed+2);
-  	        		bkgFit->SetFillColor(kMagenta+2);
-                		bkgFit->SetLineColor(kMagenta+2);
-  	        		bkgFit->SetFillStyle(3004);
-  	        		sigFit->SetFillColor(kBlue+2);
-                		sigFit->SetLineColor(kBlue+2);
-  	        		sigFit->SetFillStyle(3005);
-	        		discriminatorHist->Draw();
-                		fit->Draw("SAME");
-  	        		bkgFit->Draw("SAME FC");
-  	        		sigFit->Draw("SAME FC");
-				etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
-				etaLine->SetLineColor(kOrange);
-	        		etaLine->Draw("same");
-				allCanvases_badFit->SaveAs(("histograms/bad-Mass-event"+std::to_string(ientry)+".pdf").c_str());
-				++savedN_badEvents;
-			}
-			
-		        fit->SetParameters(par0[0],0,par2[0],peakLoc,sigValue,ampRatio,widthRatio);
-			fit->FixParameter(1,0); 
-			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
-			fit->GetParameters(par);
-			bkgFit->SetParameters(par);
-			sigFit->SetParameters(&par[numDOFbkg]);
-
-			qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-			if (qvalue>1 || qvalue<0){
-			    cout << "Not sure why qvalue is still >1 or <0. Need to fix this!" << endl;
-			    cout << "These are the parameters:"<<endl;
-			    for ( double parVal : par ){
-					cout << " " << parVal << endl;
-			    }
-			    cout << " **************** BREAKING ****************** " << endl;
-			    //exit(0);
-			}
-
-			best_qvalue = qvalue;
-			chiSq = fit->GetChisquare()/(fit->GetNDF());
-			bestChiSq=chiSq;
-			best_iFit=4;
-			for (int i=0; i < sizeof(par)/sizeof(Double_t); ++i){
-				parBest[i]=par[i];
-			}
-		}
 
 		// /////////////////////////////////////////
 		// Calculating some chiSq differences 
