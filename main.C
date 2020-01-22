@@ -434,23 +434,23 @@ int main( int argc, char* argv[] ){
         fitRange2={0.1,0.17};
 
         // Going to keep a track of the fits to see how they move around
-        TF1 *showInit[3];
-        TF1 *showConv[3];
-        int colors[3] = {kRed, kBlue, kGreen};
-	double chiSqs[3];
-        string initNames[3] = {"100% Bkg", "50/50% Bkg Sig", "100% Sig"};
-        for (int iFit=0; iFit<3; ++iFit){
-	    showInit[iFit] = new TF1(("initFit"+to_string(iFit)).c_str(),fitFunc,fitRange1[0],fitRange1[1],numDOFbkg+numDOFsig);
-	    showConv[iFit] = new TF1(("convFit"+to_string(iFit)).c_str(),fitFunc,fitRange1[0],fitRange1[1],numDOFbkg+numDOFsig);
-        }
-        if(verbose) {cout << "Made array of fits" << endl;}
+        // TF1 *showInit[3];
+        // TF1 *showConv[3];
+        // int colors[3] = {kRed, kBlue, kGreen};
+	// double chiSqs[3];
+        // string initNames[3] = {"100% Bkg", "50/50% Bkg Sig", "100% Sig"};
+        // for (int iFit=0; iFit<3; ++iFit){
+	//     showInit[iFit] = new TF1(("initFit"+to_string(iFit)).c_str(),fitFunc,fitRange1[0],fitRange1[1],numDOFbkg+numDOFsig);
+	//     showConv[iFit] = new TF1(("convFit"+to_string(iFit)).c_str(),fitFunc,fitRange1[0],fitRange1[1],numDOFbkg+numDOFsig);
+        // }
+        // int nBest100Bkg=0;
+        // int nBest100Sig=0;
+        // int nBest50Bkg50Sig=0;
+        // int nBest100Bkg2=0;
+        // int nBest100Sig2=0;
+        // int nBest50Bkg50Sig2=0;
+        // if(verbose) {cout << "Made array of fits" << endl;}
 
-        int nBest100Bkg=0;
-        int nBest100Sig=0;
-        int nBest50Bkg50Sig=0;
-        int nBest100Bkg2=0;
-        int nBest100Sig2=0;
-        int nBest50Bkg50Sig2=0;
         // Getting the scaling of the flat bkg is a bit tricky. Have to count how much bins we have in our fit range. kDim divided by the bins in fit range is the height of the flat function.
         double numBinsInFit = (fitRange1[1]-fitRange1[0])/((binRange1[2]-binRange1[1])/binRange1[0]);
         double binSize=((binRange1[2]-binRange1[1])/binRange1[0]);
@@ -503,9 +503,9 @@ int main( int argc, char* argv[] ){
 	std::vector<double> par1 = { scaleFactor*fittedLinear, scaleFactor/2*fittedLinear, 0 }; 
 	std::vector<double> par2 = { 0, scaleFactor/2*fittedAmp, scaleFactor*fittedAmp }; 
 
-        showInit[0]->SetParameters(par0[0],par1[0],par2[0],peakLoc,sigValue, ampRatio, widthRatio);
-        showInit[1]->SetParameters(par0[1],par1[1],par2[1],peakLoc,sigValue, ampRatio, widthRatio);
-        showInit[2]->SetParameters(par0[2],par1[2],par2[2],peakLoc,sigValue, ampRatio, widthRatio);
+        //showInit[0]->SetParameters(par0[0],par1[0],par2[0],peakLoc,sigValue, ampRatio, widthRatio);
+        //showInit[1]->SetParameters(par0[1],par1[1],par2[1],peakLoc,sigValue, ampRatio, widthRatio);
+        //showInit[2]->SetParameters(par0[2],par1[2],par2[2],peakLoc,sigValue, ampRatio, widthRatio);
 
         // phasePoint1 will consider all events from lowest to largest since these will be our attached q values. phasePoint2 on the other hand will only look at a subset of the events where the
         // elements must be spectroscopically distinct, i.e. the 4 photons in consideration are different. Not sure if this is the value I should consider or is it better to do a pair of maps
@@ -644,9 +644,9 @@ int main( int argc, char* argv[] ){
 				sigFit = new TF1("sigFit",signalDG,fitRange2[0],fitRange2[1],numDOFsig);
 			}
 			// Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
-			fit->SetParameters(par0[iFit],0,par2[iFit],peakLoc,sigValue,ampRatio,widthRatio);
+			fit->SetParameters(par0[0],par1[0],par2[2],peakLoc,sigValue,ampRatio,widthRatio);
 			fit->SetParLimits(0,0,kDim);
-			fit->FixParameter(1,0); 
+			//fit->FixParameter(1,0); 
 			fit->SetParLimits(2,0,kDim);
 			fit->SetParLimits(3,peakLoc*0.95, peakLoc*1.05);
 			fit->SetParLimits(4,sigValue*0.95, sigValue*1.05); 
@@ -670,8 +670,8 @@ int main( int argc, char* argv[] ){
 			// need to calcuclate new q-value since it is out of bounds
 			// /////////////////////////////////////////
 			if (qvalue>1 || qvalue<0){
-				cout << "Using flat fit instead of linear on event:\n" << ientry << endl;
-				// first we will save the bad event then fix the linear component of the bkg
+				cout << "Using flat fit instead of linear on event: " << ientry << endl;
+				// first we will save the bad event to get a sample then fix the linear component of the bkg
 				if ( savedN_badEvents < saveN_badEvents ) {
 					allCanvases_badFit->cd();
                 			fit->SetLineColor(kRed+2);
@@ -688,11 +688,12 @@ int main( int argc, char* argv[] ){
 					etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
 					etaLine->SetLineColor(kOrange);
 	        			etaLine->Draw("same");
+					discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
 					allCanvases_badFit->SaveAs(("histograms/bad-Mass-event"+std::to_string(ientry)+".pdf").c_str());
 					++savedN_badEvents;
 				}
 				
-			        fit->SetParameters(par0[iFit],0,par2[iFit],peakLoc,sigValue,ampRatio,widthRatio);
+			        fit->SetParameters(par0[0],0,par2[2],peakLoc,sigValue,ampRatio,widthRatio);
 				fit->FixParameter(1,0); 
 				discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
 				fit->GetParameters(par);
@@ -716,8 +717,8 @@ int main( int argc, char* argv[] ){
 			chiSq = fit->GetChisquare()/(fit->GetNDF());
 			
 			// save some fit and the chiSq for all the fits
-			showConv[iFit]->SetParameters(par); // save all the fits
-			chiSqs[iFit]=chiSq;
+			//showConv[iFit]->SetParameters(par); // save all the fits
+			//chiSqs[iFit]=chiSq;
 			
 			if (verbose2) { logFile << "current ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
 			
@@ -742,12 +743,10 @@ int main( int argc, char* argv[] ){
 		// /////////////////////////////////////////
 		// Calculating some chiSq differences 
 		// /////////////////////////////////////////
-		chiSq_eta_01 = chiSqs[1]-chiSqs[0];
-		chiSq_eta_02 = chiSqs[2]-chiSqs[0];
 		 
-		if ( best_iFit == 0){ ++nBest100Bkg; }
-		else if ( best_iFit == 1){ ++nBest100Sig; }
-		else if ( best_iFit == 2){ ++nBest50Bkg50Sig; }
+		//if ( best_iFit == 0){ ++nBest100Bkg; }
+		//else if ( best_iFit == 1){ ++nBest100Sig; }
+		//else if ( best_iFit == 2){ ++nBest50Bkg50Sig; }
 		
 		// Here we draw the histograms that were randomly selected
 		if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
@@ -802,29 +801,32 @@ int main( int argc, char* argv[] ){
 
 			allCanvases->SaveAs(("histograms/Mass-event"+std::to_string(ientry)+".pdf").c_str());
 
-        		allCanvases->Clear();
-        		allCanvases->Divide(2,1);
-        		allCanvases->cd(1);
-			discriminatorHist->Draw();
-        		discriminatorHist->SetTitle("initialization");
-        		allCanvases->cd(2);
-			discriminatorHist->Draw();
-        		discriminatorHist->SetTitle("converged");
-        		for (int iFit=0; iFit<3; ++iFit){
-        			allCanvases->cd(1);
-        			showInit[iFit]->SetLineColor(colors[iFit]);
-        			showInit[iFit]->Draw("SAME");
-        			legend_init->AddEntry(showInit[iFit],initNames[iFit].c_str());
-        			allCanvases->cd(2);
-        			showConv[iFit]->SetLineColorAlpha(colors[iFit],0.2);
-        			showConv[iFit]->Draw("SAME");
-        			legend_conv->AddEntry(showConv[iFit],initNames[iFit].c_str());
-        		}
-        		allCanvases->cd(1);
-        		legend_init->Draw();
-        		allCanvases->cd(2);
-			drawText(chiSqs,3,"chiSq",0,0,0);
-        		legend_conv->Draw();
+			// //////////
+			// THIS WAS AN ATTEMPT TO SHOW HOW THE DIFFERENT INITIALIZATIONS OF 100BKG 50/50 AND 100SIG DIFFERS
+			// //////////
+        		//allCanvases->Clear();
+        		//allCanvases->Divide(2,1);
+        		//allCanvases->cd(1);
+			//discriminatorHist->Draw();
+        		//discriminatorHist->SetTitle("initialization");
+        		//allCanvases->cd(2);
+			//discriminatorHist->Draw();
+        		//discriminatorHist->SetTitle("converged");
+        		//for (int iFit=0; iFit<3; ++iFit){
+        		//	allCanvases->cd(1);
+        		//	showInit[iFit]->SetLineColor(colors[iFit]);
+        		//	showInit[iFit]->Draw("SAME");
+        		//	legend_init->AddEntry(showInit[iFit],initNames[iFit].c_str());
+        		//	allCanvases->cd(2);
+        		//	showConv[iFit]->SetLineColorAlpha(colors[iFit],0.2);
+        		//	showConv[iFit]->Draw("SAME");
+        		//	legend_conv->AddEntry(showConv[iFit],initNames[iFit].c_str());
+        		//}
+        		//allCanvases->cd(1);
+        		//legend_init->Draw();
+        		//allCanvases->cd(2);
+			//drawText(chiSqs,3,"chiSq",0,0,0);
+        		//legend_conv->Draw();
 			//allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".pdf").c_str());
 
 			//if(verbose2){
@@ -840,13 +842,10 @@ int main( int argc, char* argv[] ){
         resultsFile->cd();
         resultsTree->Write();
         //resultsFile->Write();
-        if(verbose){cout << "nentries: " << nentries << endl;}
-        if(verbose){cout << "Number of times 100% bkg initialization was the best: " << nBest100Bkg << endl;}
-        if(verbose){cout << "Number of times 100% sig initialization was the best: " << nBest100Sig << endl;}
-        if(verbose){cout << "Number of times 50/50 bkg/sig initialization was the best: " << nBest50Bkg50Sig << endl;}
-        if(verbose){cout << "Number of times 100% bkg initialization for pi0 was the best: " << nBest100Bkg2 << endl;}
-        if(verbose){cout << "Number of times 100% sig initialization for pi0 was the best: " << nBest100Sig2 << endl;}
-        if(verbose){cout << "Number of times 50/50 bkg/sig initialization for pi0 was the best: " << nBest50Bkg50Sig2 << endl;}
+        cout << "nentries: " << nentries << endl;
+        //cout << "Number of times 100% bkg initialization was the best: " << nBest100Bkg << endl;
+        //cout << "Number of times 100% sig initialization was the best: " << nBest100Sig << endl;
+        //cout << "Number of times 50/50 bkg/sig initialization was the best: " << nBest50Bkg50Sig << endl;
         
         
 	// Finish the log files by including an elapsed time and finally closing the file
