@@ -10,7 +10,8 @@
 
 bool useEta=true;
 using namespace RooFit;
-string detector="bcal";
+string detector="split";
+bool useSB=true;
 
 //void main(int iProcess, int kDim, int numberEventsToSavePerProcess, int nProcess, int seedShift, Long64_t nentries, bool override_nentries, bool verbose){
 int main( int argc, char* argv[] ){
@@ -116,9 +117,9 @@ int main( int argc, char* argv[] ){
 	
 	// setting up some basic root stuff and getting the file and tree
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
-	TFile* dataFile=new TFile(("pi0eta_"+detector+"_tLT1treeFlat_DSelector.root").c_str());
+	TFile* dataFile=new TFile(("pi0eta_"+detector+"_treeFlat_DSelector.root").c_str());
 	TTree *dataTree;
-	dataFile->GetObject(("pi0eta_"+detector+"_tLT1tree_flat").c_str(),dataTree);
+	dataFile->GetObject(("pi0eta_"+detector+"_tree_flat").c_str(),dataTree);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
     	TCanvas *allCanvases_badFit = new TCanvas("anyHists_badFit","",1440,900);
         auto legend_init = new TLegend(0.1,0.8,0.3,0.9);
@@ -589,6 +590,10 @@ int main( int argc, char* argv[] ){
 		while ( distKNN.kNN.empty() == false ){
 		        newPair = distKNN.kNN.top();
 		        distKNN.kNN.pop();
+			// ATLEST FOR NOW I WILL NOT WORRY ABOUT TRACKING THE UNIQUE ETA COMBOS WHEN FILLING HERE BECAUSE THAT MIGHT NOT BE GOOD IN THE FIRST PLACE
+			// WHEN WE FILL THE HISTOGRAMS IN THE END WE CAN DO THIS BUT IF WE USE IT NOW IT WHEN FILLING THE NEIGHBORS HISTOGRAM IT MIGHT BE BAD?
+			// IF ANYTHING WE SHOULD JUST SKIP THESE NON UNIQUE COMBINATIONS TO SAVE TIME (IF WE WERE ONLY PLOTTING M(ETA) BUT SINCE WE PLOT ALL THE DISTRIBUTIONS LIKE
+			// M(PI0ETA) WE CANT DO THIS
 			if(useEta){
 		        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
 		        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
@@ -645,13 +650,14 @@ int main( int argc, char* argv[] ){
 			}
 			// Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
 			fit->SetParameters(par0[0],par1[0],par2[2],peakLoc,sigValue,ampRatio,widthRatio);
-			fit->SetParLimits(0,0,kDim);
 			//fit->FixParameter(1,0); 
+			fit->SetParLimits(0,-5,5); 
+			fit->SetParLimits(1,-10,10); 
 			fit->SetParLimits(2,0,kDim);
 			fit->SetParLimits(3,peakLoc*0.95, peakLoc*1.05);
-			fit->SetParLimits(4,sigValue*0.95, sigValue*1.05); 
-			fit->SetParLimits(5,ampRatio*0.95,ampRatio*1.05 );
-			fit->SetParLimits(6,widthRatio*0.95, widthRatio*1.05 );
+			fit->SetParLimits(4,sigValue*0.9, sigValue*1.1); 
+			fit->SetParLimits(5,ampRatio*0.9,ampRatio*1.1 );
+			fit->SetParLimits(6,widthRatio*0.9, widthRatio*1.1 );
 
 			// we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
 			discriminatorHist->Fit("fit","RQBNL"); // B will enforce the bounds, N will be no draw
@@ -689,7 +695,7 @@ int main( int argc, char* argv[] ){
 					etaLine->SetLineColor(kOrange);
 	        			etaLine->Draw("same");
 					discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
-					allCanvases_badFit->SaveAs(("histograms/bad-Mass-event"+std::to_string(ientry)+".pdf").c_str());
+					allCanvases_badFit->SaveAs(("histograms/"+detector+"/bad-Mass-event"+std::to_string(ientry)+".pdf").c_str());
 					++savedN_badEvents;
 				}
 				
@@ -799,7 +805,7 @@ int main( int argc, char* argv[] ){
 	          		pi0Line->Draw("same");
 			}
 
-			allCanvases->SaveAs(("histograms/Mass-event"+std::to_string(ientry)+".pdf").c_str());
+			allCanvases->SaveAs(("histograms/"+detector+"/Mass-event"+std::to_string(ientry)+".pdf").c_str());
 
 			// //////////
 			// THIS WAS AN ATTEMPT TO SHOW HOW THE DIFFERENT INITIALIZATIONS OF 100BKG 50/50 AND 100SIG DIFFERS

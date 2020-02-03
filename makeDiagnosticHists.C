@@ -2,7 +2,7 @@
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 bool verbose = true;
-string detector="bcal";
+string detector="split";
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -103,19 +103,24 @@ void makeDiagnosticHists(){
 	TH1F* phiEta_GJ_sig[2];
 	TH1F* phiEta_GJ_bkg[2];
 
+	TH1F *Mpi0g_tot = new TH1F( "Mpi0g_tot", "M(#pi^{0}g); M(#pi^{0}g) GeV; Events/0.001 GeV", 350, 0, 3.5 );
+	TH1F *Mpi0g_sig = new TH1F( "Mpi0g_sig", "M(#pi^{0}g); M(#pi^{0}g) GeV; Events/0.001 GeV", 350, 0, 3.5 );
+	TH1F *Mpi0g_bkg = new TH1F( "Mpi0g_bkg", "M(#pi^{0}g); M(#pi^{0}g) GeV; Events/0.001 GeV", 350, 0, 3.5 );
 	for (int i=0; i<2; i++){
 		string tag="";
-		if (i==0){ tag="meas"; }
-		else { tag="kin"; } 
-		Meta_tot[i] = new TH1F( ("Meta_tot_"+tag).c_str(), "M(#eta); M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
-		Meta_sig[i] = new TH1F( ("Meta_sig_"+tag).c_str(), "M(#eta); M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
-		Meta_bkg[i] = new TH1F( ("Meta_bkg_"+tag).c_str(), "M(#eta); M(#eta) GeV; Events/0.002 GeV", 300, 0.25, 0.85 );
-		Mpi0_tot[i] = new TH1F( ("Mpi0_tot_"+tag).c_str(), "M(#pi_{0}); M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
-		Mpi0_sig[i] = new TH1F( ("Mpi0_sig_"+tag).c_str(), "M(#pi_{0}); M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
-		Mpi0_bkg[i] = new TH1F( ("Mpi0_bkg_"+tag).c_str(), "M(#pi_{0}); M(#pi_{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
-		Mpi0eta_tot[i] = new TH1F( ("Mpi0eta_tot_"+tag).c_str(), "M(#pi_{0}#eta); M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
-		Mpi0eta_sig[i] = new TH1F( ("Mpi0eta_sig_"+tag).c_str(), "M(#pi_{0}#eta); M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
-		Mpi0eta_bkg[i] = new TH1F( ("Mpi0eta_bkg_"+tag).c_str(), "M(#pi_{0}#eta); M(#pi_{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+		if (i%2==0){ tag="meas"; }
+		else { tag="kin"; }
+		// WE SHOULD TRY TO MATCH THE BINS USED TO FIT, USED IN THE Q-VALUE CALCULATION, AND HERE. USING IT IN THE FIT AND DURING GRAPHS WILL MAKE FOR GOOD COMPARISION
+		// AND USING FOR IN THE FIT AND THE Q-VALUE WOULD ALSO BE GOOD SINCE THE FIT COULD CHANGE DEPENDING ON THE BINNING
+		Meta_tot[i] = new TH1F( ("Meta_tot_"+tag).c_str(), "M(#eta); M(#eta) GeV; Events/0.003 GeV", 200, 0.25, 0.85);//Events/0.002 GeV", 300, 0.25, 0.85 );
+		Meta_sig[i] = new TH1F( ("Meta_sig_"+tag).c_str(), "M(#eta); M(#eta) GeV; Events/0.003 GeV", 200, 0.25, 0.85);//Events/0.002 GeV", 300, 0.25, 0.85 );
+		Meta_bkg[i] = new TH1F( ("Meta_bkg_"+tag).c_str(), "M(#eta); M(#eta) GeV; Events/0.003 GeV", 200, 0.25, 0.85);//Events/0.002 GeV", 300, 0.25, 0.85 );
+		Mpi0_tot[i] = new TH1F( ("Mpi0_tot_"+tag).c_str(), "M(#pi^{0}); M(#pi^{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+		Mpi0_sig[i] = new TH1F( ("Mpi0_sig_"+tag).c_str(), "M(#pi^{0}); M(#pi^{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+		Mpi0_bkg[i] = new TH1F( ("Mpi0_bkg_"+tag).c_str(), "M(#pi^{0}); M(#pi^{0}) GeV; Events/0.001 GeV", 200, 0.05, 0.25 );
+		Mpi0eta_tot[i] = new TH1F( ("Mpi0eta_tot_"+tag).c_str(), "M(#pi^{0}#eta); M(#pi^{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+		Mpi0eta_sig[i] = new TH1F( ("Mpi0eta_sig_"+tag).c_str(), "M(#pi^{0}#eta); M(#pi^{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
+		Mpi0eta_bkg[i] = new TH1F( ("Mpi0eta_bkg_"+tag).c_str(), "M(#pi^{0}#eta); M(#pi^{0}#eta) GeV; Events/0.01 GeV", 350, 0, 3.5 );
 		cosThetaEta_GJ_tot[i] = new TH1F( ("cosThetaEta_GJ_tot_"+tag).c_str(), "cos(#theta) GJ of #eta; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
 		cosThetaEta_GJ_sig[i] = new TH1F( ("cosThetaEta_GJ_sig_"+tag).c_str(), "cos(#theta) GJ of #eta; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
 		cosThetaEta_GJ_bkg[i] = new TH1F( ("cosThetaEta_GJ_bkg_"+tag).c_str(), "cos(#theta) GJ of #eta; cos(#theta) of #eta; Events/0.02 GeV", 100, -1, 1 );
@@ -135,15 +140,17 @@ void makeDiagnosticHists(){
 	// ---------------------------------------------------------------------------
 	//
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile(("pi0eta_"+detector+"_tLT1treeFlat_DSelector.root").c_str());
+	TFile* dataFile=new TFile(("pi0eta_"+detector+"_treeFlat_DSelector.root").c_str());
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject(("pi0eta_"+detector+"_tLT1tree_flat").c_str(),dataTree);
+	dataFile->GetObject(("pi0eta_"+detector+"_tree_flat").c_str(),dataTree);
 	
         TLine* etaLine;
         double AccWeight;
 	double Meta;
 	double Mpi0;
+	double Mpi0g1;
+	double Mpi0g2;
 	double Mpi0eta;
 	double cosTheta_X_cm;
 	double cosTheta_eta_gj;
@@ -164,6 +171,8 @@ void makeDiagnosticHists(){
         dataTree->SetBranchAddress("phi_eta_gj_meas",&phi_eta_gj2); 
 	dataTree->SetBranchAddress("Meta",&Meta);
 	dataTree->SetBranchAddress("Mpi0",&Mpi0);
+	dataTree->SetBranchAddress("Mpi0g1",&Mpi0g1);
+	dataTree->SetBranchAddress("Mpi0g2",&Mpi0g2);
 	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
         dataTree->SetBranchAddress("cosTheta_X_cm", &cosTheta_X_cm); 
         dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);
@@ -172,9 +181,13 @@ void makeDiagnosticHists(){
         // continue to do uniqueness tracking for the histograms we care about
         bool isUniqueEtaB;
         bool isUniquePi0B;
+        bool isUniquePi0g1B;
+        bool isUniquePi0g2B;
         bool isUniquePi0EtaB;
         dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
         dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
+        dataTree->SetBranchAddress("isNotRepeated_pi0g1",&isUniquePi0g1B);
+        dataTree->SetBranchAddress("isNotRepeated_pi0g2",&isUniquePi0g2B);
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
 
         cout << "Finished setting up" << endl;
@@ -192,6 +205,8 @@ void makeDiagnosticHists(){
         std::vector<double> AccWeights; AccWeights.reserve(c_nentries2); 
         std::vector<bool> isUniqueEtaBs; isUniqueEtaBs.reserve(c_nentries2); 
         std::vector<bool> isUniquePi0Bs; isUniquePi0Bs.reserve(c_nentries2); 
+        std::vector<bool> isUniquePi0g1Bs; isUniquePi0g1Bs.reserve(c_nentries2); 
+        std::vector<bool> isUniquePi0g2Bs; isUniquePi0g2Bs.reserve(c_nentries2); 
         std::vector<bool> isUniquePi0EtaBs; isUniquePi0EtaBs.reserve(c_nentries2); 
         std::vector<double> Metas2; Metas2.reserve(c_nentries2); 
         std::vector<double> Mpi0s2; Mpi0s2.reserve(c_nentries2); 
@@ -201,6 +216,8 @@ void makeDiagnosticHists(){
 	std::vector<double> phi_eta_gjs2; phi_eta_gjs2.reserve(c_nentries2);
         std::vector<double> Metas; Metas.reserve(c_nentries2); 
         std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries2); 
+        std::vector<double> Mpi0g1s; Mpi0g1s.reserve(c_nentries2); 
+        std::vector<double> Mpi0g2s; Mpi0g2s.reserve(c_nentries2); 
         std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries2); 
 	std::vector<double> cosTheta_X_cms; cosTheta_X_cms.reserve(c_nentries2);
 	std::vector<double> cosTheta_eta_gjs; cosTheta_eta_gjs.reserve(c_nentries2);
@@ -270,6 +287,8 @@ void makeDiagnosticHists(){
 		phi_eta_gjs2.push_back(phi_eta_gj2);
 		Metas.push_back(Meta);
 		Mpi0s.push_back(Mpi0);
+		Mpi0g1s.push_back(Mpi0g1);
+		Mpi0g2s.push_back(Mpi0g2);
 		Mpi0etas.push_back(Mpi0eta);
 		cosTheta_X_cms.push_back(cosTheta_X_cm);
 		cosTheta_eta_gjs.push_back(cosTheta_eta_gj);
@@ -277,6 +296,8 @@ void makeDiagnosticHists(){
 
                 isUniqueEtaBs.push_back(isUniqueEtaB);
                 isUniquePi0Bs.push_back(isUniquePi0B);
+                isUniquePi0g1Bs.push_back(isUniquePi0g1B);
+                isUniquePi0g2Bs.push_back(isUniquePi0g2B);
                 isUniquePi0EtaBs.push_back(isUniquePi0EtaB);
                 
 		// will take the opportunity to save the now-ordered qvalues into the root file as we load the rest of the data
@@ -314,6 +335,9 @@ void makeDiagnosticHists(){
     
         cout << "Drew the imported data" << endl;
 
+	double sigWeightNoSB;
+	double totWeightNoSB;
+	double bkgWeightNoSB;
 	double sigWeight;
 	double totWeight;
 	double bkgWeight;
@@ -325,10 +349,10 @@ void makeDiagnosticHists(){
                     //cout << "ientry is nan: " << ientry << endl;
 		    ++numNan;
                 }
-                //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
 		sigWeight = qvalue*AccWeights[ientry];//*sbWeights[ientry];
 		totWeight = AccWeights[ientry];//*sbWeights[ientry];
 		bkgWeight = conjugate_qvalue*AccWeights[ientry];//*sbWeights[ientry];
+                //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
                 if ( isUniqueEtaBs[ientry] ) {
 			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs2[ientry], sigWeight);
 			cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs2[ientry], totWeight);
@@ -347,9 +371,19 @@ void makeDiagnosticHists(){
 			cosThetaX_CM_tot[1]->Fill(cosTheta_X_cms[ientry], totWeight);
 			cosThetaX_CM_bkg[1]->Fill(cosTheta_X_cms[ientry], bkgWeight);
 			Meta_sig[1]->Fill(Metas[ientry],sigWeight);
-			Meta_tot[1]->Fill(Metas[ientry], totWeight);
+			Meta_tot[1]->Fill(Metas[ientry],totWeight);
 			Meta_bkg[1]->Fill(Metas[ientry],bkgWeight);
                 }
+                if ( isUniquePi0g1Bs[ientry] ) { 
+			Mpi0g_sig->Fill(Mpi0g1s[ientry],sigWeight);
+			Mpi0g_tot->Fill(Mpi0g1s[ientry],totWeight);
+			Mpi0g_bkg->Fill(Mpi0g1s[ientry],bkgWeight);
+		}
+                if ( isUniquePi0g2Bs[ientry] ) { 
+			Mpi0g_sig->Fill(Mpi0g2s[ientry],sigWeight);
+			Mpi0g_tot->Fill(Mpi0g2s[ientry],totWeight);
+			Mpi0g_bkg->Fill(Mpi0g2s[ientry],bkgWeight);
+		}
                 if ( isUniquePi0Bs[ientry] ) { 
 			Mpi0_sig[0]->Fill(Mpi0s2[ientry],sigWeight);
 			Mpi0_tot[0]->Fill(Mpi0s2[ientry],totWeight);
@@ -378,9 +412,10 @@ void makeDiagnosticHists(){
         cout << "Made the histograms" << endl;
 
 	// HERE WE WILL JUST DRAW SOME OF THE HISTOGRAMS WITH THE BKG FILLED IN TO SEE THEIR CONTRIBUTION
+	makeStackedHist(Mpi0g_tot,Mpi0g_sig,Mpi0g_bkg,"Mpi0gkin", "diagnosticPlots/"+detector);
 	for (int i=0; i<2; i++){
 		string tag="";
-		if (i==0){ tag="meas"; }
+		if (i%2==0){ tag="meas"; }
 		else { tag="kin"; } 
 		makeStackedHist(Meta_tot[i],Meta_sig[i],Meta_bkg[i],"Meta"+tag, "diagnosticPlots/"+detector);
 		makeStackedHist(Mpi0_tot[i],Mpi0_sig[i],Mpi0_bkg[i],"Mpi0"+tag, "diagnosticPlots/"+detector);
@@ -405,6 +440,9 @@ void makeDiagnosticHists(){
         	Mpi0eta_bkg[i]->Write();
         	Mpi0eta_tot[i]->Write();
 	}
+	Mpi0g_sig->Write();
+	Mpi0g_bkg->Write();
+	Mpi0g_tot->Write();
         
 }
 

@@ -15,8 +15,8 @@ void getInitParams_step1(){
 	string detectorNames[3] = {"fcal","bcal","split"};
 	for (int i=0; i<3; ++i){
 		if (isEta2g) {
-			TFile* dataFile=new TFile(("pi0eta_"+detectorNames[i]+"_tLT1treeFlat_DSelector.root").c_str());
-			dataFile->GetObject(("pi0eta_"+detectorNames[i]+"_tLT1tree_flat").c_str(),dataTree);
+			TFile* dataFile=new TFile(("pi0eta_"+detectorNames[i]+"_treeFlat_DSelector.root").c_str());
+			dataFile->GetObject(("pi0eta_"+detectorNames[i]+"_tree_flat").c_str(),dataTree);
 		}
 		else {
 			TFile* dataFile=new TFile("pi0eta_reco_3pi0treeFlat_DSelector.root");
@@ -28,6 +28,9 @@ void getInitParams_step1(){
     		logFile_pi0.open(("fitResults/pi0FitNoAccSub_"+detectorNames[i]+".txt").c_str());
 
     		TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
+        	bool isUniqueEtaB;
+        	bool isUniquePi0B;
+        	bool isUniquePi0EtaB;
 		double Meta;
 		double Mpi0;
 		double Mpi0eta;
@@ -36,6 +39,9 @@ void getInitParams_step1(){
 		dataTree->SetBranchAddress("Mpi0",&Mpi0);
 		dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
 		dataTree->SetBranchAddress("AccWeight",&AccWeight);
+        	dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
+        	dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
+        	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
 		long long nentries=dataTree->GetEntries();
 
         	TH1F *massHistEta; 
@@ -70,9 +76,9 @@ void getInitParams_step1(){
 		//binRangePi0={100,0.05,0.25};
 		//fitRangePi0={0.1,0.17};
 		// eta->3pi0
-		binRangeEta={100,0.25,0.8};
+		binRangeEta={200,0.25,0.85};
 		fitRangeEta={0.44,0.65};
-		binRangePi0={100,0.05,0.25};
+		binRangePi0={200,0.05,0.25};
 		fitRangePi0={0.1,0.17};
 
 		binWidthEta=(binRangeEta[2]-binRangeEta[1])/binRangeEta[0];
@@ -86,7 +92,7 @@ void getInitParams_step1(){
 
 		// eta->gg
 		if (isEta2g) {
-			fit->SetParameters(11500,250,1750,0.547,0.003,10,5);
+			fit->SetParameters(11500,250,1750,0.547,0.003,3,5);
 		}
 		// eta->3pi0
 		else {
@@ -112,9 +118,15 @@ void getInitParams_step1(){
 			else if ( Mpi0 > sbLL && Mpi0 < sbLR ) { sbWeight = -1; } 
 			else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
 			else { sbWeight = 0; }
-		        massHistEta->Fill(Meta,AccWeight);
-		        massHistPi0->Fill(Mpi0,AccWeight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
-			massHistPi0Eta->Fill(Mpi0eta,AccWeight);
+                	if ( isUniqueEtaB ) {
+		        	massHistEta->Fill(Meta,AccWeight);//*sbWeight);
+			}
+                	if ( isUniquePi0B ) {
+		        	massHistPi0->Fill(Mpi0,AccWeight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
+			}
+                	if ( isUniquePi0EtaB ) {
+				massHistPi0Eta->Fill(Mpi0eta,AccWeight);//*sbWeight);
+			}
 		}
 		cout << "Filled all entries into histogram for a specific fit" << endl;
 
@@ -148,7 +160,7 @@ void getInitParams_step1(){
 		logFile_eta << "weightedSigma: " << weightedSigma << endl;
 		
 		massHistEta->Draw();
-		massHistEta->SetTitle(("Peak: "+to_string(par[2])+"    width: "+to_string(par[3])).c_str());
+		massHistEta->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
 		allCanvases->SaveAs(("fitResults/Meta_fit_"+detectorNames[i]+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
         	
@@ -173,7 +185,7 @@ void getInitParams_step1(){
 		fit->GetParameters(par);
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
-		massHistPi0->SetTitle(";M(#pi_{0}) (GeV)");
+		massHistPi0->SetTitle(";M(#pi^{0}) (GeV)");
 		logFile_pi0 << namePar[0] << " " << nentries << endl;
 		
 		for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
@@ -195,7 +207,7 @@ void getInitParams_step1(){
 		logFile_pi0 << "weightedSigma: " << weightedSigma << endl;
 		
 		massHistPi0->Draw();
-		massHistPi0->SetTitle(("Peak: "+to_string(par[2])+"    width: "+to_string(par[3])).c_str());
+		massHistPi0->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
 		TLine *line = new TLine( sbRL, 0, sbRL, massHistPi0->GetMaximum());
 		line->SetLineColor(kRed);
 		line->Draw("SAME");

@@ -4,17 +4,32 @@ import time
 from itertools import combinations
 #import numpy as np
 
-subprocess.Popen("rm etaPlots/*", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+subprocess.Popen("rm -r logs", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+subprocess.Popen("mkdir logs", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+
+
+runOverAll=False
+
+if not runOverAll:
+	subprocess.Popen("rm -r histograms",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("rm -r diagnosticPlots",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("mkdir -p histograms/fcal",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("mkdir -p histograms/bcal",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("mkdir -p histograms/split",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("mkdir -p diagnosticPlots/fcal",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("mkdir -p diagnosticPlots/bcal",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("mkdir -p diagnosticPlots/split",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+
 start_time = time.time()
 
-kDim=500
+kDim=600
 numberEventsToSavePerProcess=1
 nProcess=36
 seedShift=12151
-nentries=200
+nentries=30000
 override_nentries=0
 verbose=0
-detector="bcal"
+detector="split"
 
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
 varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
@@ -53,14 +68,6 @@ def runOverCombo(combo,nentries):
 	subprocess.Popen(exchangeVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait() # we have to wait for this command to finish before compiling...
 	out, err = subprocess.Popen(compileMain, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate(); print out
 	#subprocess.Popen(replaceVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-	subprocess.Popen("rm histograms/*",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
-	subprocess.Popen("rm diagnosticPlots/*",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
-	subprocess.Popen("rm logs/*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-	subprocess.Popen("mkdir histograms",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
-	subprocess.Popen("mkdir -p diagnosticPlots/fcal",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
-	subprocess.Popen("mkdir -p diagnosticPlots/bcal",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
-	subprocess.Popen("mkdir -p diagnosticPlots/split",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
-	subprocess.Popen("mkdir logs", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
 	subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 	

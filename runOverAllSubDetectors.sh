@@ -3,6 +3,9 @@ rm -f log_bcal.txt
 rm -f log_fcal.txt
 rm -f log_split.txt
 
+# setting a flag to not delete all the folders everytime we run run.py
+sed -i 's@runOverAll=False@runOverAll=True@g' run.py
+
 echo "Starting fcal q-value analysis..."
 sed -i 's@detector=".*"@detector="fcal"@g' main.C
 sed -i 's@detector=".*"@detector="fcal"@g' run.py
@@ -19,6 +22,8 @@ sed -i 's@detector=".*"@detector="split"@g' run.py
 sed -i 's@detector=".*"@detector="split"@g' makeDiagnosticHists.C
 python run.py > log_split.txt
 
+# setting a flag to not delete all the folders everytime we run run.py
+sed -i 's@runOverAll=True@runOverAll=False@g' run.py
 
 echo "hadding bcal/fcal/split histograms"
 rm -f postQVal.root

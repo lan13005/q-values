@@ -31,5 +31,13 @@ void makeDiagnosticHists_drawSum(){
 			cout << "----------" << endl;
 		}
 	}
+	dataFile2->GetObject("Mpi0g_bkg", bkgHist);
+	dataFile2->GetObject("Mpi0g_sig", sigHist);
+	dataFile2->GetObject("Mpi0g_tot", totHist);
+	cout << "Grabbed tot/bkg/sig... \n Making stacked histograms" << endl;
+	makeStackedHist(totHist,sigHist,bkgHist,"Mpi0gkin", "diagnosticPlots");
+	cout << "----------" << endl;
+
+
 }
 
