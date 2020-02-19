@@ -27,7 +27,7 @@ numberEventsToSavePerProcess=1
 nProcess=36
 seedShift=12151
 nentries=30000
-override_nentries=0
+override_nentries=1
 verbose=0
 detector="split"
 

@@ -188,7 +188,7 @@ int main( int argc, char* argv[] ){
 
 	// opening a file to write my log data to
     	ofstream logFile;
-    	logFile.open(("logs/processLog"+detector+"_"+to_string(iProcess)+".txt").c_str());
+    	logFile.open(("logs/processLog"+to_string(iProcess)+".txt").c_str());
 	//logFile << "Event\tQ-Value\tChiSq\tMpi0" << endl;
 	
 
@@ -250,6 +250,8 @@ int main( int argc, char* argv[] ){
 
                 spectroscopicComboIDs.push_back(spectroscopicComboID);
 	}
+	duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+	if(verbose2){logFile << "	Loaded data: " << duration2 << "ms" << endl; }
 
 	int batchEntries = (int)nentries/nProcess;
 	int lowest_nentry = iProcess*batchEntries;
@@ -522,6 +524,9 @@ int main( int argc, char* argv[] ){
         }
         cout << phasePoint2PotentailNeighbor.size() << "/" << nentries << " are used as potential neighbors" << endl;
 
+	duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+	if(verbose2){logFile << "	Beginning q-value calcuations: " << duration2 << "ms" << endl; }
+
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
 	// Then we can plot the k nearest neighbors in the discriminating distribution which happens to be a double gaussian and flat bkg. Calculate Q-Value from event
 	// i's discriminating variable's value. This value will be plugged into the signal PDF and the total PDF. The ratio of these two values are taken which is the Q-Value.
@@ -538,7 +543,7 @@ int main( int argc, char* argv[] ){
 		cumulativeStd stdCalc2(kDim);
 		
 		if(verbose) { cout << "Getting next event!\n--------------------------------\n" << endl;  }
-		auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+		duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 		auto duration_beginEvent = std::chrono::high_resolution_clock::now();
 		if(verbose2) { logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
 		
@@ -596,13 +601,13 @@ int main( int argc, char* argv[] ){
 			// M(PI0ETA) WE CANT DO THIS
 			if(useEta){
 		        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Mpi0s[newPair.second]),AccWeights[newPair.second]);//*sbWeights[newPair.second]);
 		        	stdCalc.insertValue(Metas[newPair.second]);
 		        	stdCalc2.insertValue(Mpi0s[newPair.second]);
 			}
 			else{
-		        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+		        	discriminatorHist->Fill(Mpi0s[newPair.second]),AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Metas[newPair.second]),AccWeights[newPair.second]);//*sbWeights[newPair.second]);
 		        	stdCalc.insertValue(Mpi0s[newPair.second]);
 		        	stdCalc2.insertValue(Metas[newPair.second]);
 			}
@@ -612,8 +617,8 @@ int main( int argc, char* argv[] ){
 		comboStd = stdCalc.calcStd();
 		comboStd2 = stdCalc2.calcStd();
 		
-		//duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-		//if(verbose2){logFile << "	Filled neighbors: " << duration2 << "ms" << endl;}
+		duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+		if(verbose2){logFile << "	Filled neighbors: " << duration2 << "ms" << endl;}
 		
 		// Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the Meta has a asymmetry
 		// such that there are more events to the left side of the peak. The second gaussian will have lower amplitude and a large sigma with a left shifted mean. We also want to 
@@ -744,7 +749,8 @@ int main( int argc, char* argv[] ){
 				}
 			} 
 		}
-
+		duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+		if(verbose2){logFile << "	Fitted the reference distribution: " << duration2 << "ms" << endl; }
 
 		// /////////////////////////////////////////
 		// Calculating some chiSq differences 
@@ -835,11 +841,10 @@ int main( int argc, char* argv[] ){
         		//legend_conv->Draw();
 			//allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".pdf").c_str());
 
-			//if(verbose2){
-			//     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-			//     logFile << "	Best ChiSq (" << bestChiSq << ") with Q-value: " << qvalue << " -- time: " << duration2 <<  "ms" << endl;
-			//     logFile << "	Delta T to finish event: " << duration2 <<  "ms" << endl;
-			//}
+			if(verbose2){
+			     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+			     logFile << "	Saved this histogram since it was randomly selected: " << duration2 <<  "ms" << endl;
+			}
 		} 
 		sbWeight = sbWeights[ientry];
 		resultsTree->Fill();
@@ -855,9 +860,11 @@ int main( int argc, char* argv[] ){
         
         
 	// Finish the log files by including an elapsed time and finally closing the file
-	auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-	//logFile << "Total time: " << duration2 << " ms" << endl;
-	//logFile << "Time Per Event: " << ( std::clock() - start ) / (double) CLOCKS_PER_SEC / nentries << "ns" << endl;
+	if (verbose2){
+		duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+		logFile << "Total time: " << duration2 << " ms" << endl;
+		logFile << "Time Per Event: " << ( std::clock() - start ) / (double) CLOCKS_PER_SEC / nentries << "ns" << endl;
+	}
 	logFile.close();
         return 0;
 }
