@@ -24,12 +24,12 @@ start_time = time.time()
 
 kDim=600
 numberEventsToSavePerProcess=1
-nProcess=36
+nProcess=8
 seedShift=12151
-nentries=30000
+nentries=5000
 override_nentries=1
 verbose=0
-detector="split"
+detector="bcal"
 
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
 varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
@@ -81,17 +81,17 @@ def runOverCombo(combo,nentries):
 	for iProcess in range(int(nProcess)):
 	    allProcess[iProcess].wait()
 	    
-	subprocess.Popen("cat logs/process* > diagnostic_logs.txt",shell=True).wait()
-	subprocess.Popen("rm -f qvalResults_"+detector+".root",shell=True).wait()
-	#subprocess.Popen("rm nohup.out",shell=True).wait()
-	subprocess.Popen("hadd qvalResults_"+detector+".root logs/results*",shell=True).wait()
-	
-	if not override_nentries:
-	    nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub_"+detector+".txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
-	#subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+",\""+tag+"\")'",shell=True).wait()
-	subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
-
-	subprocess.Popen("sendmail lng1492@gmail.com < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+#	subprocess.Popen("cat logs/process* > diagnostic_logs.txt",shell=True).wait()
+#	subprocess.Popen("rm -f qvalResults_"+detector+".root",shell=True).wait()
+#	#subprocess.Popen("rm nohup.out",shell=True).wait()
+#	subprocess.Popen("hadd qvalResults_"+detector+".root logs/results*",shell=True).wait()
+#	
+#	if not override_nentries:
+#	    nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub_"+detector+".txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
+#	#subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+",\""+tag+"\")'",shell=True).wait()
+#	subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
+#
+#	subprocess.Popen("sendmail lng1492@gmail.com < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
 
 
 numVar=len(varVec)

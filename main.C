@@ -10,8 +10,10 @@
 
 bool useEta=true;
 using namespace RooFit;
-string detector="split";
-bool useSB=true;
+string detector="bcal";
+
+bool randomSubset=true;
+int sizeOfRndSubset=30000;
 
 //void main(int iProcess, int kDim, int numberEventsToSavePerProcess, int nProcess, int seedShift, Long64_t nentries, bool override_nentries, bool verbose){
 int main( int argc, char* argv[] ){
@@ -71,7 +73,6 @@ int main( int argc, char* argv[] ){
 	//clock_t start;
 	//double duration;
 	auto start2 = std::chrono::high_resolution_clock::now();
-	//start = clock();
 	
 	
 	///////////////////// INITIALIZING THE PARAMETERS ////////////////////
@@ -250,7 +251,7 @@ int main( int argc, char* argv[] ){
 
                 spectroscopicComboIDs.push_back(spectroscopicComboID);
 	}
-	duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+	auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 	if(verbose2){logFile << "	Loaded data: " << duration2 << "ms" << endl; }
 
 	int batchEntries = (int)nentries/nProcess;
@@ -601,13 +602,13 @@ int main( int argc, char* argv[] ){
 			// M(PI0ETA) WE CANT DO THIS
 			if(useEta){
 		        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Mpi0s[newPair.second]),AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
 		        	stdCalc.insertValue(Metas[newPair.second]);
 		        	stdCalc2.insertValue(Mpi0s[newPair.second]);
 			}
 			else{
-		        	discriminatorHist->Fill(Mpi0s[newPair.second]),AccWeights[newPair.second]);//*sbWeights[newPair.second]);
-		        	discriminatorHist2->Fill(Metas[newPair.second]),AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+		        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+		        	discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
 		        	stdCalc.insertValue(Mpi0s[newPair.second]);
 		        	stdCalc2.insertValue(Metas[newPair.second]);
 			}
@@ -634,7 +635,6 @@ int main( int argc, char* argv[] ){
 
 	        Double_t par[numDOFbkg+numDOFsig]; // needed to calculate the qvalue
 	        Double_t parBest[numDOFbkg+numDOFsig]; // needed to calculate the qvalue
-	        Double_t par2[numDOFbkg+numDOFsig]; // needed to calculate the qvalue
 	        Double_t parFlat[numDOFbkg]; // needed to calculate the qvalue
 		
 		// /////////////////////////////////////////
@@ -661,7 +661,7 @@ int main( int argc, char* argv[] ){
 			fit->SetParLimits(2,0,kDim);
 			fit->SetParLimits(3,peakLoc*0.95, peakLoc*1.05);
 			fit->SetParLimits(4,sigValue*0.9, sigValue*1.1); 
-			fit->SetParLimits(5,ampRatio*0.9,ampRatio*1.1 );
+			fit->SetParLimits(5,ampRatio*0.9, ampRatio*1.1 );
 			fit->SetParLimits(6,widthRatio*0.9, widthRatio*1.1 );
 
 			// we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
@@ -863,7 +863,7 @@ int main( int argc, char* argv[] ){
 	if (verbose2){
 		duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 		logFile << "Total time: " << duration2 << " ms" << endl;
-		logFile << "Time Per Event: " << ( std::clock() - start ) / (double) CLOCKS_PER_SEC / nentries << "ns" << endl;
+		logFile << "Time Per Event: " << duration2  << " ns" << endl;
 	}
 	logFile.close();
         return 0;

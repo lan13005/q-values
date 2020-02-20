@@ -2,7 +2,7 @@
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 bool verbose = true;
-string detector="split";
+string detector="bcal";
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
