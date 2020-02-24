@@ -44,7 +44,7 @@ using namespace RooFit;
 bool randomSubset=true;
 int sizeOfRndSubset=30000;
 
-static const int nProcess=2; // this is just a holder that will be replaced by run.py.
+static const int nProcess=36; // this is just a holder that will be replaced by run.py.
 const int dim=3;
 bool verbose2=true;
 bool verbose_outputDistCalc=false;
@@ -92,8 +92,6 @@ Double_t signal(Double_t *x, Double_t *par){
 Double_t signalDG(Double_t *x, Double_t *par){
 	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
 	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
-	//return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
-	//return (x[0]-par[0])*(x[0]-par[0]);
 
 }
 
@@ -180,88 +178,6 @@ class standardizeArray{
 			} 
 		}
 };
-//
-//
-//
-//   class standardizeArray{
-//        // ERROR 1: not sure why this code did not work. It would sometimes give a max element that was not correct
-//        //double max_inputVector = *std::max(inputVector, inputVector+nentries);
-//        //double min_inputVector = *std::min(inputVector, inputVector+nentries);
-//        
-//        // ERROR 2: I tried to create a function that does this max,min calculation and returns an array. This was abit more difficult and quite buggy. Functions can return array points
-//        // but also would require static types or something like that to make it go outside the functions scope. This lead to wierd effects like calling the function twice might
-//        // pass the max, min from one function call to another. Safest is to just do it here. 
-//       private:
-//            long long _nentries;
-//            double _max_inputVector = DBL_MIN;
-//            double _min_inputVector = DBL_MAX;
-//            std::vector<double> _array;
-//   
-//        public:
-//           double mean; // initialization always calculates mean so safe to access. unlike std which has a useless value until stdevStandardization is run 
-//           standardizeArray (std::vector<double> inputVector, long long nentries){
-//               _nentries=nentries;
-//               _array.reserve(nentries);
-//               mean=0;
-//               for (int i=0; i<_nentries; ++i){
-//                   _array.push_back(inputVector[i]);
-//                   mean+=inputVector[i];
-//               } 
-//               mean/=_nentries;
-//               //cout << "nentries: " << _nentries << endl;
-//               //cout << "Mean: " << mean << endl;
-//           }
-//           
-//           void rangeStandardization(){
-//               for (int ientry=0; ientry<_nentries; ++ientry){
-//                   if (_array[ientry] > _max_inputVector){
-//                       _max_inputVector = _array[ientry];
-//                   }
-//                   if (_array[ientry] < _min_inputVector){
-//                       _min_inputVector = _array[ientry];
-//                   }
-//               }
-//               //cout << "Max,min: " << _max_inputVector << "," << _min_inputVector << endl;
-//   	    for (int ientry=0; ientry<_nentries; ++ientry){
-//   	    	_array[ientry] = (_array[ientry]-_min_inputVector)/(_max_inputVector-_min_inputVector);
-//   	    }
-//   	    //cout << "Max,min "+name+": " << max_inputVector << "," << min_inputVector << endl;
-//   	    //cout << "	Finished standardizing "+name << endl;
-//           }
-//   
-//           double calcStd(){
-//               double local_std=0;
-//               double diff=0;
-//               for (int ientry=0; ientry<_nentries; ++ientry){
-//                   //cout << "mean: " << mean << endl;
-//                   diff = (_array[ientry]-mean);
-//                   //cout << "diff: " << diff << endl;
-//                   local_std += diff*diff;
-//               }
-//               local_std /= _nentries;
-//               //cout << "STD: " << local_std << endl;
-//               return sqrt(local_std);
-//           }
-//   
-//           void stdevStandardization(){
-//               double std = calcStd();
-//               for (int ientry=0; ientry < _nentries; ++ientry){
-//                  _array[ientry] = _array[ientry]/std; 
-//               } 
-//           }
-//   
-//           std::vector<double> getVector(){
-//               return _array;
-//           }
-//   
-//           void printVector(){
-//               for (int ientry=0; ientry<_nentries; ++ientry){
-//                   cout << _array[ientry] << ", ";
-//               }
-//               cout << endl;
-//           }
-//   
-//   };
 
 
 class parseVarString{
@@ -428,38 +344,6 @@ class cumulativeStd{
 //};
 
 
-
-
-//double gausAmplitude( double xmin, double binsize, int binsToStep, int kDim, Double_t *par){
-//    // So this goal of this function is to calculate the Amplitude we need to scale a unit gaussian by to get the entries = k in kDim. 
-//    // In a perfect fit with some peak and width the gausssian overlays the bins heights perfectly. If we can evaluate the gaussian at various bin values
-//    // we can get the counts. Do a discrete sum over all the bin heights to get the count. 
-//    double discreteSum=0;
-//    double x = xmin;
-//    //cout << "x,sum: " << x << "," << discreteSum << endl;
-//    for (int iBin=0; iBin<binsToStep; ++iBin){
-//        discreteSum+=signal(&x, par);
-//        x+=binsize;
-//        cout << "x,sum: " << x << "," << discreteSum << endl;
-//    }
-//    return discreteSum;
-//}
-
-//double bkgAmplitude( double xmin, double binsize, int binsToStep, int kDim, Double_t *par){
-//    // So this goal of this function is to calculate the Amplitude we need to scale a unit gaussian by to get the entries = k in kDim. 
-//    // In a perfect fit with some peak and width the gausssian overlays the bins heights perfectly. If we can evaluate the gaussian at various bin values
-//    // we can get the counts. Do a discrete sum over all the bin heights to get the count. 
-//    double discreteSum=0;
-//    double x = xmin;
-//    //cout << "x,sum: " << x << "," << discreteSum << endl;
-//    for (int iBin=0; iBin<binsToStep; ++iBin){
-//        discreteSum+=background(&x, par);
-//        x+=binsize;
-//        //cout << "x,sum: " << x << "," << discreteSum << endl;
-//    }
-//    return discreteSum;
-//}
-
 class QFactorAnalysis{
 	private:
 		// variables to help load the data
@@ -538,16 +422,9 @@ class QFactorAnalysis{
 		void loadFitParameters(string fitLocation);
 		void loadData();
 		void runQFactorThreaded();
-		//static void * staticEntryPoint(void * c, int iProcess);
-		//void launchThreads(int nProcess);
 
 };
 
-//void *QFactorAnalysis::staticEntryPoint(void * c, int iProcess)
-//{
-//	    ((QFactorAnalysis *) c)->runQFactorThreaded(iProcess);
-//	        return NULL;
-//}
 
 void QFactorAnalysis::loadTree(string rootFileLocation, string rootTreeName){
 	cout << "Loading root file and tree" << endl;
@@ -1082,6 +959,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			// /////////////////////////////////////////
 			// We use a normalized gaussian and a flat function. 
 			{
+				// have to use a mutex here or else we get some weird error
 				R__LOCKGUARD(gGlobalMutex);
 				if(useEta){
 					fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRange1[0],fitRange1[1],numDOFbkg+numDOFsig);
@@ -1119,12 +997,16 @@ void QFactorAnalysis::runQFactorThreaded(){
 					qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
 				}
 				
+				// Actually a lot of the times the value -> -0 so we should just make it zero at this point rather than refitting....
+				if ( abs(qvalue) < 0.000001 ){	
+					qvalue = 0;
+				}	
 
 				// /////////////////////////////////////////
 				// need to calcuclate new q-value since it is out of bounds
 				// /////////////////////////////////////////
 				if (qvalue>1 || qvalue<0){
-					cout << "Using flat fit instead of linear on event: " << ientry << endl;
+					cout << "Using flat fit instead of linear on event: " << ientry << " -- QFactor = " << qvalue << endl;
 					// first we will save the bad event to get a sample then fix the linear component of the bkg
 					if ( savedN_badEvents < saveN_badEvents ) {
 						allCanvases_badFit->cd();

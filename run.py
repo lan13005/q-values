@@ -24,10 +24,10 @@ start_time = time.time()
 
 kDim=600
 numberEventsToSavePerProcess=1
-nProcess=2
+nProcess=36
 seedShift=12151
 nentries=10000
-override_nentries=1
+override_nentries=0
 verbose=0
 detector="bcal"
 
