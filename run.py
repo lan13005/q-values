@@ -24,9 +24,9 @@ start_time = time.time()
 
 kDim=600
 numberEventsToSavePerProcess=1
-nProcess=8
+nProcess=2
 seedShift=12151
-nentries=5000
+nentries=10000
 override_nentries=1
 verbose=0
 detector="bcal"
@@ -57,30 +57,35 @@ def runOverCombo(combo,nentries):
 	rooFitFlags = ["-lRooStats","-lRooFitCore", "-lRooFit"]
 	compileMain.extend(rootFlags)
 	compileMain.extend(rooFitFlags)
-	replaceVar=["sed","-i","s@dim="+str(numVar)+"@dim=dimNum@g","main.h"]
 	print "\nStarting new compilation\n----------------------"
 	print " ".join(exchangeVar)
 	print " ".join(compileMain)
-	print " ".join(replaceVar)
 	
+	replaceNumProcess=["sed","-i","s@static const int nProcess=.*;@static const int nProcess="+str(nProcess)+";@g","main.h"]
+	subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 	
 	# most processes shoudl have a wait but for some it doesnt matter. i.e. we have to wait for exchangeVar to run before compileMain
 	subprocess.Popen(exchangeVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait() # we have to wait for this command to finish before compiling...
 	out, err = subprocess.Popen(compileMain, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate(); print out
+
+	# This will replace the dimNum so we can programaticaly scan through variable sets
+	#replaceVar=["sed","-i","s@dim="+str(numVar)+"@dim=dimNum@g","main.h"]
+	#print " ".join(replaceVar)
 	#subprocess.Popen(replaceVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 	subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 	
-	print './main "$iProcess" "$kDim" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" $varString &'
+	print './main "$kDim" $varString "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &'
+	print 'Number of threads: '+str(nProcess)
 	allProcess=[]
-	for iProcess in range(int(nProcess)):
-	    executeMain=["./main",str(iProcess),str(kDim),str(numberEventsToSavePerProcess),str(nProcess),str(seedShift),str(nentries),str(override_nentries),str(verbose),varString,"&"]
-	    print " ".join(executeMain)
-	    allProcess.append(subprocess.Popen(executeMain)) # this will just output to stdout
-	
-	for iProcess in range(int(nProcess)):
-	    allProcess[iProcess].wait()
+	executeMain=["./main",str(kDim),varString,str(numberEventsToSavePerProcess),str(nProcess),str(seedShift),str(nentries),str(override_nentries),str(verbose),"&"]
+	print " ".join(executeMain)
+	subprocess.Popen(executeMain).wait()
 	    
+	   
+	# ------------------------------------
+	# run the makeDiagnosticHists program
+	# ------------------------------------
 #	subprocess.Popen("cat logs/process* > diagnostic_logs.txt",shell=True).wait()
 #	subprocess.Popen("rm -f qvalResults_"+detector+".root",shell=True).wait()
 #	#subprocess.Popen("rm nohup.out",shell=True).wait()
@@ -92,6 +97,8 @@ def runOverCombo(combo,nentries):
 #	subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
 #
 #	subprocess.Popen("sendmail lng1492@gmail.com < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	# ------------------------------------
+	# ------------------------------------
 
 
 numVar=len(varVec)
