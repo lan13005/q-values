@@ -4,12 +4,11 @@ import time
 from itertools import combinations
 #import numpy as np
 
+
+# Remaking some of the old directories so we dont mix old results with new results
 subprocess.Popen("rm -r logs", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 subprocess.Popen("mkdir logs", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-
-
 runOverAll=False
-
 if not runOverAll:
 	subprocess.Popen("rm -r histograms",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
 	subprocess.Popen("rm -r diagnosticPlots",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
@@ -24,18 +23,17 @@ start_time = time.time()
 
 kDim=600
 numberEventsToSavePerProcess=1
-nProcess=36
+nProcess=2
 seedShift=12151
-nentries=10000
-override_nentries=0
+nentries=1000
+override_nentries=1
 verbose=0
-detector="bcal"
+detector="split"
 
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
 varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
 #varVec=np.array(varStringBase.rstrip().split(";"))
 varVec=varStringBase.rstrip().split(";")
-
 
 def runOverCombo(combo,nentries):
 	""" 
@@ -47,9 +45,10 @@ def runOverCombo(combo,nentries):
 	tag="".join(tagVec)
 	selectedVar = [varVec[ele] for ele in combo]
 	varString=";".join(selectedVar)
-	#numVar=len(varString.split(";"))
+	numVar=len(varString.split(";"))
 	
-	exchangeVar=["sed","-i","s@dim=dimNum@dim="+str(numVar)+"@g","main.h"]
+	# the distance calculation needs dim to know the dimension of phase space. Before we compile it the script needs to know so we have replace before compilation 
+	exchangeVar=["sed","-i","s@const int dim=.*@const int dim="+str(numVar)+"@;g","main.h"]
 	compileMain=["g++","-o","main","main.C"]
 	rootFlags = subprocess.check_output(["root-config","--cflags","--glibs", "--libs"])
 	rootFlags = rootFlags.rstrip().split(" ")
@@ -61,7 +60,10 @@ def runOverCombo(combo,nentries):
 	print " ".join(exchangeVar)
 	print " ".join(compileMain)
 	
-	replaceNumProcess=["sed","-i","s@static const int nProcess=.*;@static const int nProcess="+str(nProcess)+";@g","main.h"]
+	# need to set the detector to use in main.h and makeDiagnosticPlots 
+	replaceNumProcess=["sed","-i",'s@detector=".*";@detector="'+detector+'";@g',"main.h"]
+	subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+	replaceNumProcess=["sed","-i",'s@detector=".*";@detector="'+detector+'";@g',"makeDiagnosticHists.C"]
 	subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 	
 	# most processes shoudl have a wait but for some it doesnt matter. i.e. we have to wait for exchangeVar to run before compileMain
@@ -86,17 +88,15 @@ def runOverCombo(combo,nentries):
 	# ------------------------------------
 	# run the makeDiagnosticHists program
 	# ------------------------------------
-#	subprocess.Popen("cat logs/process* > diagnostic_logs.txt",shell=True).wait()
-#	subprocess.Popen("rm -f qvalResults_"+detector+".root",shell=True).wait()
-#	#subprocess.Popen("rm nohup.out",shell=True).wait()
-#	subprocess.Popen("hadd qvalResults_"+detector+".root logs/results*",shell=True).wait()
-#	
-#	if not override_nentries:
-#	    nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub_"+detector+".txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
-#	#subprocess.Popen("root -l -b -q 'makeDiagnosticHists.C("+str(nentries)+",\""+tag+"\")'",shell=True).wait()
-#	subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
-#
-#	subprocess.Popen("sendmail lng1492@gmail.com < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+	subprocess.Popen("cat logs/process* > diagnostic_logs.txt",shell=True).wait()
+	subprocess.Popen("rm -f qvalResults_"+detector+".root",shell=True).wait()
+	subprocess.Popen("hadd qvalResults_"+detector+".root logs/results*",shell=True).wait()
+	
+	if not override_nentries:
+	    nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub_"+detector+".txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
+	subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
+
+	subprocess.Popen("sendmail lng1492@gmail.com < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
 	# ------------------------------------
 	# ------------------------------------
 

@@ -2,7 +2,7 @@
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 bool verbose = true;
-string detector="bcal";
+string detector="split";
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -426,7 +426,7 @@ void makeDiagnosticHists(){
 	}
 
         cout << "FINIHSED!"<<endl;
-	cout << "There were " << numNan << " nan values meaning q-value was not calculated. Fix me if nonzero!" << endl;
+	cout << "There were " << numNan << " nan values where q-value was not calculated. Fix me if nonzero!" << endl;
 
 	TFile* dataFile3 = new TFile(("postQValHists_"+detector+".root").c_str(),"RECREATE");
 	for (int i=0; i<2; i++){

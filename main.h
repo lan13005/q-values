@@ -37,9 +37,6 @@
 
 //#include "Math/MinimizerOptions.h"
 
-double peakWidth_eta[2] = {0.544,0.022};
-double peakWidth_pi0[2] = {0.134,0.0069};
-
 using namespace RooFit;
 bool randomSubset=true;
 int sizeOfRndSubset=30000;
@@ -55,53 +52,34 @@ string detector="bcal";
 bool useEta=true;
 
 
-// our distance calculation between two phase points
-double calc_distance( double phaseSpace_1[dim], double phaseSpace_2[dim] ){
-	double sum = 0;
-	double diff=0;
-        if(verbose_outputDistCalc){cout << "New event, new sum = " << sum << endl;}
-	for (int i=0; i<dim; ++i){
-		diff = phaseSpace_1[i]-phaseSpace_2[i];
-		sum += diff*diff;
-                if(verbose_outputDistCalc){cout << "phasePoint1["<<i<<"]="<<phaseSpace_1[i]<<", phasePoint2["<<i<<"]="<<phaseSpace_2[i]<<" --- squared sum=" << diff*diff << "---- total so far="<<sum<<endl;}
-	}
-	return sum;
-}
-
-
-int numDOFbkg = 2;
-Double_t background(Double_t *x, Double_t *par){
-	//return par[0];
-	return par[0]+par[1]*x[0];
-	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0];
-	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0]+par[3]*x[0]*x[0]*x[0];
-	//return par[0]+par[1]*x[0]+par[2]*x[0]*x[0]+par[3]*x[0]*x[0]*x[0]+par[4]*x[0]*x[0]*x[0]*x[0];
-}
-
-int numDOFsig = 5;
-Double_t signal(Double_t *x, Double_t *par){
-	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
-	     + par[3]/par[4]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[4])*((x[0]-par[1])/par[4]));
-	//return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
-	//return (x[0]-par[0])*(x[0]-par[0]);
-
-}
+//Double_t signal(Double_t *x, Double_t *par){
+//	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
+//	     + par[3]/par[4]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[4])*((x[0]-par[1])/par[4]));
+//	//return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
+//	//return (x[0]-par[0])*(x[0]-par[0]);
+//
+//}
+//
+//Double_t signalBW(Double_t* x, Double_t* par) {
+//    Double_t arg1 = 14.0/22.0; // 2 over pi
+//    Double_t arg2 = par[2]*par[2]*par[1]*par[1]; //Gamma=par[1]  M=par[2]
+//    Double_t arg3 = ((x[0]*x[0]) - (par[1]*par[1]))*((x[0]*x[0]) - (par[1]*par[1]));
+//    Double_t arg4 = x[0]*x[0]*x[0]*x[0]*((par[2]*par[2])/(par[1]*par[1]));
+//    
+//    return par[0]*arg1*arg2/(arg3 + arg4);
+//}
 
 // ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS. SO SINCE getInitParams_step1.C SO SINCE fitFunc USES signalDG WHEN WE ACTUALLY INPUT THE INIT PARAMS INTO 
 // ******* main.C WE CAN JUST USE THEM DIRECTLY, DONT HAVE TO CALCULATE ANYTHING
+int numDOFsig = 5;
 Double_t signalDG(Double_t *x, Double_t *par){
 	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
 	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
 
 }
-
-Double_t signalBW(Double_t* x, Double_t* par) {
-    Double_t arg1 = 14.0/22.0; // 2 over pi
-    Double_t arg2 = par[2]*par[2]*par[1]*par[1]; //Gamma=par[1]  M=par[2]
-    Double_t arg3 = ((x[0]*x[0]) - (par[1]*par[1]))*((x[0]*x[0]) - (par[1]*par[1]));
-    Double_t arg4 = x[0]*x[0]*x[0]*x[0]*((par[2]*par[2])/(par[1]*par[1]));
-    
-    return par[0]*arg1*arg2/(arg3 + arg4);
+int numDOFbkg = 2;
+Double_t background(Double_t *x, Double_t *par){
+	return par[0]+par[1]*x[0];
 }
 
 Double_t fitFunc(Double_t *x, Double_t *par){
@@ -127,6 +105,22 @@ void drawText(Double_t *par, int dof, string tag, double qSigValue, double qBkgV
     pt->Paint("NDC");
     pt->Draw();
 }
+
+// our distance calculation between two phase points
+double calc_distance( double phaseSpace_1[dim], double phaseSpace_2[dim] ){
+	double sum = 0;
+	double diff=0;
+        if(verbose_outputDistCalc){cout << "New event, new sum = " << sum << endl;}
+	for (int i=0; i<dim; ++i){
+		diff = phaseSpace_1[i]-phaseSpace_2[i];
+		sum += diff*diff;
+                if(verbose_outputDistCalc){
+			cout << "phasePoint1["<<i<<"]="<<phaseSpace_1[i]<<", phasePoint2["<<i<<"]="<<phaseSpace_2[i]<<" --- squared sum=" << diff*diff << "---- total so far="<<sum<<endl;
+		}
+	}
+	return sum;
+}
+
 
 class standardizeArray{
 	public:
@@ -616,8 +610,6 @@ void QFactorAnalysis::loadData(){
 	        //cout << phi_X_cms[ientry] <<endl;// "," << cosTheta_eta_gjs[ientry] << endl;
 	    }
 	}
-	//auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
-	//logFile << "Time marker to load data: " << duration << "ms" << endl;
 
 	// -----------------------------------------------------
 	// -----------------------------------------------------
@@ -906,7 +898,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				//}
 			}
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-			if(verbose2){logFile << "	Found neighbors: " << duration2 << "ms" << endl; }
+			if(verbose2){logFile << "\tFound neighbors: " << duration2 << "ms" << endl; }
 			if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim! size,kDim="<< distKNN.kNN.size() << "," << kDim 
 			    << "\n    -- if size is 1 less than kDim it is probably because kDim=nentries and event i cannot be a neighbor to itself" << 
 			    "\n    -- if size != kDim it could also mean that the number of spectroscopically unique neighbors reduces the number of poential neighbors below kDim" << endl;}
@@ -936,7 +928,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			comboStd2 = stdCalc2.calcStd();
 			
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-			if(verbose2){logFile << "	Filled neighbors: " << duration2 << "ms" << endl;}
+			if(verbose2){logFile <<	"\tFilled neighbors: " << duration2 << "ms" << endl;}
 			
 			// Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the Meta has a asymmetry
 			// such that there are more events to the left side of the peak. The second gaussian will have lower amplitude and a large sigma with a left shifted mean. We also want to 
@@ -983,209 +975,205 @@ void QFactorAnalysis::runQFactorThreaded(){
 			fit->SetParLimits(5,ampRatio*0.9, ampRatio*1.1 );
 			fit->SetParLimits(6,widthRatio*0.9, widthRatio*1.1 );
 
-			// we have to calculate the q-value for the eta distribution to check if it is between 0 and 1 
-			//{ 
-				//R__LOCKGUARD(gGlobalMutex);
+			discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
+			fit->GetParameters(par);
+			bkgFit->SetParameters(par);
+			sigFit->SetParameters(&par[numDOFbkg]);
+			if(useEta){
+				qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+			}
+			else{
+				qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
+			}
+			
+			// Actually a lot of the times the value -> -0 so we should just make it zero at this point rather than refitting....
+			if ( abs(qvalue) < 0.00001 ){	
+				qvalue = 0;
+			}	
+
+			// /////////////////////////////////////////
+			// need to calcuclate new q-value since it is out of bounds
+			// /////////////////////////////////////////
+			if (qvalue>1 || qvalue<0){
+				cout << "Using flat fit instead of linear on event: " << ientry << " -- QFactor = " << qvalue << endl;
+				// first we will save the bad event to get a sample then fix the linear component of the bkg
+				if ( savedN_badEvents < saveN_badEvents ) {
+					allCanvases_badFit->cd();
+        	        		fit->SetLineColor(kRed+2);
+  		        		bkgFit->SetFillColor(kMagenta+2);
+        	        		bkgFit->SetLineColor(kMagenta+2);
+  		        		bkgFit->SetFillStyle(3004);
+  		        		sigFit->SetFillColor(kBlue+2);
+        	        		sigFit->SetLineColor(kBlue+2);
+  		        		sigFit->SetFillStyle(3005);
+		        		discriminatorHist->Draw();
+        	        		fit->Draw("SAME");
+  		        		bkgFit->Draw("SAME FC");
+  		        		sigFit->Draw("SAME FC");
+					etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
+					etaLine->SetLineColor(kOrange);
+		        		etaLine->Draw("same");
+					discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
+					allCanvases_badFit->SaveAs(("histograms/"+detector+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
+					++savedN_badEvents;
+				}
+				
+			        fit->SetParameters(par0[0],0,par2[2],peakLoc,sigValue,ampRatio,widthRatio);
+				fit->FixParameter(1,0); 
 				discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
 				fit->GetParameters(par);
 				bkgFit->SetParameters(par);
 				sigFit->SetParameters(&par[numDOFbkg]);
+
+				qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+				if (qvalue>1 || qvalue<0){
+				    cout << "Not sure why qvalue is still >1 or <0. Need to fix this!" << endl;
+				    cout << "These are the parameters:"<<endl;
+				    for ( double parVal : par ){
+						cout << " " << parVal << endl;
+				    }
+				    //cout << " **************** BREAKING ****************** " << endl;
+				    //exit(0);
+				}
+			}
+
+
+			// now that the q-value is found we can get the chiSq and save the parameters with the best chiSq
+			chiSq = fit->GetChisquare()/(fit->GetNDF());
+			
+			// save some fit and the chiSq for all the fits
+			//showConv[iFit]->SetParameters(par); // save all the fits
+			//chiSqs[iFit]=chiSq;
+			
+			if (verbose2) { logFile << "\tcurrent ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
+			
+			if (chiSq < bestChiSq){
+				best_qvalue = qvalue;
+				bestChiSq=chiSq;
+				best_iFit=iFit;
+				for (int i=0; i < sizeof(par)/sizeof(Double_t); ++i){
+					parBest[i]=par[i];
+				}
+				if(qvalue>1 || qvalue<0) {
+				      cout << "qvalue out of bounds!\n-------------" << endl;
+				      for (double parVal : par){
+				          cout << parVal << endl;
+				      } 
+				      //exit(0);
+				}
+			} 
+			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+			if(verbose2){logFile << "\tFitted the reference distribution: " << duration2 << "ms" << endl; }
+
+			// /////////////////////////////////////////
+			// Calculating some chiSq differences 
+			// /////////////////////////////////////////
+			 
+			//if ( best_iFit == 0){ ++nBest100Bkg; }
+			//else if ( best_iFit == 1){ ++nBest100Sig; }
+			//else if ( best_iFit == 2){ ++nBest50Bkg50Sig; }
+			
+			// Here we draw the histograms that were randomly selected
+			allCanvases->Clear();
+			allCanvases->Divide(2,1);
+			if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
+				if(verbose) { cout << "Keeping this event" << endl; }
+				discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq)+"     Std="+to_string(comboStd)+"    iFit="+to_string(best_iFit)).c_str() );
+				etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
+				pi0Line = new TLine(Mpi0s[ientry],0,Mpi0s[ientry],kDim);
+				etaLine->SetLineColor(kOrange);
+				pi0Line->SetLineColor(kOrange);
+				
+        	          	fit->SetParameters(parBest);
+		          	bkgFit->SetParameters(parBest);
+		          	sigFit->SetParameters(&parBest[numDOFbkg]);
+        	          	fit->SetLineColor(kRed);
+  		          	bkgFit->SetFillColor(kMagenta);
+        	          	bkgFit->SetLineColor(kMagenta);
+  		          	bkgFit->SetFillStyle(3004);
+  		          	sigFit->SetFillColor(kBlue);
+        	          	sigFit->SetLineColor(kBlue);
+  		          	sigFit->SetFillStyle(3005);
+
 				if(useEta){
-					qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+					qSigLine = new TLine(0,sigFit->Eval(Metas[ientry]),binRange1[2],sigFit->Eval(Metas[ientry]));
+					qBkgLine = new TLine(0,bkgFit->Eval(Metas[ientry]),binRange1[2],bkgFit->Eval(Metas[ientry]));
 				}
 				else{
-					qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
+					qSigLine = new TLine(0,sigFit->Eval(Mpi0s[ientry]),binRange2[2],sigFit->Eval(Mpi0s[ientry]));
+					qBkgLine = new TLine(0,bkgFit->Eval(Mpi0s[ientry]),binRange2[2],bkgFit->Eval(Mpi0s[ientry]));
 				}
-				
-				// Actually a lot of the times the value -> -0 so we should just make it zero at this point rather than refitting....
-				if ( abs(qvalue) < 0.000001 ){	
-					qvalue = 0;
-				}	
+        	          	qSigLine->SetLineColor(kBlue);
+				qSigLine->SetLineStyle(9);
+        	          	qBkgLine->SetLineColor(kMagenta);
+				qBkgLine->SetLineStyle(9);
 
-				// /////////////////////////////////////////
-				// need to calcuclate new q-value since it is out of bounds
-				// /////////////////////////////////////////
-				if (qvalue>1 || qvalue<0){
-					cout << "Using flat fit instead of linear on event: " << ientry << " -- QFactor = " << qvalue << endl;
-					// first we will save the bad event to get a sample then fix the linear component of the bkg
-					if ( savedN_badEvents < saveN_badEvents ) {
-						allCanvases_badFit->cd();
-        	        			fit->SetLineColor(kRed+2);
-  		        			bkgFit->SetFillColor(kMagenta+2);
-        	        			bkgFit->SetLineColor(kMagenta+2);
-  		        			bkgFit->SetFillStyle(3004);
-  		        			sigFit->SetFillColor(kBlue+2);
-        	        			sigFit->SetLineColor(kBlue+2);
-  		        			sigFit->SetFillStyle(3005);
-		        			discriminatorHist->Draw();
-        	        			fit->Draw("SAME");
-  		        			bkgFit->Draw("SAME FC");
-  		        			sigFit->Draw("SAME FC");
-						etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
-						etaLine->SetLineColor(kOrange);
-		        			etaLine->Draw("same");
-						discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
-						allCanvases_badFit->SaveAs(("histograms/"+detector+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
-						++savedN_badEvents;
-					}
-					
-				        fit->SetParameters(par0[0],0,par2[2],peakLoc,sigValue,ampRatio,widthRatio);
-					fit->FixParameter(1,0); 
-					discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
-					fit->GetParameters(par);
-					bkgFit->SetParameters(par);
-					sigFit->SetParameters(&par[numDOFbkg]);
 
-					qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-					if (qvalue>1 || qvalue<0){
-					    cout << "Not sure why qvalue is still >1 or <0. Need to fix this!" << endl;
-					    cout << "These are the parameters:"<<endl;
-					    for ( double parVal : par ){
-							cout << " " << parVal << endl;
-					    }
-					    //cout << " **************** BREAKING ****************** " << endl;
-					    //exit(0);
-					}
+        	          	allCanvases->cd(1);
+		          	discriminatorHist->Draw();
+        	          	drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(Metas[ientry]),bkgFit->Eval(Metas[ientry]),fit->Eval(Metas[ientry]));
+				if(useEta){
+		          		etaLine->Draw("same");
+				}
+        	          	fit->Draw("SAME");
+  		          	bkgFit->Draw("SAME FC");
+  		          	sigFit->Draw("SAME FC");
+				qBkgLine->Draw("SAME");
+				qSigLine->Draw("SAME");
+        	          	allCanvases->cd(2);
+		          	discriminatorHist2->Draw();
+				if(!useEta){
+		          		pi0Line->Draw("same");
 				}
 
-
-				// now that the q-value is found we can get the chiSq and save the parameters with the best chiSq
-				chiSq = fit->GetChisquare()/(fit->GetNDF());
+				// need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one pdf converter
+				// or whatever and maybe if multiple threads calls it then a blocking effect can happen
+				cout << "Choosing to save event " << ientry << endl;
+				allCanvases->SaveAs(("histograms/"+detector+"/Mass-event"+std::to_string(ientry)+".root").c_str());
 				
-				// save some fit and the chiSq for all the fits
-				//showConv[iFit]->SetParameters(par); // save all the fits
-				//chiSqs[iFit]=chiSq;
-				
-				if (verbose2) { logFile << "current ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
-				
-				if (chiSq < bestChiSq){
-					best_qvalue = qvalue;
-					bestChiSq=chiSq;
-					best_iFit=iFit;
-					for (int i=0; i < sizeof(par)/sizeof(Double_t); ++i){
-						parBest[i]=par[i];
-					}
-					if(qvalue>1 || qvalue<0) {
-					      cout << "qvalue out of bounds!\n-------------" << endl;
-					      for (double parVal : par){
-					          cout << parVal << endl;
-					      } 
-					      //exit(0);
-					}
-				} 
-				duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-				if(verbose2){logFile << "	Fitted the reference distribution: " << duration2 << "ms" << endl; }
 
-				// /////////////////////////////////////////
-				// Calculating some chiSq differences 
-				// /////////////////////////////////////////
-				 
-				//if ( best_iFit == 0){ ++nBest100Bkg; }
-				//else if ( best_iFit == 1){ ++nBest100Sig; }
-				//else if ( best_iFit == 2){ ++nBest50Bkg50Sig; }
-				
-				// Here we draw the histograms that were randomly selected
-				allCanvases->Clear();
-				allCanvases->Divide(2,1);
-				if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
-					if(verbose) { cout << "Keeping this event" << endl; }
-					discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq)+"     Std="+to_string(comboStd)+"    iFit="+to_string(best_iFit)).c_str() );
-					etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
-					pi0Line = new TLine(Mpi0s[ientry],0,Mpi0s[ientry],kDim);
-					etaLine->SetLineColor(kOrange);
-					pi0Line->SetLineColor(kOrange);
-					
-        	        	  	fit->SetParameters(parBest);
-		        	  	bkgFit->SetParameters(parBest);
-		        	  	sigFit->SetParameters(&parBest[numDOFbkg]);
-        	        	  	fit->SetLineColor(kRed);
-  		        	  	bkgFit->SetFillColor(kMagenta);
-        	        	  	bkgFit->SetLineColor(kMagenta);
-  		        	  	bkgFit->SetFillStyle(3004);
-  		        	  	sigFit->SetFillColor(kBlue);
-        	        	  	sigFit->SetLineColor(kBlue);
-  		        	  	sigFit->SetFillStyle(3005);
+				// //////////
+				// THIS WAS AN ATTEMPT TO SHOW HOW THE DIFFERENT INITIALIZATIONS OF 100BKG 50/50 AND 100SIG DIFFERS
+				// //////////
+        			//allCanvases->Clear();
+        			//allCanvases->Divide(2,1);
+        			//allCanvases->cd(1);
+				//discriminatorHist->Draw();
+        			//discriminatorHist->SetTitle("initialization");
+        			//allCanvases->cd(2);
+				//discriminatorHist->Draw();
+        			//discriminatorHist->SetTitle("converged");
+        			//for (int iFit=0; iFit<3; ++iFit){
+        			//	allCanvases->cd(1);
+        			//	showInit[iFit]->SetLineColor(colors[iFit]);
+        			//	showInit[iFit]->Draw("SAME");
+        			//	legend_init->AddEntry(showInit[iFit],initNames[iFit].c_str());
+        			//	allCanvases->cd(2);
+        			//	showConv[iFit]->SetLineColorAlpha(colors[iFit],0.2);
+        			//	showConv[iFit]->Draw("SAME");
+        			//	legend_conv->AddEntry(showConv[iFit],initNames[iFit].c_str());
+        			//}
+        			//allCanvases->cd(1);
+        			//legend_init->Draw();
+        			//allCanvases->cd(2);
+				//drawText(chiSqs,3,"chiSq",0,0,0);
+        			//legend_conv->Draw();
+				//allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".png").c_str());
 
-					if(useEta){
-						qSigLine = new TLine(0,sigFit->Eval(Metas[ientry]),binRange1[2],sigFit->Eval(Metas[ientry]));
-						qBkgLine = new TLine(0,bkgFit->Eval(Metas[ientry]),binRange1[2],bkgFit->Eval(Metas[ientry]));
-					}
-					else{
-						qSigLine = new TLine(0,sigFit->Eval(Mpi0s[ientry]),binRange2[2],sigFit->Eval(Mpi0s[ientry]));
-						qBkgLine = new TLine(0,bkgFit->Eval(Mpi0s[ientry]),binRange2[2],bkgFit->Eval(Mpi0s[ientry]));
-					}
-        	        	  	qSigLine->SetLineColor(kBlue);
-					qSigLine->SetLineStyle(9);
-        	        	  	qBkgLine->SetLineColor(kMagenta);
-					qBkgLine->SetLineStyle(9);
-
-
-        	        	  	allCanvases->cd(1);
-		        	  	discriminatorHist->Draw();
-        	        	  	drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(Metas[ientry]),bkgFit->Eval(Metas[ientry]),fit->Eval(Metas[ientry]));
-					if(useEta){
-		        	  		etaLine->Draw("same");
-					}
-        	        	  	fit->Draw("SAME");
-  		        	  	bkgFit->Draw("SAME FC");
-  		        	  	sigFit->Draw("SAME FC");
-					qBkgLine->Draw("SAME");
-					qSigLine->Draw("SAME");
-        	        	  	allCanvases->cd(2);
-		        	  	discriminatorHist2->Draw();
-					if(!useEta){
-		        	  		pi0Line->Draw("same");
-					}
-
-					//{
-						//R__LOCKGUARD(gGlobalMutex);
-						cout << "Choosing to save event " << ientry << endl;
-						allCanvases->SaveAs(("histograms/"+detector+"/Mass-event"+std::to_string(ientry)+".root").c_str());
-					//}
-
-					// //////////
-					// THIS WAS AN ATTEMPT TO SHOW HOW THE DIFFERENT INITIALIZATIONS OF 100BKG 50/50 AND 100SIG DIFFERS
-					// //////////
-        				//allCanvases->Clear();
-        				//allCanvases->Divide(2,1);
-        				//allCanvases->cd(1);
-					//discriminatorHist->Draw();
-        				//discriminatorHist->SetTitle("initialization");
-        				//allCanvases->cd(2);
-					//discriminatorHist->Draw();
-        				//discriminatorHist->SetTitle("converged");
-        				//for (int iFit=0; iFit<3; ++iFit){
-        				//	allCanvases->cd(1);
-        				//	showInit[iFit]->SetLineColor(colors[iFit]);
-        				//	showInit[iFit]->Draw("SAME");
-        				//	legend_init->AddEntry(showInit[iFit],initNames[iFit].c_str());
-        				//	allCanvases->cd(2);
-        				//	showConv[iFit]->SetLineColorAlpha(colors[iFit],0.2);
-        				//	showConv[iFit]->Draw("SAME");
-        				//	legend_conv->AddEntry(showConv[iFit],initNames[iFit].c_str());
-        				//}
-        				//allCanvases->cd(1);
-        				//legend_init->Draw();
-        				//allCanvases->cd(2);
-					//drawText(chiSqs,3,"chiSq",0,0,0);
-        				//legend_conv->Draw();
-					//allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".png").c_str());
-
-					if(verbose2){
-					     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-					     logFile << "	Saved this histogram since it was randomly selected: " << duration2 <<  "ms" << endl;
-					}
-				} 
-				double sbWeight = sbWeights[ientry];
-				resultsTree->Fill();
-			//}
+				if(verbose2){
+				     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+				     logFile << "\tSaved this histogram since it was randomly selected: " << duration2 <<  "ms" << endl;
+				}
+			} 
+			double sbWeight = sbWeights[ientry];
+			resultsTree->Fill();
+			
 		}
 		delete fit;
 		delete bkgFit;
 		delete sigFit;
         	resultsFile->cd();
         	resultsTree->Write();
-        	//resultsFile->Write();
         	cout << "nentries: " << nentries << endl;
         	//cout << "Number of times 100% bkg initialization was the best: " << nBest100Bkg << endl;
         	//cout << "Number of times 100% sig initialization was the best: " << nBest100Sig << endl;
