@@ -21,6 +21,7 @@ void makeDiagnosticHists(){
 	// --------------------------------------------- Settting branch addresses for Q-Value Results
 	// ---------------------------------------------------------------------------
 
+	// Read in the qvalue data
 	TFile* dataFile2 = new TFile(("qvalResults_"+detector+".root").c_str());
         TTree* dataTree2;
 	dataFile2->GetObject("resultsTree",dataTree2);

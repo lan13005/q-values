@@ -1,13 +1,15 @@
+#!/usr/bin/python 
+
 import subprocess
 import os
 import time
 from itertools import combinations
-#import numpy as np
 
 
 # Remaking some of the old directories so we dont mix old results with new results
 subprocess.Popen("rm -r logs", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 subprocess.Popen("mkdir logs", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+
 runOverAll=False
 if not runOverAll:
 	subprocess.Popen("rm -r histograms",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
@@ -21,17 +23,21 @@ if not runOverAll:
 
 start_time = time.time()
 
-kDim=600
-numberEventsToSavePerProcess=1
+kDim=300
+numberEventsToSavePerProcess=2
 nProcess=2
-seedShift=12151
+seedShift=1212
 nentries=1000
 override_nentries=1
 verbose=0
 detector="split"
 
+subprocess.Popen("rm postQ_"+detector+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+subprocess.Popen("rm postQValHists_"+detector+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+subprocess.Popen("rm qvalResults_"+detector+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
-varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
+varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs;phi_X_relativeToBeamPol'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
 #varVec=np.array(varStringBase.rstrip().split(";"))
 varVec=varStringBase.rstrip().split(";")
 
@@ -48,7 +54,7 @@ def runOverCombo(combo,nentries):
 	numVar=len(varString.split(";"))
 	
 	# the distance calculation needs dim to know the dimension of phase space. Before we compile it the script needs to know so we have replace before compilation 
-	exchangeVar=["sed","-i","s@const int dim=.*@const int dim="+str(numVar)+"@;g","main.h"]
+	exchangeVar=["sed","-i","s@const int dim=.*;@const int dim="+str(numVar)+";@g","main.h"]
 	compileMain=["g++","-o","main","main.C"]
 	rootFlags = subprocess.check_output(["root-config","--cflags","--glibs", "--libs"])
 	rootFlags = rootFlags.rstrip().split(" ")
@@ -65,6 +71,7 @@ def runOverCombo(combo,nentries):
 	subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 	replaceNumProcess=["sed","-i",'s@detector=".*";@detector="'+detector+'";@g',"makeDiagnosticHists.C"]
 	subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+
 	
 	# most processes shoudl have a wait but for some it doesnt matter. i.e. we have to wait for exchangeVar to run before compileMain
 	subprocess.Popen(exchangeVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait() # we have to wait for this command to finish before compiling...

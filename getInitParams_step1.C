@@ -77,7 +77,7 @@ void getInitParams_step1(){
 		//fitRangePi0={0.1,0.17};
 		// eta->3pi0
 		binRangeEta={200,0.25,0.85};
-		fitRangeEta={0.44,0.65};
+		fitRangeEta={0.4,0.7};
 		binRangePi0={200,0.05,0.25};
 		fitRangePi0={0.1,0.17};
 
@@ -88,15 +88,15 @@ void getInitParams_step1(){
 
 		fit = new TF1("fit",fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
 		bkgFit = new TF1("bkgFit",background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
-		sigFit = new TF1("sigFit",signalDG,fitRangeEta[0],fitRangeEta[1],numDOFsig);
+		sigFit = new TF1("sigFit",signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
 
 		// eta->gg
 		if (isEta2g) {
-			fit->SetParameters(11500,250,1750,0.547,0.003,3,5);
+			fit->SetParameters(11500,250,1750,0.547,0.003);//,3,5);
 		}
 		// eta->3pi0
 		else {
-			fit->SetParameters(100,250,1750,0.547,0.003,1,1);
+			fit->SetParameters(100,250,1750,0.547,0.003);//,1,1);
 		}
 
 		massHistEta = new TH1F("","",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
@@ -156,8 +156,11 @@ void getInitParams_step1(){
 		cout << "IntegralSIG after scaling: " << integralSIG << endl;
 		cout << "nentries: " << nentries << endl;
 
-		weightedSigma = 1.0/(1+par[5]/par[6])*par[4]+1.0/(1+par[6]/par[5])*par[6]*par[4];
-		logFile_eta << "weightedSigma: " << weightedSigma << endl;
+		double weightedSigma = 1.0/(1+par[5]/par[6])*par[4]+1.0/(1+par[6]/par[5])*par[6]*par[4];
+		logFile_eta << "weightedSigma " << weightedSigma << endl;
+
+		double eventRatioSigToBkg = integralSIG/integralBKG;
+		logFile_eta << "eventRatioSigToBkg " << eventRatioSigToBkg << endl;
 		
 		massHistEta->Draw();
 		massHistEta->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
@@ -170,11 +173,11 @@ void getInitParams_step1(){
 		// ///////////////////////////////////////////////////
 		fit = new TF1("fit",fitFunc,fitRangePi0[0],fitRangePi0[1],numDOFbkg+numDOFsig);
 		bkgFit = new TF1("bkgFit",background,fitRangePi0[0],fitRangePi0[1],numDOFbkg);
-		sigFit = new TF1("sigFit",signalDG,fitRangePi0[0],fitRangePi0[1],numDOFsig);
+		sigFit = new TF1("sigFit",signal,fitRangePi0[0],fitRangePi0[1],numDOFsig);
 
 		// eta->gg
 		if (isEta2g) {
-			fit->SetParameters(11500,250,1750,0.134,0.001,5,2);
+			fit->SetParameters(11500,250,1750,0.134,0.001);//,5,2);
 		}
 		// eta->3pi0
 		else { 
