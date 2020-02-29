@@ -42,13 +42,13 @@ bool randomSubset=true;
 int sizeOfRndSubset=30000;
 
 static const int nProcess=36; // this is just a holder that will be replaced by run.py.
-const int dim=3;
+const int dim=4;
 bool verbose2=true;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
 
 using namespace std;
-string detector="split";
+string detector="bcal";
 bool useEta=true;
 
 
@@ -515,7 +515,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 	cout << "Scaled Amp: " << scaleFactor*fittedAmp << endl;
 	par0 = { scaleFactor*fittedConst*(1+eventRatioSigToBkg), scaleFactor*fittedConst*(1+eventRatioSigToBkg)/2, 0 }; 
 	par1 = { scaleFactor*fittedLinear*(1+eventRatioSigToBkg), scaleFactor*fittedLinear*(1+eventRatioSigToBkg)/2, 0 }; 
-	par2 = { 0, scaleFactor*fittedAmp*(1+eventRatioSigToBkg)/2, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg) }; 
+	par2 = { 0, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg)/2, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg) }; 
 	correctInit = { scaleFactor*fittedConst, scaleFactor*fittedLinear, scaleFactor*fittedAmp };
 	
 	cout << "------------- CHECKING | 100% | 50%/50% | 100% | parameter initialization -----------------" << endl;
@@ -747,6 +747,7 @@ void QFactorAnalysis::runQFactorThreaded(){
         	double comboStd2; 
         	ULong64_t flatEntryNumber;
         	double bestChiSq;
+		double worstChiSq;
 		double chiSq_eta_01;
 		double chiSq_eta_02;
         	double best_qvalue;
@@ -774,7 +775,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 		TLine* qSigLine;
 		TLine* qBkgLine;
 		TH1F* discriminatorHist;
-		TH1F* discriminatorHist2;
+		//TH1F* discriminatorHist2;
 
 		// defining some variables we will use in the main loop to get the distances and then the q-values
 		map<double, int> mapDistToEntry;
@@ -789,7 +790,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 		// opening a file to write my log data to
     		ofstream logFile;
-    		logFile.open(("logs/processLog"+to_string(iThread)+".txt").c_str());
+    		logFile.open(("logs/log_"+detector+"/processLog"+to_string(iThread)+".txt").c_str());
 		
 		// Determine what events each thread should run
 		int batchEntries = (int)nentries/nProcess; // batchEntries the size of the batch
@@ -884,11 +885,11 @@ void QFactorAnalysis::runQFactorThreaded(){
 			distances.clear();
 			if(useEta){
 				discriminatorHist = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
-				discriminatorHist2 = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
+				//discriminatorHist2 = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
 			}
 			else{
 				discriminatorHist = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
-				discriminatorHist2 = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
+				//discriminatorHist2 = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
 			}
 			
 			for ( int iVar=0; iVar<numVars; ++iVar ){
@@ -929,14 +930,14 @@ void QFactorAnalysis::runQFactorThreaded(){
 				// IF ANYTHING WE SHOULD JUST SKIP THESE NON UNIQUE COMBINATIONS TO SAVE TIME (IF WE WERE ONLY PLOTTING M(ETA) BUT SINCE WE PLOT ALL THE DISTRIBUTIONS LIKE
 				// M(PI0ETA) WE CANT DO THIS
 				if(useEta){
-			        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
-			        	discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+			        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
+			        	//discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
 			        	stdCalc.insertValue(Metas[newPair.second]);
 			        	stdCalc2.insertValue(Mpi0s[newPair.second]);
 				}
 				else{
-			        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
-			        	discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]);//*sbWeights[newPair.second]);
+			        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
+			        	//discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
 			        	stdCalc.insertValue(Mpi0s[newPair.second]);
 			        	stdCalc2.insertValue(Metas[newPair.second]);
 				}
@@ -957,6 +958,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			//ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2");
 			
 			bestChiSq=DBL_MAX;
+			worstChiSq=DBL_MIN;
 			int best_iFit=0;
 			int countSig;
 			int countBkg;
@@ -1090,9 +1092,15 @@ void QFactorAnalysis::runQFactorThreaded(){
 					      //exit(0);
 					}
 				} 
+				if (chiSq > worstChiSq){
+					worstChiSq = chiSq;
+				}
 				duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 				if(verbose2){logFile << "\t("+to_string(iFit+1)+"st init config) Fitted the reference distribution: " << duration2 << "ms" << endl; }
 			}
+
+			if(verbose2){logFile << "\tDelta b/w best and worst chiSq = " << to_string(bestChiSq-worstChiSq) << ": " << duration2 << "ms" << endl; }
+				
 
 			// /////////////////////////////////////////
 			// Calculating some chiSq differences 
@@ -1107,7 +1115,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			allCanvases->Divide(2,1);
 			if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
 				if(verbose) { cout << "Keeping this event" << endl; }
-				discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq)+"     Std="+to_string(comboStd)+"    iFit="+to_string(best_iFit)).c_str() );
+				discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq) + " (#Delta="+to_string(bestChiSq-worstChiSq)+ ")     Std="+to_string(comboStd)+"    iFit="+to_string(best_iFit)).c_str() );
 				etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
 				etaLine->SetLineColor(kOrange);
 				

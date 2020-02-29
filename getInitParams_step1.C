@@ -119,13 +119,13 @@ void getInitParams_step1(){
 			else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
 			else { sbWeight = 0; }
                 	if ( isUniqueEtaB ) {
-		        	massHistEta->Fill(Meta,AccWeight);//*sbWeight);
+		        	massHistEta->Fill(Meta,AccWeight*sbWeight);
 			}
                 	if ( isUniquePi0B ) {
-		        	massHistPi0->Fill(Mpi0);//,AccWeight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
+		        	massHistPi0->Fill(Mpi0,AccWeight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
 			}
                 	if ( isUniquePi0EtaB ) {
-				massHistPi0Eta->Fill(Mpi0eta,AccWeight);//*sbWeight);
+				massHistPi0Eta->Fill(Mpi0eta,AccWeight*sbWeight);
 			}
 		}
 		cout << "Filled all entries into histogram for a specific fit" << endl;
