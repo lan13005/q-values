@@ -1,7 +1,7 @@
 rm -r logs
-mkdir -p logs/logs_bcal
-mkdir -p logs/logs_fcal
-mkdir -p logs/logs_split
+mkdir -p logs/bcal
+mkdir -p logs/fcal
+mkdir -p logs/split
 
 rm -r histograms
 mkdir -p histograms/fcal
@@ -12,3 +12,7 @@ rm -r diagnosticPlots
 mkdir -p diagnosticPlots/fcal
 mkdir -p diagnosticPlots/bcal
 mkdir -p diagnosticPlots/split
+
+rm log_bcal.txt
+rm log_fcal.txt
+rm log_split.txt

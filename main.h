@@ -42,13 +42,13 @@ bool randomSubset=true;
 int sizeOfRndSubset=30000;
 
 static const int nProcess=36; // this is just a holder that will be replaced by run.py.
-const int dim=4;
+const int dim=3;
 bool verbose2=true;
 bool verbose_outputDistCalc=false;
 TRandom rgen;
 
 using namespace std;
-string detector="bcal";
+string detector="fcal";
 bool useEta=true;
 
 
@@ -370,7 +370,7 @@ class QFactorAnalysis{
 		std::vector<double> cosTheta_X_cms; 
 		std::vector<double> cosTheta_eta_gjs; 
 		std::vector<double> phi_eta_gjs; 
-		std::vector<double> phi_X_relativeToBeamPols; 
+		//std::vector<double> phi_X_relativeToBeamPols; 
 		std::vector<double> AccWeights; 
 		std::vector<double> sbWeights; 
 		std::vector<ULong64_t> spectroscopicComboIDs; 
@@ -406,7 +406,7 @@ class QFactorAnalysis{
 			cosTheta_X_cms.reserve(nentries);
 			cosTheta_eta_gjs.reserve(nentries);
 			phi_eta_gjs.reserve(nentries);
-			phi_X_relativeToBeamPols.reserve(nentries);
+			//phi_X_relativeToBeamPols.reserve(nentries);
 			AccWeights.reserve(nentries);
 			sbWeights.reserve(nentries);
 			spectroscopicComboIDs.reserve(nentries);
@@ -542,7 +542,7 @@ void QFactorAnalysis::loadData(){
 	double phi_X_cm;
 	double cosTheta_eta_gj;
 	double phi_eta_gj;
-	double phi_X_relativeToBeamPol;
+	//double phi_X_relativeToBeamPol;
 	double cosThetaHighestEphotonIneta_gj;
 	double cosThetaHighestEphotonInpi0_cm;
 	double vanHove_x;
@@ -566,7 +566,7 @@ void QFactorAnalysis::loadData(){
 	dataTree->SetBranchAddress("phi_X_cm",&phi_X_cm); 
 	dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);
 	dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj); 
-	dataTree->SetBranchAddress("phi_X_relativeToBeamPol",&phi_X_relativeToBeamPol); 
+	//dataTree->SetBranchAddress("phi_X_relativeToBeamPol",&phi_X_relativeToBeamPol); 
 	dataTree->SetBranchAddress("cosThetaHighestEphotonIneta_gj",&cosThetaHighestEphotonIneta_gj);
 	dataTree->SetBranchAddress("cosThetaHighestEphotonInpi0_cm",&cosThetaHighestEphotonInpi0_cm);
 	dataTree->SetBranchAddress("vanHove_x",&vanHove_x);
@@ -601,7 +601,7 @@ void QFactorAnalysis::loadData(){
 		cosTheta_X_cms.push_back(cosTheta_X_cm);
 		cosTheta_eta_gjs.push_back(cosTheta_eta_gj);
 		phi_eta_gjs.push_back(phi_eta_gj);
-		phi_X_relativeToBeamPols.push_back(phi_X_relativeToBeamPol);
+		//phi_X_relativeToBeamPols.push_back(phi_X_relativeToBeamPol);
 		//phi_X_cms.push_back(phi_X_cm);
 		//cosThetaHighestEphotonIneta_gjs.push_back(cosThetaHighestEphotonIneta_gj);	 
 		//cosThetaHighestEphotonInpi0_cms.push_back(cosThetaHighestEphotonInpi0_cm);	 
@@ -639,8 +639,9 @@ void QFactorAnalysis::loadData(){
 	standardizeArray standarizationClass;
 	standarizationClass.rangeStandardization(cosTheta_X_cms,nentries);	
 	standarizationClass.rangeStandardization(cosTheta_eta_gjs,nentries);
+	//standarizationClass.rangeStandardization(phi_X_relativeToBeamPols,nentries);
+	standarizationClass.rangeStandardization(Mpi0s,nentries);
 	standarizationClass.rangeStandardization(phi_eta_gjs,nentries);
-	standarizationClass.rangeStandardization(phi_X_relativeToBeamPols,nentries);
 	//
 	//standarizationClass(,nentries);
 	//standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries);
@@ -654,17 +655,16 @@ void QFactorAnalysis::loadData(){
 	//standardizeArray class_vanHove_omegas(vanHove_omegas,nentries);
 	//standardizeArray class_pi0_energies(pi0_energies, nentries);
 	//standardizeArray class_mandelstam_tps(mandelstam_tps, nentries);
-	//standardizeArray class_Mpi0s(Mpi0s,nentries);
 	//standardizeArray class_Metas(Metas,nentries);
 	cout << "Standardizing the arrays" << endl;
 
-
 	map<std::string, std::vector<double>> nameToVec;
 	nameToVec["cosTheta_X_cms"] = cosTheta_X_cms;
-	//nameToVec["phi_X_cms"] = phi_X_cms; 
 	nameToVec["cosTheta_eta_gjs"] = cosTheta_eta_gjs; 
+	//nameToVec["phi_X_relativeToBeamPols"] = phi_X_relativeToBeamPols; 
+	nameToVec["Mpi0s"] = Mpi0s; 
 	nameToVec["phi_eta_gjs"] = phi_eta_gjs; 
-	nameToVec["phi_X_relativeToBeamPols"] = phi_X_relativeToBeamPols; 
+	//nameToVec["phi_X_cms"] = phi_X_cms; 
 	//nameToVec["cosThetaHighestEphotonIneta_gjs"] = cosThetaHighestEphotonIneta_gjs; 
 	//nameToVec["cosThetaHighestEphotonInpi0_cms"] = cosThetaHighestEphotonInpi0_cms; 
 	//nameToVec["vanHove_omegas"] = vanHove_omegas; 
@@ -672,7 +672,6 @@ void QFactorAnalysis::loadData(){
 	//nameToVec["vanHove_ys"] = vanHove_ys; 
 	//nameToVec["pi0_energies"] = pi0_energies; 
 	//nameToVec["mandelstam_tps"] = mandelstam_tps; 
-	//nameToVec["Mpi0s"] = Mpi0s; 
 	//nameToVec["Metas"] = Metas; 
 
 	//int nameMapCounter=0;
@@ -754,7 +753,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 		TBranch* b_sbWeight;
 		TBranch* b_flatEntryNumber;
-        	TFile *resultsFile = new TFile(("logs/results"+to_string(iThread)+".root").c_str(),"RECREATE");
+        	TFile *resultsFile = new TFile(("logs/"+detector+"/results"+to_string(iThread)+".root").c_str(),"RECREATE");
         	TTree* resultsTree = new TTree("resultsTree","results");
         	resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
         	resultsTree->Branch("qvalue",&best_qvalue,"qvalue/D");
@@ -763,7 +762,7 @@ void QFactorAnalysis::runQFactorThreaded(){
         	resultsTree->Branch("chisq_eta_02",&chiSq_eta_02,"chisq_eta/D");
         	resultsTree->Branch("combostd",&comboStd,"combostd/D");
         	resultsTree->Branch("combostd2",&comboStd2,"combostd2/D");
-        	if(verbose) {cout << "Set up branch addresses" << endl;}
+        	cout << "Set up branch addresses" << endl;
 
 		// Define some needed variables like canvases, histograms, and legends
         	auto legend_init = new TLegend(0.1,0.8,0.3,0.9);
@@ -790,7 +789,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 		// opening a file to write my log data to
     		ofstream logFile;
-    		logFile.open(("logs/log_"+detector+"/processLog"+to_string(iThread)+".txt").c_str());
+    		logFile.open(("logs/"+detector+"/processLog"+to_string(iThread)+".txt").c_str());
 		
 		// Determine what events each thread should run
 		int batchEntries = (int)nentries/nProcess; // batchEntries the size of the batch
@@ -814,7 +813,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			randomEvent += lowest_nentry; // shift by the lowest entry of the batch
 			selectRandomIdxToSave.insert( randomEvent );
 		}
-        	if(verbose){cout << "randomly selected some events to save" << endl; }
+        	cout << "randomly selected some events to save" << endl;
 
         	std::vector<double> fitRangeEta;
         	std::vector<double> fitRangePi0;
@@ -872,10 +871,10 @@ void QFactorAnalysis::runQFactorThreaded(){
 			legend_init->Clear();
 			legend_conv->Clear();
 			flatEntryNumber=ientry;
-			cumulativeStd stdCalc(kDim);
-			cumulativeStd stdCalc2(kDim);
+			//cumulativeStd stdCalc(kDim);
+			//cumulativeStd stdCalc2(kDim);
 			
-			if(verbose) { cout << "Getting next event!\n--------------------------------\n" << endl;  }
+			if(verbose){cout << "Getting next event!\n--------------------------------\n" << endl;}
 			auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 			auto duration_beginEvent = std::chrono::high_resolution_clock::now();
 			if(verbose2) { logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
@@ -899,6 +898,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			//      randomEntry = rand() % nentries;
 			//      distKNN.insertPair(make_pair(1, randomEntry) );
 			//}
+			if(verbose) { cout << "Built diagnostic histograms" << endl; }
 			for (int jentry : phasePoint2PotentailNeighbor) {  
 				if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
 				
@@ -917,6 +917,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				//	}
 				//}
 			}
+			if(verbose){cout << "Found neighbors: " << endl;}
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 			if(verbose2){logFile << "\tFound neighbors: " << duration2 << "ms" << endl; }
 			if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim! size,kDim="<< distKNN.kNN.size() << "," << kDim 
@@ -932,20 +933,21 @@ void QFactorAnalysis::runQFactorThreaded(){
 				if(useEta){
 			        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
 			        	//discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
-			        	stdCalc.insertValue(Metas[newPair.second]);
-			        	stdCalc2.insertValue(Mpi0s[newPair.second]);
+			        	//stdCalc.insertValue(Metas[newPair.second]);
+			        	//stdCalc2.insertValue(Mpi0s[newPair.second]);
 				}
 				else{
 			        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
 			        	//discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
-			        	stdCalc.insertValue(Mpi0s[newPair.second]);
-			        	stdCalc2.insertValue(Metas[newPair.second]);
+			        	//stdCalc.insertValue(Mpi0s[newPair.second]);
+			        	//stdCalc2.insertValue(Metas[newPair.second]);
 				}
 			        //cout << "(" << newPair.first << ", " << newPair.second << ")"; 
 			        //cout << endl; 
 			}
-			comboStd = stdCalc.calcStd();
-			comboStd2 = stdCalc2.calcStd();
+			// We will not calculate std for now, but lets just leave the structure here
+			comboStd = 1;// stdCalc.calcStd();
+			comboStd2 = 1;//stdCalc2.calcStd();
 			
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 			if(verbose2){logFile <<	"\tFilled neighbors: " << duration2 << "ms" << endl;}

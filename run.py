@@ -9,12 +9,13 @@ start_time = time.time()
 
 kDim=300
 numberEventsToSavePerProcess=2
-nProcess=2
+nProcess=24
 seedShift=1212
-nentries=1000
-override_nentries=1
+nentries=10000
+override_nentries=0
 verbose=0
-detector="split"
+detector="fcal"
+makeGraphs=True
 
 # every time we run this program we should probably clean the qvalue results stuff since something obviously went wrong to have to run it again
 subprocess.Popen("rm -f diagnosticPlots/"+detector+"/postQ_"+detector+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
@@ -23,7 +24,7 @@ subprocess.Popen("rm -f diagnosticPlots/"+detector+"/qvalResults_"+detector+"*",
 
 # so we need to add single quotes which will include the double quotes we need when passing it as an argument to the main program. If we include double quotes here it will actually be included in th parsing of the text in the program
 # ---- REMEMBER TO CHANGE THE MAIN FUNCTION BELOW TO INCLUDE ALL THE VARIABLES YOU WOULD LIKE TO USE -----
-varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs;phi_X_relativeToBeamPols'#;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
+varStringBase='cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs'#;Mpi0s;phi_X_relativeToBeamPols;phi_eta_gjs;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
 varVec=varStringBase.rstrip().split(";")
 # --------------------------------------------------------------------------------------------------------
 
@@ -84,21 +85,22 @@ def runOverCombo(combo,nentries):
 	# ------------------------------------
 	# run the makeDiagnosticHists program
 	# ------------------------------------
-	subprocess.Popen("cat logs/process* > diagnostic_logs.txt",shell=True).wait()
-	subprocess.Popen("hadd diagnosticPlots/"+detector+"/qvalResults_"+detector+".root logs/results*",shell=True).wait()
-	
-	if not override_nentries:
-	    nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub_"+detector+".txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
-	subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
+	if makeGraphs:
+		subprocess.Popen("cat logs/"+detector+"/process* > logs/"+detector+"/diagnostic_logs.txt",shell=True).wait()
+		subprocess.Popen("hadd diagnosticPlots/"+detector+"/qvalResults_"+detector+".root logs/"+detector+"/results*",shell=True).wait()
+		
+		if not override_nentries:
+		    nentries=int(subprocess.Popen("grep nentries fitResults/etaFitNoAccSub_"+detector+".txt | cut -d' ' -f2", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0].rstrip())
+		subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
 
-	subprocess.Popen("sendmail lng1492@gmail.com < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+		subprocess.Popen("sendmail lng1492@gmail.com < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
 	# ------------------------------------
 	# ------------------------------------
 
 
 numVar=len(varVec)
 # We are going pass as arugment a list of lists known as combo. This combo list contains all the lists of combos with numVar elements from the list varVec. If we use the command comboinations(range(3),2) we would get something like [ [1,2], [2,3], [1,3] ]. We can use these as indicies to index a a string of 0's to fill in whether a variable will be in use. i.e. if [1,3] is chosen then the string would be 101 with the second var turnedo off. This is useful when we are doing a scan of which variables we should use. Bruteforce style. 
-runOverCombo((0, 1, 2, 3),nentries)#, 3, 4, 5, 6),nentries)
+runOverCombo((0, 1, 2),nentries)#, 3, 4, 5, 6),nentries)
 counter=0
 for numVar in range(1,len((varVec))+1):
     combos=combinations(range(len(varVec)),numVar)

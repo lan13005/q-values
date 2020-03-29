@@ -2,7 +2,7 @@
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 bool verbose = true;
-string detector="split";
+string detector="fcal";
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -22,7 +22,9 @@ void makeDiagnosticHists(){
 	// ---------------------------------------------------------------------------
 
 	// Read in the qvalue data
-	TFile* dataFile2 = new TFile(("qvalResults_"+detector+".root").c_str());
+	string preQFileName = "diagnosticPlots/"+detector+"/qvalResults_"+detector+".root";
+	cout << "Opening " << preQFileName << endl;
+	TFile* dataFile2 = new TFile((preQFileName).c_str());
         TTree* dataTree2;
 	dataFile2->GetObject("resultsTree",dataTree2);
         cout << "Loaded the results file" << endl;
@@ -141,10 +143,12 @@ void makeDiagnosticHists(){
 	// ---------------------------------------------------------------------------
 	//
 	// setting up some basic root stuff and getting the file and tree
-	TFile* dataFile=new TFile(("pi0eta_"+detector+"_treeFlat_DSelector.root").c_str());
+	string inputFileLoc = "degALL_"+detector+"_treeFlat_DSelector.root";
+	cout << "Loading the data root " << inputFileLoc << endl;
+	TFile* dataFile=new TFile((inputFileLoc).c_str());
 	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject(("pi0eta_"+detector+"_tree_flat").c_str(),dataTree);
+	dataFile->GetObject(("degALL_"+detector+"_tree_flat").c_str(),dataTree);
 	
         TLine* etaLine;
         double AccWeight;
@@ -260,7 +264,9 @@ void makeDiagnosticHists(){
 	// and clone the datafile and add 3 new branches to track the qvalue, chiSq, flatEntryNumber
 	// ---------------------------------------------------------------------------
 
-	TFile *qd_dataFile = TFile::Open(("postQ_"+detector+"_flatTree.root").c_str(),"RECREATE"); 
+	string postQFileName = "diagnosticPlots/"+detector+"/postQ_"+detector+"_flatTree.root";	
+	cout << "Remaking " << postQFileName << endl;
+	TFile *qd_dataFile = TFile::Open((postQFileName).c_str(),"RECREATE"); 
 	TTree *outputTree = dataTree->CloneTree(-1,"fast"); 
 	TBranch* b_qvalue;
 	TBranch* b_qvalue_chisq;
@@ -429,7 +435,7 @@ void makeDiagnosticHists(){
         cout << "FINIHSED!"<<endl;
 	cout << "There were " << numNan << " nan values where q-value was not calculated. Fix me if nonzero!" << endl;
 
-	TFile* dataFile3 = new TFile(("postQValHists_"+detector+".root").c_str(),"RECREATE");
+	TFile* dataFile3 = new TFile(("diagnosticPlots/"+detector+"/postQValHists_"+detector+".root").c_str(),"RECREATE");
 	for (int i=0; i<2; i++){
         	Meta_bkg[i]->Write();
         	Meta_sig[i]->Write();

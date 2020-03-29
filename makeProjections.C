@@ -1,7 +1,7 @@
 void makeProjections(){
-        TFile* dataFile=new TFile("pi0eta_bcal_treeFlat_DSelector.root");
+        TFile* dataFile=new TFile("degALL_BCAL_treeFlat_DSelector.root");
         TTree *dataTree;
-        dataFile->GetObject("pi0eta_bcaltree_flat",dataTree);
+        dataFile->GetObject("degALL_BCALtree_flat",dataTree);
         TCanvas *allCanvases = new TCanvas("anyCanvas","",1440,900);
         TCanvas *allCanvasesX = new TCanvas("anyCanvasX","",1440,900);
         TCanvas *allCanvasesY = new TCanvas("anyCanvasY","",1440,900);

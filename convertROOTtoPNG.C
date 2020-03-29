@@ -41,7 +41,7 @@ void subdetector_convertROOTtoPNG(string inDir){
 
 	cout << "\n\n" << endl;
 	cout << "rm " << inDir << "/*.root" << endl;
-	//gSystem->Exec(("rm "+inDir+"/*.root").c_str());
+	gSystem->Exec(("rm "+inDir+"/*.root").c_str());
 }
 
 void convertROOTtoPNG(){

@@ -47,8 +47,8 @@ int main( int argc, char* argv[] ){
         cout << "----------------------------" << endl;
     
 	QFactorAnalysis analysisControl(kDim, varString, numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);
-	string rootFileLocation = "pi0eta_"+detector+"_treeFlat_DSelector.root";
-	string rootTreeName = "pi0eta_"+detector+"_tree_flat";
+	string rootFileLocation = "degALL_"+detector+"_treeFlat_DSelector.root";
+	string rootTreeName = "degALL_"+detector+"_tree_flat";
 	string fitLocation = "fitResults/etaFitNoAccSub_"+detector+".txt";
 	analysisControl.loadTree(rootFileLocation, rootTreeName);
 	analysisControl.loadFitParameters(fitLocation);

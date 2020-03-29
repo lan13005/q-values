@@ -1,8 +1,3 @@
-echo "Deleting old log files"
-rm -f log_bcal.txt
-rm -f log_fcal.txt
-rm -f log_split.txt
-
 echo "Cleaning directories" 
 ./cleanDirectories.sh
 
