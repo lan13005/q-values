@@ -12,11 +12,17 @@ void getInitParams_step1(){
 	gStyle->SetStatW(0.1);
 	TTree *dataTree;
 
-	string detectorNames[3] = {"fcal","bcal","split"};
-	for (int i=0; i<3; ++i){
+	static const int nDetectors = 1;
+	//string detectorNames[nDetectors] = {"fcal","bcal","split"};
+	string detectorNames[nDetectors] = {"data"};
+	for (int i=0; i<nDetectors; ++i){
 		if (isEta2g) {
-			TFile* dataFile=new TFile(("pi0eta_"+detectorNames[i]+"_treeFlat_DSelector.root").c_str());
-			dataFile->GetObject(("pi0eta_"+detectorNames[i]+"_tree_flat").c_str(),dataTree);
+			string dataFileName = "/d/grid15/ln16/pi0eta/092419/degALL_"+detectorNames[i]+"_2017_mEllipse_treeFlat_DSelector.root";
+			string dataTreeName = "degALL_"+detectorNames[i]+"_2017_mEllipse_tree_flat";
+			cout << "File Name: " << dataFileName << endl;
+			cout << "Tree Name: " << dataTreeName << endl;
+			TFile* dataFile=new TFile(dataFileName.c_str());
+			dataFile->GetObject(dataTreeName.c_str(),dataTree);
 		}
 		else {
 			TFile* dataFile=new TFile("pi0eta_reco_3pi0treeFlat_DSelector.root");
@@ -85,18 +91,17 @@ void getInitParams_step1(){
 		binWidthPi0=(binRangePi0[2]-binRangePi0[1])/binRangePi0[0];
 
 
-
 		fit = new TF1("fit",fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
 		bkgFit = new TF1("bkgFit",background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
 		sigFit = new TF1("sigFit",signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
 
 		// eta->gg
 		if (isEta2g) {
-			fit->SetParameters(11500,250,1750,0.547,0.003);//,3,5);
+			fit->SetParameters(11500,250,1750,0.547,0.003,3,5);
 		}
 		// eta->3pi0
 		else {
-			fit->SetParameters(100,250,1750,0.547,0.003);//,1,1);
+			fit->SetParameters(100,250,1750,0.547,0.003,1,1);
 		}
 
 		massHistEta = new TH1F("","",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
@@ -119,18 +124,20 @@ void getInitParams_step1(){
 			else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
 			else { sbWeight = 0; }
                 	if ( isUniqueEtaB ) {
-		        	massHistEta->Fill(Meta,AccWeight*sbWeight);
+		        	massHistEta->Fill(Meta,AccWeight);//*sbWeight);
 			}
                 	if ( isUniquePi0B ) {
 		        	massHistPi0->Fill(Mpi0,AccWeight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
 			}
                 	if ( isUniquePi0EtaB ) {
-				massHistPi0Eta->Fill(Mpi0eta,AccWeight*sbWeight);
+				massHistPi0Eta->Fill(Mpi0eta,AccWeight);//*sbWeight);
 			}
 		}
 		cout << "Filled all entries into histogram for a specific fit" << endl;
 
 		massHistPi0Eta->Draw("HIST");
+		massHistPi0Eta->GetXaxis()->SetTitleSize(0.04);
+		massHistPi0Eta->GetYaxis()->SetTitleSize(0.04);
 		allCanvases->SaveAs(("fitResults/Mpi0eta_fit_"+detectorNames[i]+".png").c_str());
 		allCanvases->Clear();
 		
@@ -163,6 +170,8 @@ void getInitParams_step1(){
 		logFile_eta << "eventRatioSigToBkg " << eventRatioSigToBkg << endl;
 		
 		massHistEta->Draw();
+		massHistEta->GetXaxis()->SetTitleSize(0.04);
+		massHistEta->GetYaxis()->SetTitleSize(0.04);
 		massHistEta->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
 		allCanvases->SaveAs(("fitResults/Meta_fit_"+detectorNames[i]+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
@@ -177,7 +186,7 @@ void getInitParams_step1(){
 
 		// eta->gg
 		if (isEta2g) {
-			fit->SetParameters(11500,250,1750,0.134,0.001);//,5,2);
+			fit->SetParameters(11500,250,1750,0.134,0.001,5,2);
 		}
 		// eta->3pi0
 		else { 
@@ -210,15 +219,17 @@ void getInitParams_step1(){
 		logFile_pi0 << "weightedSigma: " << weightedSigma << endl;
 		
 		massHistPi0->Draw();
+		massHistPi0->GetXaxis()->SetTitleSize(0.04);
+		massHistPi0->GetYaxis()->SetTitleSize(0.04);
 		massHistPi0->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
-		TLine *line = new TLine( sbRL, 0, sbRL, massHistPi0->GetMaximum());
-		line->SetLineColor(kRed);
-		line->Draw("SAME");
-		line->DrawLine( sbRR, 0, sbRR, massHistPi0->GetMaximum());
-		line->DrawLine( sigL, 0, sigL, massHistPi0->GetMaximum());
-		line->DrawLine( sigR, 0, sigR, massHistPi0->GetMaximum());
-		line->DrawLine( sbLL, 0, sbLL, massHistPi0->GetMaximum());
-		line->DrawLine( sbLR, 0, sbLR, massHistPi0->GetMaximum());
+		//TLine *line = new TLine( sbRL, 0, sbRL, massHistPi0->GetMaximum());
+		//line->SetLineColor(kRed);
+		//line->Draw("SAME");
+		//line->DrawLine( sbRR, 0, sbRR, massHistPi0->GetMaximum());
+		//line->DrawLine( sigL, 0, sigL, massHistPi0->GetMaximum());
+		//line->DrawLine( sigR, 0, sigR, massHistPi0->GetMaximum());
+		//line->DrawLine( sbLL, 0, sbLL, massHistPi0->GetMaximum());
+		//line->DrawLine( sbLR, 0, sbLR, massHistPi0->GetMaximum());
 
 		allCanvases->SaveAs(("fitResults/Mpi0_fit_"+detectorNames[i]+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;

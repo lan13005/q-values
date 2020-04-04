@@ -1,3 +1,5 @@
+rm main
+
 rm -r logs
 mkdir -p logs/bcal
 mkdir -p logs/fcal

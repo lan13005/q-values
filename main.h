@@ -48,15 +48,15 @@ bool verbose_outputDistCalc=false;
 TRandom rgen;
 
 using namespace std;
-string detector="fcal";
+string detector="split";
 bool useEta=true;
 
 
-int numDOFsig = 3;
-Double_t signal(Double_t *x, Double_t *par){
-	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
-
-}
+//int numDOFsig = 3;
+//Double_t signal(Double_t *x, Double_t *par){
+//	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
+//
+//}
 //
 //Double_t signalBW(Double_t* x, Double_t* par) {
 //    Double_t arg1 = 14.0/22.0; // 2 over pi
@@ -69,12 +69,12 @@ Double_t signal(Double_t *x, Double_t *par){
 
 // ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS. SO SINCE getInitParams_step1.C SO SINCE fitFunc USES signal WHEN WE ACTUALLY INPUT THE INIT PARAMS INTO 
 // ******* main.C WE CAN JUST USE THEM DIRECTLY, DONT HAVE TO CALCULATE ANYTHING
-//int numDOFsig = 5;
-//Double_t signal(Double_t *x, Double_t *par){
-//	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
-//	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
-//
-//}
+int numDOFsig = 5;
+Double_t signal(Double_t *x, Double_t *par){
+	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
+	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
+
+}
 int numDOFbkg = 2;
 Double_t background(Double_t *x, Double_t *par){
 	return par[0]+par[1]*x[0];

@@ -9,12 +9,12 @@ start_time = time.time()
 
 kDim=300
 numberEventsToSavePerProcess=2
-nProcess=24
+nProcess=18
 seedShift=1212
 nentries=10000
 override_nentries=0
 verbose=0
-detector="fcal"
+detector="split"
 makeGraphs=True
 
 # every time we run this program we should probably clean the qvalue results stuff since something obviously went wrong to have to run it again
