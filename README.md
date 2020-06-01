@@ -1,7 +1,8 @@
-## Introduction
-[Original Paper](https://arxiv.org/pdf/0809.2548.pdf)
+## Introduction to Q-Factor sideband subtraction at GlueX
+[Original Paper - Multivariate side-band subtraction using probabilistic event weights](https://arxiv.org/pdf/0809.2548.pdf)
 
-Calculating Q-factors in the reaction <img src="https://render.githubusercontent.com/render/math?math=\gamma p\rightarrow\pi^0\eta p \rightarrow 4\gamma p">
+
+Calculating Q-factors in the reaction <img src="https://render.githubusercontent.com/render/math?math=\gamma p\rightarrow\pi^0\eta p \rightarrow 4\gamma p"> at GlueX.
 Q-factors is an event-by-event multivariate sideband subtraction technique. The only requirement is the knowledge of the signal and background distribution of some discriminating variable. 
 1. First the nearest neighbors, under some set of phase space variables, is found for a given event
 2. Distribution of the discriminating variable is filled with the nearest neighbors
