@@ -1,11 +1,22 @@
+// README
+// The purpose of this code is to fit the distribution of the discriminating variables and extract the fit parameters
+// We can then pass these fitted parameters, scale them, and use them as initializations for the q-values
+// This step is very important so make sure there is consistency between this file and the "main.C, main.h and run.py"
+// 1. Make sure the discriminating variables are the same...
+    // That means make sure the rootFile and tree name is the same...
+// 2. All the fit data will be in the logFile so make sure main.h loads in this file
+
+
 #include "main.h"
 #include "/d/grid15/ln16/pi0eta/092419/makeGraphs.h"
 
-bool isEta2g=true;
+string rootFileLoc="bcal";
+string rootTreeName="bcal";
+string fileTag="bcal";
+string weightingScheme;
+weightingScheme="as"; // initialized it this way so we can search for it easier 
 
-void getInitParams_step1(){
-	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
-
+void getInitParams{
 	gStyle->SetOptFit(111);
 	gStyle->SetOptStat(0);
 	gStyle->SetStatH(0.1);
@@ -13,25 +24,16 @@ void getInitParams_step1(){
 	TTree *dataTree;
 
 	static const int nDetectors = 1;
-	//string detectorNames[nDetectors] = {"fcal","bcal","split"};
-	string detectorNames[nDetectors] = {"data"};
 	for (int i=0; i<nDetectors; ++i){
-		if (isEta2g) {
-			string dataFileName = "/d/grid15/ln16/pi0eta/092419/degALL_"+detectorNames[i]+"_2017_mEllipse_treeFlat_DSelector.root";
-			string dataTreeName = "degALL_"+detectorNames[i]+"_2017_mEllipse_tree_flat";
-			cout << "File Name: " << dataFileName << endl;
-			cout << "Tree Name: " << dataTreeName << endl;
-			TFile* dataFile=new TFile(dataFileName.c_str());
-			dataFile->GetObject(dataTreeName.c_str(),dataTree);
-		}
-		else {
-			TFile* dataFile=new TFile("pi0eta_reco_3pi0treeFlat_DSelector.root");
-			dataFile->GetObject("pi0eta_reco_3pi0tree_flat",dataTree);
-		}
-    		ofstream logFile_eta;
-    		ofstream logFile_pi0;
-    		logFile_eta.open(("fitResults/etaFitNoAccSub_"+detectorNames[i]+".txt").c_str());
-    		logFile_pi0.open(("fitResults/pi0FitNoAccSub_"+detectorNames[i]+".txt").c_str());
+		cout << "File Name: " << rootFileLoc << endl;
+		cout << "Tree Name: " << rootTreeName << endl;
+		TFile* dataFile=new TFile(rootFileLoc.c_str());
+		dataFile->GetObject(rootTreeName.c_str(),dataTree);
+
+    		ofstream logFile_discrimVar1;
+    		ofstream logFile_discrimVar2;
+    		logFile_discrimVar1.open(("fitResults/etaFitNoAccSub_"+detectorNames[i]+".txt").c_str());
+    		logFile_discrimVar2.open(("fitResults/pi0FitNoAccSub_"+detectorNames[i]+".txt").c_str());
 
     		TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
         	bool isUniqueEtaB;
@@ -71,7 +73,7 @@ void getInitParams_step1(){
 
 		double integralBKG;
 		double integralSIG;
-		double weightedSignma;
+		double weightedSigma;
 
 		// ///////////////////////////////////////////////////
 		// START ETA FIT
@@ -95,14 +97,7 @@ void getInitParams_step1(){
 		bkgFit = new TF1("bkgFit",background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
 		sigFit = new TF1("sigFit",signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
 
-		// eta->gg
-		if (isEta2g) {
-			fit->SetParameters(11500,250,1750,0.547,0.003,3,5);
-		}
-		// eta->3pi0
-		else {
-			fit->SetParameters(100,250,1750,0.547,0.003,1,1);
-		}
+		fit->SetParameters(11500,250,1750,0.547,0.003,3,5);
 
 		massHistEta = new TH1F("","",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
 		massHistPi0 = new TH1F("","",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
@@ -123,14 +118,18 @@ void getInitParams_step1(){
 			else if ( Mpi0 > sbLL && Mpi0 < sbLR ) { sbWeight = -1; } 
 			else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
 			else { sbWeight = 0; }
+                        double weight;
+                        if (weightingScheme==""){ weight=1; }
+                        if (weightingScheme=="as"){ weight=AccWeight; }
+                        if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight; }
                 	if ( isUniqueEtaB ) {
-		        	massHistEta->Fill(Meta,AccWeight);//*sbWeight);
+		        	massHistEta->Fill(Meta,weight);//*sbWeight);
 			}
                 	if ( isUniquePi0B ) {
-		        	massHistPi0->Fill(Mpi0,AccWeight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
+		        	massHistPi0->Fill(Mpi0,weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
 			}
                 	if ( isUniquePi0EtaB ) {
-				massHistPi0Eta->Fill(Mpi0eta,AccWeight);//*sbWeight);
+				massHistPi0Eta->Fill(Mpi0eta,weight);//*sbWeight);
 			}
 		}
 		cout << "Filled all entries into histogram for a specific fit" << endl;
@@ -146,10 +145,10 @@ void getInitParams_step1(){
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
 		massHistEta->SetTitle(";M(#eta) (GeV)");
-		logFile_eta << namePar[0] << " " << nentries << endl;
+		logFile_discrimVar1 << namePar[0] << " " << nentries << endl;
 		
 		for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
-		        logFile_eta << namePar[iPar+1] << " " << par[iPar] << endl;
+		        logFile_discrimVar1 << namePar[iPar+1] << " " << par[iPar] << endl;
 		}
 		
 		integralBKG = bkgFit->Integral(fitRangeEta[0],fitRangeEta[1]);
@@ -163,13 +162,40 @@ void getInitParams_step1(){
 		cout << "IntegralSIG after scaling: " << integralSIG << endl;
 		cout << "nentries: " << nentries << endl;
 
-		double weightedSigma = 1.0/(1+par[5]/par[6])*par[4]+1.0/(1+par[6]/par[5])*par[6]*par[4];
-		logFile_eta << "weightedSigma " << weightedSigma << endl;
+		//double weightedSigma = 1.0/(1+par[5]/par[6])*par[4]+1.0/(1+par[6]/par[5])*par[6]*par[4];
+		double weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
+		logFile_discrimVar1 << "integralBKG " << integralBKG << endl;
+		logFile_discrimVar1 << "integralSIG " << integralSIG << endl;
+		logFile_discrimVar1 << "weightedSigma " << weightedSigma << endl;
 
 		double eventRatioSigToBkg = integralSIG/integralBKG;
-		logFile_eta << "eventRatioSigToBkg " << eventRatioSigToBkg << endl;
+		logFile_discrimVar1 << "eventRatioSigToBkg " << eventRatioSigToBkg << endl;
+
+		int nSig=3;
+		TLine *line = new TLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
+		line->SetLineColor(kMagenta);
+		double integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthEta;
+		double integralSIG_nsig = sigFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthEta;
+		logFile_discrimVar1 << "integralBKG_nSig " << integralBKG_nsig << endl;
+		logFile_discrimVar1 << "integralSIG_nSig " << integralSIG_nsig << endl;
+		Int_t binx1 = massHistEta->GetXaxis()->FindBin(par[3]-nSig*weightedSigma);
+		Int_t binx2 = massHistEta->GetXaxis()->FindBin(par[3]+nSig*weightedSigma);
+		logFile_discrimVar1 << "-- 3sigma BinLower, BinUpper = " << binx1 << ", " << binx2 << endl;
+		logFile_discrimVar1 << "-- Actual counts in the 3sigma range " << massHistEta->Integral(binx1,binx2) << endl;
+		logFile_discrimVar1 << "-- integralBKG_nSig+integralSIG_nSig " << integralBKG_nsig+integralSIG_nsig << endl;
+		if ( abs(1-massHistEta->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) < 0.05 ) {
+			logFile_discrimVar1 << "--There is agreement within 5%" << endl;
+		}
+		else {
+			logFile_discrimVar1 << "--Percent off " << abs(1-massHistEta->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) << endl;
+		}
+		double purity = integralSIG_nsig/(integralBKG_nsig+integralSIG_nsig);
+		logFile_discrimVar1 << "purity " << purity << endl;
+
 		
 		massHistEta->Draw();
+		line->DrawLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
+		line->DrawLine(par[3]+nSig*weightedSigma,0,par[3]+nSig*weightedSigma,massHistEta->GetMaximum());
 		massHistEta->GetXaxis()->SetTitleSize(0.04);
 		massHistEta->GetYaxis()->SetTitleSize(0.04);
 		massHistEta->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
@@ -184,24 +210,17 @@ void getInitParams_step1(){
 		bkgFit = new TF1("bkgFit",background,fitRangePi0[0],fitRangePi0[1],numDOFbkg);
 		sigFit = new TF1("sigFit",signal,fitRangePi0[0],fitRangePi0[1],numDOFsig);
 
-		// eta->gg
-		if (isEta2g) {
-			fit->SetParameters(11500,250,1750,0.134,0.001,5,2);
-		}
-		// eta->3pi0
-		else { 
-			fit->SetParameters(700,0,300,0.134,0.01,1,1);
-		}
+		fit->SetParameters(11500,250,1750,0.134,0.001,5,2);
 
 		massHistPi0->Fit("fit","RQB"); // B will enforce the bounds
 		fit->GetParameters(par);
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
 		massHistPi0->SetTitle(";M(#pi^{0}) (GeV)");
-		logFile_pi0 << namePar[0] << " " << nentries << endl;
+		logFile_discrimVar2 << namePar[0] << " " << nentries << endl;
 		
 		for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
-		        logFile_pi0 << namePar[iPar+1] << " " << par[iPar] << endl;
+		        logFile_discrimVar2 << namePar[iPar+1] << " " << par[iPar] << endl;
 		}
 		
 		integralBKG = bkgFit->Integral(fitRangePi0[0],fitRangePi0[1]);
@@ -210,15 +229,38 @@ void getInitParams_step1(){
 		cout << "IntegralSIG before scaling: " << integralSIG << endl;
 		integralBKG *= 1/binWidthPi0;
 		integralSIG *= 1/binWidthPi0;
+		logFile_discrimVar2 << "integralBKG " << integralBKG << endl;
+		logFile_discrimVar2 << "integralSIG " << integralSIG << endl;
 
 		cout << "IntegralBKG after scaling: " << integralBKG << endl;
 		cout << "IntegralSIG after scaling: " << integralSIG << endl;
 		cout << "nentries: " << nentries << endl;
 
-		weightedSigma = 1.0/(1+par[5]/par[6])*par[4]+1.0/(1+par[6]/par[5])*par[6]*par[4];
-		logFile_pi0 << "weightedSigma: " << weightedSigma << endl;
+		//weightedSigma = 1.0/(1+par[5]/par[6])*par[4]+1.0/(1+par[6]/par[5])*par[6]*par[4];
+		weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
+		logFile_discrimVar2 << "weightedSigma: " << weightedSigma << endl;
+
+		integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
+		integralSIG_nsig = sigFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
+		logFile_discrimVar2 << "integralBKG_nSig " << integralBKG_nsig << endl;
+		logFile_discrimVar2 << "integralSIG_nSig " << integralSIG_nsig << endl;
+		binx1 = massHistPi0->GetXaxis()->FindBin(par[3]-nSig*weightedSigma);
+		binx2 = massHistPi0->GetXaxis()->FindBin(par[3]+nSig*weightedSigma);
+		logFile_discrimVar1 << "-- 3sigma BinLower, BinUpper = " << binx1 << ", " << binx2 << endl;
+		logFile_discrimVar1 << "-- Actual counts in the 3sigma range " << massHistPi0->Integral(binx1,binx2) << endl;
+		logFile_discrimVar1 << "-- integralBKG_nSig+integralSIG_nSig " << integralBKG_nsig+integralSIG_nsig << endl;
+		if ( abs(1-massHistPi0->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) < 0.05 ) {
+			logFile_discrimVar1 << "--There is agreement within 5%" << endl;
+		}
+		else {
+			logFile_discrimVar1 << "--Percent off " << abs(1-massHistPi0->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) << endl;
+		}
+		purity = integralSIG_nsig/(integralBKG_nsig+integralSIG_nsig);
+		logFile_discrimVar2 << "purity " << purity << endl;
 		
 		massHistPi0->Draw();
+		line->DrawLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
+		line->DrawLine(par[3]+nSig*weightedSigma,0,par[3]+nSig*weightedSigma,massHistEta->GetMaximum());
 		massHistPi0->GetXaxis()->SetTitleSize(0.04);
 		massHistPi0->GetYaxis()->SetTitleSize(0.04);
 		massHistPi0->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());

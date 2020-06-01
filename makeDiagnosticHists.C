@@ -1,8 +1,14 @@
+// main outputs some histograms to check the q-value calculation for some events
+// This file aggregates all the results from all the threads and plots various distributions with the q-values applied
+
 #include <ctime>
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 bool verbose = true;
-string detector="split";
+string fileTag="split";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root";
+string rootTreeName="degALL_split_tree_flat";
+string weightingScheme="as"; // "" or "as*bs"
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -22,7 +28,7 @@ void makeDiagnosticHists(){
 	// ---------------------------------------------------------------------------
 
 	// Read in the qvalue data
-	string preQFileName = "diagnosticPlots/"+detector+"/qvalResults_"+detector+".root";
+	string preQFileName = "diagnosticPlots/"+fileTa+"/qvalResults_"+fileTa+".root";
 	cout << "Opening " << preQFileName << endl;
 	TFile* dataFile2 = new TFile((preQFileName).c_str());
         TTree* dataTree2;
@@ -143,12 +149,11 @@ void makeDiagnosticHists(){
 	// ---------------------------------------------------------------------------
 	//
 	// setting up some basic root stuff and getting the file and tree
-	string inputFileLoc = "degALL_"+detector+"_treeFlat_DSelector.root";
+	string inputFileLoc = rootFileLoc;
 	cout << "Loading the data root " << inputFileLoc << endl;
 	TFile* dataFile=new TFile((inputFileLoc).c_str());
-	//TFile* dataFile=new TFile("pi0eta_a0_recotreeFlat_DSelector.root");
 	TTree *dataTree;
-	dataFile->GetObject(("degALL_"+detector+"_tree_flat").c_str(),dataTree);
+	dataFile->GetObject((rootTreeName).c_str(),dataTree);
 	
         TLine* etaLine;
         double AccWeight;
@@ -264,7 +269,7 @@ void makeDiagnosticHists(){
 	// and clone the datafile and add 3 new branches to track the qvalue, chiSq, flatEntryNumber
 	// ---------------------------------------------------------------------------
 
-	string postQFileName = "diagnosticPlots/"+detector+"/postQ_"+detector+"_flatTree.root";	
+	string postQFileName = "diagnosticPlots/"+fileTag+"/postQ_"+fileTag+"_flatTree.root";	
 	cout << "Remaking " << postQFileName << endl;
 	TFile *qd_dataFile = TFile::Open((postQFileName).c_str(),"RECREATE"); 
 	TTree *outputTree = dataTree->CloneTree(-1,"fast"); 
@@ -325,20 +330,20 @@ void makeDiagnosticHists(){
 	
         allCanvases->Clear();
 	dHist_chisq01->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+detector+"/chisq01.png").c_str());
+        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/chisq01.png").c_str());
         allCanvases->Clear();
 	dHist_chisq02->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+detector+"/chisq02.png").c_str());
+        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/chisq02.png").c_str());
 
         allCanvases->Clear();
         dHist_std->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+detector+"/combostds.png").c_str());
+        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/combostds.png").c_str());
 	THStack* stackedHists = new THStack("stackedHists","");
 	dHist_qvalues->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+detector+"/qvalues.png").c_str());
+        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/qvalues.png").c_str());
         allCanvases->Clear();
 	dHist_chisq->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+detector+"/chisq.png").c_str());
+        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/chisq.png").c_str());
     
         cout << "Drew the imported data" << endl;
 
@@ -356,9 +361,13 @@ void makeDiagnosticHists(){
                     //cout << "ientry is nan: " << ientry << endl;
 		    ++numNan;
                 }
-		sigWeight = qvalue*AccWeights[ientry];//*sbWeights[ientry];
-		totWeight = AccWeights[ientry];//*sbWeights[ientry];
-		bkgWeight = conjugate_qvalue*AccWeights[ientry];//*sbWeights[ientry];
+                double weight; 
+                if (weightingScheme==""){ weight=1; }
+                if (weightingScheme=="as"){ weight=AccWeight; }
+                if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight; }
+		sigWeight = qvalue*weight;//*sbWeights[ientry];
+		totWeight = weight;//*sbWeights[ientry];
+		bkgWeight = conjugate_qvalue*weight;//*sbWeights[ientry];
                 //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
                 if ( isUniqueEtaBs[ientry] ) {
 			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs2[ientry], sigWeight);
@@ -419,23 +428,23 @@ void makeDiagnosticHists(){
         cout << "Made the histograms" << endl;
 
 	// HERE WE WILL JUST DRAW SOME OF THE HISTOGRAMS WITH THE BKG FILLED IN TO SEE THEIR CONTRIBUTION
-	makeStackedHist(Mpi0g_tot,Mpi0g_sig,Mpi0g_bkg,"Mpi0gkin", "diagnosticPlots/"+detector);
+	makeStackedHist(Mpi0g_tot,Mpi0g_sig,Mpi0g_bkg,"Mpi0gkin", "diagnosticPlots/"+fileTag);
 	for (int i=0; i<2; i++){
 		string tag="";
 		if (i%2==0){ tag="meas"; }
 		else { tag="kin"; } 
-		makeStackedHist(Meta_tot[i],Meta_sig[i],Meta_bkg[i],"Meta"+tag, "diagnosticPlots/"+detector);
-		makeStackedHist(Mpi0_tot[i],Mpi0_sig[i],Mpi0_bkg[i],"Mpi0"+tag, "diagnosticPlots/"+detector);
-		makeStackedHist(Mpi0eta_tot[i],Mpi0eta_sig[i],Mpi0eta_bkg[i],"Mpi0eta"+tag, "diagnosticPlots/"+detector);
-		makeStackedHist(cosThetaEta_GJ_tot[i],cosThetaEta_GJ_sig[i],cosThetaEta_GJ_bkg[i],"cosThetaEta_GJ"+tag, "diagnosticPlots/"+detector);	
-		makeStackedHist(cosThetaX_CM_tot[i],cosThetaX_CM_sig[i],cosThetaX_CM_bkg[i],"cosThetaX_CM"+tag, "diagnosticPlots/"+detector);	
-		makeStackedHist(phiEta_GJ_tot[i],phiEta_GJ_sig[i],phiEta_GJ_bkg[i],"phiEta_GJ"+tag, "diagnosticPlots/"+detector);	
+		makeStackedHist(Meta_tot[i],Meta_sig[i],Meta_bkg[i],"Meta"+tag, "diagnosticPlots/"+fileTag);
+		makeStackedHist(Mpi0_tot[i],Mpi0_sig[i],Mpi0_bkg[i],"Mpi0"+tag, "diagnosticPlots/"+fileTag);
+		makeStackedHist(Mpi0eta_tot[i],Mpi0eta_sig[i],Mpi0eta_bkg[i],"Mpi0eta"+tag, "diagnosticPlots/"+fileTag);
+		makeStackedHist(cosThetaEta_GJ_tot[i],cosThetaEta_GJ_sig[i],cosThetaEta_GJ_bkg[i],"cosThetaEta_GJ"+tag, "diagnosticPlots/"+fileTag);	
+		makeStackedHist(cosThetaX_CM_tot[i],cosThetaX_CM_sig[i],cosThetaX_CM_bkg[i],"cosThetaX_CM"+tag, "diagnosticPlots/"+fileTag);	
+		makeStackedHist(phiEta_GJ_tot[i],phiEta_GJ_sig[i],phiEta_GJ_bkg[i],"phiEta_GJ"+tag, "diagnosticPlots/"+fileTag);	
 	}
 
         cout << "FINIHSED!"<<endl;
 	cout << "There were " << numNan << " nan values where q-value was not calculated. Fix me if nonzero!" << endl;
 
-	TFile* dataFile3 = new TFile(("diagnosticPlots/"+detector+"/postQValHists_"+detector+".root").c_str(),"RECREATE");
+	TFile* dataFile3 = new TFile(("diagnosticPlots/"+fileTag+"/postQValHists_"+fileTag+".root").c_str(),"RECREATE");
 	for (int i=0; i<2; i++){
         	Meta_bkg[i]->Write();
         	Meta_sig[i]->Write();

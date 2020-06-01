@@ -1,9 +1,8 @@
 #include "main.h"
 
-//int test(int kDim, string varString, int numberEventsToSavePerProcess, int nProcess, int seedShift, Long64_t nentries, bool override_nentries, bool verbose){
 int main( int argc, char* argv[] ){
 	ROOT::EnableThreadSafety();
-	ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2");
+	ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2"); // For thread safety we need this
 	TH1::AddDirectory(kFALSE);
 
 	// This suppresses all the "info" messages from roofit. Like saying that it will use numeric integrator for the generic pdf we define
@@ -47,10 +46,8 @@ int main( int argc, char* argv[] ){
         cout << "----------------------------" << endl;
     
 	QFactorAnalysis analysisControl(kDim, varString, numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);
-	string rootFileLocation = "degALL_"+detector+"_treeFlat_DSelector.root";
-	string rootTreeName = "degALL_"+detector+"_tree_flat";
-	string fitLocation = "fitResults/etaFitNoAccSub_"+detector+".txt";
-	analysisControl.loadTree(rootFileLocation, rootTreeName);
+	string fitLocation = "fitResults/etaFitNoAccSub_"+fileTag+".txt";
+	analysisControl.loadTree(rootFileLoc, rootTreeName);
 	analysisControl.loadFitParameters(fitLocation);
 	analysisControl.loadData();
 	analysisControl.runQFactorThreaded();

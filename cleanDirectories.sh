@@ -15,6 +15,9 @@ mkdir -p diagnosticPlots/fcal
 mkdir -p diagnosticPlots/bcal
 mkdir -p diagnosticPlots/split
 
-rm log_bcal.txt
-rm log_fcal.txt
-rm log_split.txt
+rm -r fitResults
+mkdir fitResults
+
+rm -f log_bcal.txt
+rm -f log_fcal.txt
+rm -f log_split.txt

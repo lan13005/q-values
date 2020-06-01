@@ -36,28 +36,28 @@
 
 
 //#include "Math/MinimizerOptions.h"
+//using namespace RooFit;
 
-using namespace RooFit;
-bool randomSubset=true;
-int sizeOfRndSubset=30000;
 
-static const int nProcess=36; // this is just a holder that will be replaced by run.py.
-const int dim=3;
-bool verbose2=true;
+const int dim=3; // will get replaced by run.py
 bool verbose_outputDistCalc=false;
 TRandom rgen;
 
 using namespace std;
-string detector="split";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root";
+string rootTreeName="degALL_split_tree_flat";
+string fileTag="split";
+string weightingScheme="as"; // "" or "as*bs"
 bool useEta=true;
 
 
+// Code for a single gaussian
 //int numDOFsig = 3;
 //Double_t signal(Double_t *x, Double_t *par){
 //	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
 //
 //}
-//
+// Code for a breit Wigner
 //Double_t signalBW(Double_t* x, Double_t* par) {
 //    Double_t arg1 = 14.0/22.0; // 2 over pi
 //    Double_t arg2 = par[2]*par[2]*par[1]*par[1]; //Gamma=par[1]  M=par[2]
@@ -67,8 +67,7 @@ bool useEta=true;
 //    return par[0]*arg1*arg2/(arg3 + arg4);
 //}
 
-// ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS. SO SINCE getInitParams_step1.C SO SINCE fitFunc USES signal WHEN WE ACTUALLY INPUT THE INIT PARAMS INTO 
-// ******* main.C WE CAN JUST USE THEM DIRECTLY, DONT HAVE TO CALCULATE ANYTHING
+// ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS
 int numDOFsig = 5;
 Double_t signal(Double_t *x, Double_t *par){
 	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
@@ -84,6 +83,14 @@ Double_t fitFunc(Double_t *x, Double_t *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
 
+// Including code for a 2D double gaussian with planar bkg to be used as a purity extractor
+Double_t doubleGaus2D(Double_t *x, Double_t *par){
+	return par[9]+par[10]*(x[0]-par[1])+par[11]*(x[1]-par[5])+par[0]/2/TMath::Pi()*(1/par[2]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
+	     + par[3]/(par[4]*par[2])*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])))
+	     )*(1/par[6]*exp(-0.5*((x[1]-par[5])/par[6])*((x[1]-par[5])/par[6]))
+	     + par[7]/(par[8]*par[6])*exp(-0.5*((x[1]-par[5])/(par[8]*par[6]))*((x[1]-par[5])/(par[8]*par[6])))
+	     );
+}
 
 void drawText(Double_t *par, int dof, string tag, double qSigValue, double qBkgValue, double qTotValue){
     //TLatex parText;
@@ -200,7 +207,8 @@ class parseVarString{
 // The following two classes will be used to keep track of pairs of distances and index, sorted by distance. priority_queue in stl requires three arguments
 // which are type, container for type, and a comparator. we will use pair as the type which is held in a vector container. compareDist is the comparator
 // which compares the first elements of two pairs. The first element is the distance, the second is the index j (in dij when calculating the distances). 
-// distSort_kNN will setup our priority_que that keeps a maximum of kDim elements simply by popping and pushing data. 
+// distSort_kNN will setup our priority_queue that keeps a maximum of kDim elements simply by popping and pushing data. 
+// This type of sorting should have k*log(k) sorting, I think. If we do this N times then the complexit ~ N*k*log(k). Probably have to check me on this
 class compareDist
 {
     public:
@@ -281,6 +289,7 @@ class cumulativeStd{
 
 };
 
+// OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
 //class rooFitML{
 //	private:
 //        	double peakWidtheta[2] = {0.545928, 0.0196892};
@@ -353,7 +362,10 @@ class QFactorAnalysis{
 		string varString;
 		int numVars;
 		std::chrono::time_point<std::chrono::high_resolution_clock> start2;
-	
+                
+                // These block of variables will be used to hold the initialization parameters. In the Q-factor paper they use 3 different initializations which
+                // correspond to 100% bkg, 50/50, and 100% sig. If we want to do this here, the yields in the bkg and signal need to be modified. These vectors
+                // will hold that information
 		std::vector<double> par0;
 		std::vector<double> par1;
 		std::vector<double> par2;
@@ -370,10 +382,10 @@ class QFactorAnalysis{
 		std::vector<double> cosTheta_X_cms; 
 		std::vector<double> cosTheta_eta_gjs; 
 		std::vector<double> phi_eta_gjs; 
-		//std::vector<double> phi_X_relativeToBeamPols; 
 		std::vector<double> AccWeights; 
 		std::vector<double> sbWeights; 
 		std::vector<ULong64_t> spectroscopicComboIDs; 
+		//std::vector<double> phi_X_relativeToBeamPols; 
 		//std::vector<double> phi_X_cms; phi_X_cms.reserve(nentries);
 		//std::vector<double> cosThetaHighestEphotonIneta_gjs; cosThetaHighestEphotonIneta_gjs.reserve(nentries);
 		//std::vector<double> cosThetaHighestEphotonInpi0_cms; cosThetaHighestEphotonInpi0_cms.reserve(nentries);
@@ -383,6 +395,8 @@ class QFactorAnalysis{
 		//std::vector<double> vanHove_ys; vanHove_ys.reserve(nentries);
 		//std::vector<double> vanHove_omegas; vanHove_omegas.reserve(nentries);
 	
+                // Not all combinations will be a valid pairing. Suppose we only care about spectroscopically unique pairs, then we can fill phasePoint2PotentailNeighbor with
+                // only unique combos.
 		std::vector<int> phasePoint2PotentailNeighbor; 
 		// will hold all the phaseSpace vectors so we can easily iterator over them
 		std::vector< std::vector< double > > varVector;
@@ -413,7 +427,7 @@ class QFactorAnalysis{
 			// will hold all the ids of the unique combos
 			phasePoint2PotentailNeighbor.reserve(nentries);
 		}
-		void loadTree(string rootFileLocation, string rootTreeName);
+		void loadTree(string rootFileLoc, string rootTreeName);
 		void loadFitParameters(string fitLocation);
 		void loadData();
 		void runQFactorThreaded();
@@ -421,9 +435,9 @@ class QFactorAnalysis{
 };
 
 
-void QFactorAnalysis::loadTree(string rootFileLocation, string rootTreeName){
+void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
 	cout << "Loading root file and tree" << endl;
-	TFile* dataFile=new TFile((rootFileLocation).c_str());
+	TFile* dataFile=new TFile((rootFileLoc).c_str());
 	dataFile->GetObject((rootTreeName).c_str(),dataTree);
 	// Get the total number of entries and potentially overwrite it if we want to have a shorter run
 	total_nentries = (Long64_t)dataTree->GetEntries();
@@ -456,6 +470,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 	//                         LOAD IN THE FITTED PARAMETERS TO THE FULL DISTRIBUTION
 	// -----------------------------------------------------
 	// -----------------------------------------------------
+        // Import all the fitted values from getInitParams
 	string varName;
 	double varVal;
 	ifstream inFile;
@@ -470,7 +485,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 		if (varName == "sigmaRatio"){ sigmaRatio_eta = varVal;}
 		if (varName == "eventRatioSigToBkg"){ eventRatioSigToBkg = varVal;}
 	}
-	cout << "USING THE " << detector << " SUBDETECTOR" << endl;
+        cout << "RootFile(treeName)(fileTag): " << rootFileLoc << "(" << rootTreeName << ")(" << fileTag << ")" << endl;
 	cout << "const: " << fittedConst_eta << endl;
 	cout << "linear: " << fittedLinear_eta << endl;
 	cout << "amp1: " << fittedAmp_eta << endl;
@@ -484,6 +499,8 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 	// ----------------------------------------
 	// Set the fit constants for eta or pi0 full fits
 	// ----------------------------------------
+        // We need to have a global scale factor since in the fit to the full distribution of the discriminating variable there are just more events
+        // If we use a normalized Gaussian then the amplitude is simply scaled by the kDim/total
 	double scaleFactor = (double)kDim/total_nentries;
 	cout << "scaleFactor: " << scaleFactor << endl;
 	double fittedConst;
@@ -510,6 +527,8 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 	}
 	
 
+        // We will d potentially 3 iterations. Not sure if I am doing this correctly
+        // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
 	cout << "Scaled Const: " << scaleFactor*fittedConst << endl;
 	cout << "Scaled Linear: " << scaleFactor*fittedLinear << endl;
 	cout << "Scaled Amp: " << scaleFactor*fittedAmp << endl;
@@ -631,6 +650,8 @@ void QFactorAnalysis::loadData(){
 	// -----------------------------------------------------
 	// -----------------------------------------------------
 	//                         STANDARDIZE THE DATA
+        //                         Range vs StdDev standardization
+        //                         Not much difference so far but the option is left here
 	// -----------------------------------------------------
 	// -----------------------------------------------------
 	//
@@ -688,10 +709,14 @@ void QFactorAnalysis::loadData(){
 	    }
 	}
 
+        // showInit code is left here in case one in interested in developing a way to output the initializatons overlaid on the kNN distributions
+        // Not functional at this point
 	//showInit[0]->SetParameters(par0[0],par1[0],par2[0],peakLoc,sigValue, ampRatio, widthRatio);
 	//showInit[1]->SetParameters(par0[1],par1[1],par2[1],peakLoc,sigValue, ampRatio, widthRatio);
 	//showInit[2]->SetParameters(par0[2],par1[2],par2[2],peakLoc,sigValue, ampRatio, widthRatio);
 	
+        
+        // Parse the string of variables and use them to build a vector of variables. Looping over this variable and calculate distances
 	parseVarString parse(varString);
 	parse.parseString();
 	cout << "----------------------------" << endl;
@@ -733,13 +758,16 @@ void QFactorAnalysis::runQFactorThreaded(){
 	cout << "override_nentries: " << override_nentries << endl;
 	cout << "verbose: " << verbose << endl;
 	cout << "numVars: " << numVars << endl;
-	
+
+	// [=] refers to a capture list which is used by this lambda expression. The lambda gets a copy of all the local variables that it uses when it is created. If we
+	// just use [] we will get an error since the lambda will have no idea what these variables are	
 	auto f = [=](int iProcess){
 		int iFit = 0;
 		int iThread = iProcess;
 		// ----------------------------------------
 		// Open up a root file to save the q-factors and other diagnostics to it
 		// ---------------------------------------
+                // Initializing some variables we can track during the q-value extraction
         	double comboStd; 
         	double chiSq;
         	double chiSq_pi0;
@@ -751,9 +779,10 @@ void QFactorAnalysis::runQFactorThreaded(){
 		double chiSq_eta_02;
         	double best_qvalue;
 
+                // Saving the results along with some diagnostics
 		TBranch* b_sbWeight;
 		TBranch* b_flatEntryNumber;
-        	TFile *resultsFile = new TFile(("logs/"+detector+"/results"+to_string(iThread)+".root").c_str(),"RECREATE");
+        	TFile *resultsFile = new TFile(("logs/"+fileTag+"/results"+to_string(iThread)+".root").c_str(),"RECREATE");
         	TTree* resultsTree = new TTree("resultsTree","results");
         	resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
         	resultsTree->Branch("qvalue",&best_qvalue,"qvalue/D");
@@ -789,7 +818,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 		// opening a file to write my log data to
     		ofstream logFile;
-    		logFile.open(("logs/"+detector+"/processLog"+to_string(iThread)+".txt").c_str());
+    		logFile.open(("logs/"+fileTag+"/processLog"+to_string(iThread)+".txt").c_str());
 		
 		// Determine what events each thread should run
 		int batchEntries = (int)nentries/nProcess; // batchEntries the size of the batch
@@ -834,6 +863,9 @@ void QFactorAnalysis::runQFactorThreaded(){
 		//     showInit[iFit] = new TF1(("initFit"+to_string(iFit)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
 		//     showConv[iFit] = new TF1(("convFit"+to_string(iFit)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
         	// }
+                
+
+                // Saving the chiSqs to compare the 3 different initializations
 		double chiSqs[3];
         	int nBest100Bkg=0;
         	int nBest100Sig=0;
@@ -874,10 +906,9 @@ void QFactorAnalysis::runQFactorThreaded(){
 			//cumulativeStd stdCalc(kDim);
 			//cumulativeStd stdCalc2(kDim);
 			
-			if(verbose){cout << "Getting next event!\n--------------------------------\n" << endl;}
 			auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 			auto duration_beginEvent = std::chrono::high_resolution_clock::now();
-			if(verbose2) { logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
+			if(verbose) { logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
 			
 			// clear data from previous events
 			mapDistToEntry.clear();
@@ -894,11 +925,13 @@ void QFactorAnalysis::runQFactorThreaded(){
 			for ( int iVar=0; iVar<numVars; ++iVar ){
 				phasePoint1[iVar] = varVector[iVar][ientry];
 			}
-			//for (int jentry=0; jentry<200;++jentry) {  
+                        // What if we wanted to look at k random neighbors?
+			//for (int jentry=0; jentry<kDim;++jentry) {  
 			//      randomEntry = rand() % nentries;
 			//      distKNN.insertPair(make_pair(1, randomEntry) );
 			//}
-			if(verbose) { cout << "Built diagnostic histograms" << endl; }
+			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+			if(verbose){logFile << "\tBegin finding neighbors: " << duration2 << "ms" << endl; }
 			for (int jentry : phasePoint2PotentailNeighbor) {  
 				if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
 				
@@ -917,9 +950,8 @@ void QFactorAnalysis::runQFactorThreaded(){
 				//	}
 				//}
 			}
-			if(verbose){cout << "Found neighbors: " << endl;}
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-			if(verbose2){logFile << "\tFound neighbors: " << duration2 << "ms" << endl; }
+			if(verbose){logFile << "\tFound neighbors: " << duration2 << "ms" << endl; }
 			if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim! size,kDim="<< distKNN.kNN.size() << "," << kDim 
 			    << "\n    -- if size is 1 less than kDim it is probably because kDim=nentries and event i cannot be a neighbor to itself" << 
 			    "\n    -- if size != kDim it could also mean that the number of spectroscopically unique neighbors reduces the number of poential neighbors below kDim" << endl;}
@@ -930,14 +962,18 @@ void QFactorAnalysis::runQFactorThreaded(){
 				// WHEN WE FILL THE HISTOGRAMS IN THE END WE CAN DO THIS BUT IF WE USE IT NOW IT WHEN FILLING THE NEIGHBORS HISTOGRAM IT MIGHT BE BAD?
 				// IF ANYTHING WE SHOULD JUST SKIP THESE NON UNIQUE COMBINATIONS TO SAVE TIME (IF WE WERE ONLY PLOTTING M(ETA) BUT SINCE WE PLOT ALL THE DISTRIBUTIONS LIKE
 				// M(PI0ETA) WE CANT DO THIS
+                                double weight;
+                                if (weightingScheme==""){ weight=1; }
+                                if (weightingScheme=="as"){ weight=AccWeights[newPair.second]; }
+                                if (weightingScheme=="as*bs"){ weight=AccWeights[newPair.second]*sbWeights[newPair.second]; }
 				if(useEta){
-			        	discriminatorHist->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
+			        	discriminatorHist->Fill(Metas[newPair.second],weight);
 			        	//discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
 			        	//stdCalc.insertValue(Metas[newPair.second]);
 			        	//stdCalc2.insertValue(Mpi0s[newPair.second]);
 				}
 				else{
-			        	discriminatorHist->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
+			        	discriminatorHist->Fill(Mpi0s[newPair.second],weight);
 			        	//discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
 			        	//stdCalc.insertValue(Mpi0s[newPair.second]);
 			        	//stdCalc2.insertValue(Metas[newPair.second]);
@@ -950,7 +986,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			comboStd2 = 1;//stdCalc2.calcStd();
 			
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-			if(verbose2){logFile <<	"\tFilled neighbors: " << duration2 << "ms" << endl;}
+			if(verbose){logFile <<	"\tFilled neighbors: " << duration2 << "ms" << endl;}
 			
 			// Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the Meta has a asymmetry
 			// such that there are more events to the left side of the peak. The second gaussian will have lower amplitude and a large sigma with a left shifted mean. We also want to 
@@ -1047,7 +1083,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 						etaLine->SetLineColor(kOrange);
 		        			etaLine->Draw("same");
 						discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
-						allCanvases_badFit->SaveAs(("histograms/"+detector+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
+						allCanvases_badFit->SaveAs(("histograms/"+fileTag+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
 						++savedN_badEvents;
 					}
 					
@@ -1065,8 +1101,8 @@ void QFactorAnalysis::runQFactorThreaded(){
 					    for ( double parVal : par ){
 							cout << " " << parVal << endl;
 					    }
-					    //cout << " **************** BREAKING ****************** " << endl;
-					    //exit(0);
+					    cout << " **************** BREAKING (q-value out of bounds) ****************** " << endl;
+					    exit(0);
 					}
 				}
 
@@ -1077,7 +1113,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				//showConv[iFit]->SetParameters(par); // save all the fits
 				//chiSqs[iFit]=chiSq;
 			
-				if (verbose2) { logFile << "\tcurrent ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
+				if (verbose) { logFile << "\tcurrent ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
 				
 				if (chiSq < bestChiSq){
 					best_qvalue = qvalue;
@@ -1098,10 +1134,10 @@ void QFactorAnalysis::runQFactorThreaded(){
 					worstChiSq = chiSq;
 				}
 				duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
-				if(verbose2){logFile << "\t("+to_string(iFit+1)+"st init config) Fitted the reference distribution: " << duration2 << "ms" << endl; }
+				if(verbose){logFile << "\t("+to_string(iFit+1)+"st init config) Fitted the reference distribution: " << duration2 << "ms" << endl; }
 			}
 
-			if(verbose2){logFile << "\tDelta b/w best and worst chiSq = " << to_string(bestChiSq-worstChiSq) << ": " << duration2 << "ms" << endl; }
+			if(verbose){logFile << "\tDelta b/w best and worst chiSq = " << to_string(bestChiSq-worstChiSq) << ": " << duration2 << "ms" << endl; }
 				
 
 			// /////////////////////////////////////////
@@ -1185,7 +1221,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				// need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one pdf converter
 				// or whatever and maybe if multiple threads calls it then a blocking effect can happen
 				cout << "Choosing to save event " << ientry << endl;
-				allCanvases->SaveAs(("histograms/"+detector+"/Mass-event"+std::to_string(ientry)+".root").c_str());
+				allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
 				
 
 				// //////////
@@ -1216,7 +1252,7 @@ void QFactorAnalysis::runQFactorThreaded(){
         			//legend_conv->Draw();
 				//allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".png").c_str());
 
-				if(verbose2){
+				if(verbose){
 				     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 				     logFile << "\tSaved this histogram since it was randomly selected: " << duration2 <<  "ms" << endl;
 				}
@@ -1237,7 +1273,7 @@ void QFactorAnalysis::runQFactorThreaded(){
         	
         	
 		// Finish the log files by including an elapsed time and finally closing the file
-		if (verbose2){
+		if (verbose){
 			auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 			logFile << "Total time: " << duration2 << " ms" << endl;
 			logFile << "Time Per Event: " << duration2/nentries  << " ms" << endl;
@@ -1245,6 +1281,8 @@ void QFactorAnalysis::runQFactorThreaded(){
 		logFile.close();
 	};
 
+
+        // Now that we have the lambda function we can start to spawn threads
 	cout << "Launching " << nProcess << " threads!" << endl;
 	vector<thread> threads;
 	for ( int iThread=0; iThread<nProcess; ++iThread){
@@ -1252,7 +1290,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 		threads.emplace_back( [f, iThread] { f(iThread); } );
 		//threads[iThread] = std::thread(QFactorAnalysis::staticEntryPoint, this, iThread);
 	}
-	for (auto&& t : threads) t.join();
+	for (auto&& t : threads) t.join(); // join waits for completion
 	cout << "Threads have completed running!" << endl;
 }
 
