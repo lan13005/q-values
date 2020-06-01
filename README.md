@@ -1,6 +1,7 @@
 ## Introduction
+[Original Paper](https://arxiv.org/pdf/0809.2548.pdf)
+
 Calculating Q-factors in the reaction <img src="https://render.githubusercontent.com/render/math?math=\gamma p\rightarrow\pi^0\eta p \rightarrow 4\gamma p">
-[![Original Paper](https://arxiv.org/pdf/0809.2548.pdf)
 Q-factors is an event-by-event multivariate sideband subtraction technique. The only requirement is the knowledge of the signal and background distribution of some discriminating variable. 
 1. First the nearest neighbors, under some set of phase space variables, is found for a given event
 2. Distribution of the discriminating variable is filled with the nearest neighbors
@@ -21,7 +22,8 @@ There are a bit of caveats which this package tries to tackle.
 
 
 ## Code
-getInitParams.C does the initial fit to the full discriminating variable's distribution. Save the fit parameters to a file which is then read in later
-main.h/C is the Q-factor program. All the function definitions are in the header file, includes some helper functions. The inputs are not entirely decoupled so some checks should be done to make sure there is consistency of setting in between all the files. QFactorAnalysis class has multiple methods which load the data and fitted parameters from getInitParams and spawns the threads to do the analysis
-makeDiagnosticHists aggregates all the results from the main program. Various plots are made with the q-factor weighting
+There are 3 main programs which does everything:
+1. getInitParams.C does the initial fit to the full discriminating variable's distribution. Save the fit parameters to a file which is then read in later
+2. main.h/C is the Q-factor program. All the function definitions are in the header file, includes some helper functions. The inputs are not entirely decoupled so some checks should be done to make sure there is consistency of setting in between all the files. QFactorAnalysis class has multiple methods which load the data and fitted parameters from getInitParams and spawns the threads to do the analysis
+3. makeDiagnosticHists aggregates all the results from the main program. Various plots are made with the q-factor weighting
 run.py drives the main program and makeDiagnosticHists. Most of the important variables are configued here and modifies main and makeDiagnosticHiste to do the correct thing. main is also compiled at this stage, directories are cleaned. There are still variables which need to be decoupled from the body of other programs, like the binRange and fitRanges. 
