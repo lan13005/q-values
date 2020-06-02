@@ -1,11 +1,11 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include "helperFuncs.h"
 #include <thread>
 #include "Math/MinimizerOptions.h"
 #include <iostream>
 #include <fstream>
-#include <queue>
 #include <ctime>
 #include <chrono>
 #include <TCanvas.h>
@@ -19,7 +19,6 @@
 #include <TStyle.h>
 #include <TMath.h>
 #include <TLatex.h>
-#include <TPaveText.h>
 #include <TLegend.h>
 #include <RooRealVar.h>
 #include <RooDataSet.h>
@@ -44,250 +43,12 @@ bool verbose_outputDistCalc=false;
 TRandom rgen;
 
 using namespace std;
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root";
-string rootTreeName="degALL_split_tree_flat";
-string fileTag="split";
-string weightingScheme="as"; // "" or "as*bs"
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_bcal_tree_flat";
+string fileTag="bcal";
+string weightingScheme="as*bs"; // "" or "as*bs"
 bool useEta=true;
 
-
-// Code for a single gaussian
-//int numDOFsig = 3;
-//Double_t signal(Double_t *x, Double_t *par){
-//	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
-//
-//}
-// Code for a breit Wigner
-//Double_t signalBW(Double_t* x, Double_t* par) {
-//    Double_t arg1 = 14.0/22.0; // 2 over pi
-//    Double_t arg2 = par[2]*par[2]*par[1]*par[1]; //Gamma=par[1]  M=par[2]
-//    Double_t arg3 = ((x[0]*x[0]) - (par[1]*par[1]))*((x[0]*x[0]) - (par[1]*par[1]));
-//    Double_t arg4 = x[0]*x[0]*x[0]*x[0]*((par[2]*par[2])/(par[1]*par[1]));
-//    
-//    return par[0]*arg1*arg2/(arg3 + arg4);
-//}
-
-// ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS
-int numDOFsig = 5;
-Double_t signal(Double_t *x, Double_t *par){
-	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
-	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
-
-}
-int numDOFbkg = 2;
-Double_t background(Double_t *x, Double_t *par){
-	return par[0]+par[1]*x[0];
-}
-
-Double_t fitFunc(Double_t *x, Double_t *par){
-	return background(x,par)+signal(x,&par[numDOFbkg]);
-}
-
-// Including code for a 2D double gaussian with planar bkg to be used as a purity extractor
-Double_t doubleGaus2D(Double_t *x, Double_t *par){
-	return par[9]+par[10]*(x[0]-par[1])+par[11]*(x[1]-par[5])+par[0]/2/TMath::Pi()*(1/par[2]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
-	     + par[3]/(par[4]*par[2])*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])))
-	     )*(1/par[6]*exp(-0.5*((x[1]-par[5])/par[6])*((x[1]-par[5])/par[6]))
-	     + par[7]/(par[8]*par[6])*exp(-0.5*((x[1]-par[5])/(par[8]*par[6]))*((x[1]-par[5])/(par[8]*par[6])))
-	     );
-}
-
-void drawText(Double_t *par, int dof, string tag, double qSigValue, double qBkgValue, double qTotValue){
-    //TLatex parText;
-    //parText.SetTextAlign(12);
-    //parText.SetTextSize(0.01);
-    //for (int iPar=0; iPar<dof; ++iPar){
-    //    parText.DrawLatex(0.4,20,("par"+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
-    //}
-    //
-    TPaveText *pt = new TPaveText(0.675,0.7,0.875,0.9);
-    for (int iPar=0; iPar<dof; ++iPar){
-        pt->AddText((tag+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
-    }
-    pt->AddText(("qSigVal: "+std::to_string(qSigValue)).c_str());
-    pt->AddText(("qBkgVal: "+std::to_string(qBkgValue)).c_str());
-    pt->AddText(("qFitVal: "+std::to_string(qTotValue)).c_str());
-    pt->Paint("NDC");
-    pt->Draw();
-}
-
-// our distance calculation between two phase points
-double calc_distance( double phaseSpace_1[dim], double phaseSpace_2[dim] ){
-	double sum = 0;
-	double diff=0;
-        if(verbose_outputDistCalc){cout << "New event, new sum = " << sum << endl;}
-	for (int i=0; i<dim; ++i){
-		diff = phaseSpace_1[i]-phaseSpace_2[i];
-		sum += diff*diff;
-                if(verbose_outputDistCalc){
-			cout << "phasePoint1["<<i<<"]="<<phaseSpace_1[i]<<", phasePoint2["<<i<<"]="<<phaseSpace_2[i]<<" --- squared sum=" << diff*diff << "---- total so far="<<sum<<endl;
-		}
-	}
-	return sum;
-}
-
-
-class standardizeArray{
-	public:
-    		double max_inputVector;
-         	double min_inputVector;
-		
-		void rangeStandardization(std::vector<double> &inputVector, long long nentries){
-    			max_inputVector = DBL_MIN;
-         		min_inputVector = DBL_MAX;
-			cout << "\nStarting range std" << endl;
-			for (int ientry=0; ientry<nentries; ++ientry){
-				if (inputVector[ientry] > max_inputVector){
-					max_inputVector = inputVector[ientry];
-				}
-				if (inputVector[ientry] < min_inputVector){
-					min_inputVector = inputVector[ientry];
-				}
-			}
-			for (int ientry=0; ientry<nentries; ++ientry){
-				inputVector[ientry] = (inputVector[ientry]-min_inputVector)/(max_inputVector-min_inputVector);
-			}
-			cout << "Max,min: " << max_inputVector << "," << min_inputVector << endl;
-			cout << "--Finished standardizing " << endl;
-		}
-		
-		double calcStd(std::vector<double> &inputVector, long long nentries){
-			double local_std=0;
-			double diff=0;
-			double mean=0;
-			for (int i=0; i<nentries; ++i){
-			    mean+=inputVector[i];
-			} 
-			mean/=nentries;
-			for (int ientry=0; ientry<nentries; ++ientry){
-				cout << "mean: " << mean << endl;
-				diff = (inputVector[ientry]-mean);
-				cout << "diff: " << diff << endl;
-				local_std += diff*diff;
-			}
-			local_std /= nentries;
-			cout << "STD: " << local_std << endl;
-			return sqrt(local_std);
-		}
-		
-		void stdevStandardization(std::vector<double> &inputVector, long long nentries){
-			double std = calcStd(inputVector, nentries);
-			for (int ientry=0; ientry < nentries; ++ientry){
-				inputVector[ientry] = inputVector[ientry]/std; 
-			} 
-		}
-};
-
-
-class parseVarString{
-    private:
-        int nVars=0;
-        std::string delimiter=";";
-        std::string token;
-        size_t pos=0;
-    public:
-        std::vector<std::string> varStringSet;
-        std::string varString;
-        parseVarString (std::string inputString){
-           varString =  inputString;
-        }
-        void parseString(){
-            while ((pos = varString.find(delimiter)) != std::string::npos) {
-                token = varString.substr(0, pos);
-                varStringSet.push_back(token);
-                //std::cout << token << std::endl;
-                varString.erase(0, pos + delimiter.length());
-                ++nVars;
-            }
-            varStringSet.push_back(varString);
-            //std::cout << varString << std::endl;
-        }
-};
-
-// The following two classes will be used to keep track of pairs of distances and index, sorted by distance. priority_queue in stl requires three arguments
-// which are type, container for type, and a comparator. we will use pair as the type which is held in a vector container. compareDist is the comparator
-// which compares the first elements of two pairs. The first element is the distance, the second is the index j (in dij when calculating the distances). 
-// distSort_kNN will setup our priority_queue that keeps a maximum of kDim elements simply by popping and pushing data. 
-// This type of sorting should have k*log(k) sorting, I think. If we do this N times then the complexit ~ N*k*log(k). Probably have to check me on this
-class compareDist
-{
-    public:
-        bool operator() (const pair<double,int>& p1, const pair<double,int>& p2)
-        {
-            // < for min heap
-            // maybe > for max heap?
-            return p1.first < p2.first;
-        }
-};
-
-class distSort_kNN
-{
-    public:
-        // constructor with basic output and setting kDim
-        distSort_kNN ( UInt_t kDim ) {
-            //cout << "Priority Queue is set up to sort the {distance,index} pairs keeping " << kDim << " neighbors" << endl;
-            _kDim = kDim;
-        }
-
-        std::priority_queue <pair<double,int>, vector<pair<double,int>>, compareDist > kNN;
-        
-        // depending on the size and the distanceis we will push, or pop+push
-        void insertPair ( pair<double,int> newPair ){
-            if ( kNN.size() >= _kDim ){
-                // > for min heap and maybe < for max heap 
-                if (kNN.top().first > newPair.first) {
-                    //cout << "\nPOPPING OUT " << kNN.top().first << endl;
-                    kNN.pop();
-                    kNN.push( newPair );
-                }
-            } 
-            else {      
-                //cout << "\nPUSHING " << newPair.first << endl;
-                kNN.push( newPair );
-            }
-        }
-
-    private:
-        UInt_t _kDim;
-        pair<double,int> _pair;
-};
-
-
-
-class cumulativeStd{
-    public:
-        std::vector<double> inputVector;
-        // kDim would be the typical size of the calculation. But sometimes we will choose nentries < kDim when testing quickly (this is never the case in real example though)
-        cumulativeStd ( int kDim ){ _kDim=kDim; inputVector.reserve(_kDim); }
-        void insertValue ( double value ) {
-            inputVector[_timesCalled] = value;
-            ++_timesCalled;
-        }
-        double calcStd(){
-            for (int i=0; i<_timesCalled; ++i){
-                _sum+=inputVector[i];
-            }
-            _sum /= _timesCalled;
-            _mean=_sum; _sum=0;
-            //cout << "mean: " << _mean << endl;
-            for (int i=0; i<_timesCalled; ++i){
-                _diff = (inputVector[i]-_mean);
-                _sum += _diff*_diff;
-                //cout << "sum: " << _sum << endl;
-            }
-            _sum /= _timesCalled;
-            return sqrt(_sum);
-        }
-
-
-    private:
-        int _timesCalled=0;
-        double _sum=0;
-        double _mean=0;
-        double _diff;
-        UInt_t _kDim;
-
-};
 
 // OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
 //class rooFitML{
@@ -601,14 +362,7 @@ void QFactorAnalysis::loadData(){
 	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
 	dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
 
-	// We will define the pi0 sideband so we can do the subtraction here if we need to. This section needs to match the getInitParams and makeDiagnosticPlots programs
-	double sbRL = 0.09; // Right sideband left line
-	double sbRR = 0.105; // Right sideband right line
-	double sigL = 0.12;
-	double sigR = 0.15;
-	double sbLL = 0.165;
-	double sbLR = 0.18;
-	double sbWeight;
+        double sbWeight;
 	
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
 	for (Long64_t ientry=0; ientry<nentries; ientry++)
@@ -630,10 +384,7 @@ void QFactorAnalysis::loadData(){
 	        //pi0_energies.push_back(pi0_energy);
 	        //mandelstam_tps.push_back(mandelstam_tp);
 	        AccWeights.push_back(AccWeight);
-		if ( Mpi0 > sbRL && Mpi0 < sbRR ) { sbWeight = -1; } 
-		else if ( Mpi0 > sbLL && Mpi0 < sbLR ) { sbWeight = -1; } 
-		else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
-		else { sbWeight = 0; }
+                getSBWeight(Mpi0,&sbWeight);
 		sbWeights.push_back(sbWeight);
 
 	        spectroscopicComboIDs.push_back(spectroscopicComboID);
@@ -709,12 +460,6 @@ void QFactorAnalysis::loadData(){
 	    }
 	}
 
-        // showInit code is left here in case one in interested in developing a way to output the initializatons overlaid on the kNN distributions
-        // Not functional at this point
-	//showInit[0]->SetParameters(par0[0],par1[0],par2[0],peakLoc,sigValue, ampRatio, widthRatio);
-	//showInit[1]->SetParameters(par0[1],par1[1],par2[1],peakLoc,sigValue, ampRatio, widthRatio);
-	//showInit[2]->SetParameters(par0[2],par1[2],par2[2],peakLoc,sigValue, ampRatio, widthRatio);
-	
         
         // Parse the string of variables and use them to build a vector of variables. Looping over this variable and calculate distances
 	parseVarString parse(varString);
@@ -794,12 +539,13 @@ void QFactorAnalysis::runQFactorThreaded(){
         	cout << "Set up branch addresses" << endl;
 
 		// Define some needed variables like canvases, histograms, and legends
-        	auto legend_init = new TLegend(0.1,0.8,0.3,0.9);
-        	auto legend_conv = new TLegend(0.1,0.8,0.3,0.9);
+        	auto legend_init = new TLegend(0.1,0.7,0.4,0.9);
+        	auto legend_fit = new TLegend(0.1,0.7,0.4,0.9);
+
     		TCanvas *allCanvases = new TCanvas(("anyHists"+to_string(iThread)).c_str(),"",1440,900);
     		TCanvas *allCanvases_badFit = new TCanvas(("anyHists_badFit"+to_string(iThread)).c_str(),"",1440,900);
 		cout << "Creating canvas " << iThread << endl;
-        	TLine* etaLine;
+        	TLine* discrimVarLine;
 		TLine* qSigLine;
 		TLine* qBkgLine;
 		TH1F* discriminatorHist;
@@ -900,8 +646,6 @@ void QFactorAnalysis::runQFactorThreaded(){
 			if ( (ientry-lowest_nentry) % percentOfBatchEntries == 0) { 
 				cout << "(Process " << iProcess << ") Percent done: " << (int)round( unshiftedEntry/(largest_nentry-lowest_nentry)*100 ) << "%" << endl;
 		       	}
-			legend_init->Clear();
-			legend_conv->Clear();
 			flatEntryNumber=ientry;
 			//cumulativeStd stdCalc(kDim);
 			//cumulativeStd stdCalc2(kDim);
@@ -939,7 +683,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				   	phasePoint2[iVar] = varVector[iVar][jentry];
 				}
 				if (spectroscopicComboIDs[jentry] != spectroscopicComboIDs[ientry]){
-				        distance = calc_distance(phasePoint1,phasePoint2);
+				        distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
 				        //distance = rgen.Uniform(nentries);
 				        distKNN.insertPair(make_pair(distance,jentry));
 				}
@@ -1079,9 +823,9 @@ void QFactorAnalysis::runQFactorThreaded(){
         	        			fit->Draw("SAME");
   		        			bkgFit->Draw("SAME FC");
   		        			sigFit->Draw("SAME FC");
-						etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
-						etaLine->SetLineColor(kOrange);
-		        			etaLine->Draw("same");
+						discrimVarLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
+						discrimVarLine->SetLineColor(kOrange);
+		        			discrimVarLine->Draw("same");
 						discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
 						allCanvases_badFit->SaveAs(("histograms/"+fileTag+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
 						++savedN_badEvents;
@@ -1150,12 +894,16 @@ void QFactorAnalysis::runQFactorThreaded(){
 			
 			// Here we draw the histograms that were randomly selected
 			allCanvases->Clear();
+                        // LEFT HISTOGRAM IS FOR THE FITTED AND THE RIGHT HISTOGRAM IS FOR THE INITIALIZATIONS
 			allCanvases->Divide(2,1);
 			if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
+			        legend_init->Clear();
+			        legend_fit->Clear();
+
 				if(verbose) { cout << "Keeping this event" << endl; }
 				discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq) + " (#Delta="+to_string(bestChiSq-worstChiSq)+ ")     Std="+to_string(comboStd)+"    iFit="+to_string(best_iFit)).c_str() );
-				etaLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
-				etaLine->SetLineColor(kOrange);
+				discrimVarLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
+				discrimVarLine->SetLineColor(kOrange);
 				
         	          	fit->SetParameters(parBest);
 		          	bkgFit->SetParameters(parBest);
@@ -1182,24 +930,35 @@ void QFactorAnalysis::runQFactorThreaded(){
 				qBkgLine->SetLineStyle(9);
 
 
+                                legend_fit->AddEntry(fit,"Tot");
+                                legend_fit->AddEntry(bkgFit,"Bkg");
+                                legend_fit->AddEntry(sigFit,"Sig");
+                                legend_fit->AddEntry(discrimVarLine,"DiscrimVarVal");
+                                legend_fit->AddEntry(qSigLine,"SigVal @ DiscrimVarVal");
+                                legend_fit->AddEntry(qBkgLine,"BkgVal @ DiscrimVarVal");
+
+
+
         	          	//allCanvases->cd();
         	          	allCanvases->cd(1);
 		          	discriminatorHist->Draw();
         	          	drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(Metas[ientry]),bkgFit->Eval(Metas[ientry]),fit->Eval(Metas[ientry]));
 				if(useEta){
-		          		etaLine->Draw("same");
+		          		discrimVarLine->Draw("same");
 				}
         	          	fit->Draw("SAME");
   		          	bkgFit->Draw("SAME FC");
   		          	sigFit->Draw("SAME FC");
 				qBkgLine->Draw("SAME");
 				qSigLine->Draw("SAME");
+                                legend_fit->Draw();
 				// INTERESTING, IF I WERE TO SAVE THE CANVAS AS A ROOT FILE I GET AN ERROR IF I PUT THE SAME HISTOGRAM ON TWO DIFFERENT PADS. SEEMS LIKE THE CANVAS
 				// SAVES A TList OF HISTS+TF1'S AND IF THERE ARE MULTIPLE CALLS TO THE SAME HISTOGRAM IT MIGHT DELETE THE HISTOGRAM AFTER SEEING IT FOR THE FIRST TIME AND
 				// THEN IT WOULD NOT BE ABLE TO FIND THE HISTOGRAM AGAIN THE SECOND TIME AROUND. WE HAVE TO CLONE THE HISTOGRAM FIRST AND THEN SAVE THE ROOT FILE SO THE CANVAS
 				// ARE TWO DIFFERENT ELEMENTS.
         	          	allCanvases->cd(2);
 				TH1F* clonedHist = (TH1F*) discriminatorHist->Clone();
+                                clonedHist->SetTitle("Initializations");
 		          	clonedHist->Draw();
 				TF1* initFit1 = new TF1(("initFit1"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
 				initFit1->SetParameters(par0[0],par1[0],par2[0],peakLoc,sigValue);
@@ -1218,39 +977,16 @@ void QFactorAnalysis::runQFactorThreaded(){
 				initFit4->SetLineColor(kOrange+1);
 				initFit4->Draw("SAME");
 
+                                legend_init->AddEntry(initFit1,"100% bkg");
+                                legend_init->AddEntry(initFit1,"50/50 bkg/sig");
+                                legend_init->AddEntry(initFit1,"100% sig");
+                                legend_init->AddEntry(initFit1,"Scaled Full Fit");
+                                legend_init->Draw();
 				// need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one pdf converter
 				// or whatever and maybe if multiple threads calls it then a blocking effect can happen
 				cout << "Choosing to save event " << ientry << endl;
 				allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
 				
-
-				// //////////
-				// THIS WAS AN ATTEMPT TO SHOW HOW THE DIFFERENT INITIALIZATIONS OF 100BKG 50/50 AND 100SIG DIFFERS
-				// //////////
-        			//allCanvases->Clear();
-        			//allCanvases->Divide(2,1);
-        			//allCanvases->cd(1);
-				//discriminatorHist->Draw();
-        			//discriminatorHist->SetTitle("initialization");
-        			//allCanvases->cd(2);
-				//discriminatorHist->Draw();
-        			//discriminatorHist->SetTitle("converged");
-        			//for (int iFit=0; iFit<3; ++iFit){
-        			//	allCanvases->cd(1);
-        			//	showInit[iFit]->SetLineColor(colors[iFit]);
-        			//	showInit[iFit]->Draw("SAME");
-        			//	legend_init->AddEntry(showInit[iFit],initNames[iFit].c_str());
-        			//	allCanvases->cd(2);
-        			//	showConv[iFit]->SetLineColorAlpha(colors[iFit],0.2);
-        			//	showConv[iFit]->Draw("SAME");
-        			//	legend_conv->AddEntry(showConv[iFit],initNames[iFit].c_str());
-        			//}
-        			//allCanvases->cd(1);
-        			//legend_init->Draw();
-        			//allCanvases->cd(2);
-				//drawText(chiSqs,3,"chiSq",0,0,0);
-        			//legend_conv->Draw();
-				//allCanvases->SaveAs(("histograms/fitCheck-event"+std::to_string(ientry)+".png").c_str());
 
 				if(verbose){
 				     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();

@@ -3,8 +3,7 @@ from termcolor import colored
 
 def searchFile(inputFiles, keywords, findFirst):
     for inputFile in inputFiles:
-        if findFirst:
-            foundArray = [False]*len(keywords)
+        foundArray = [False]*len(keywords)
         print("----------------")
         print("Outputting settings in "+inputFile+"\n----------------")
         with open(inputFile, 'r') as f:
@@ -16,7 +15,8 @@ def searchFile(inputFiles, keywords, findFirst):
                         continue
                     if re.search(r"{}".format(keyword), line):
                         print("({0}){1}".format(lineNum,line)),
-                        foundArray[keyNum] = True
+                        if findFirst:
+                            foundArray[keyNum] = True
                         break
 
 
@@ -24,7 +24,10 @@ def searchFile(inputFiles, keywords, findFirst):
 def check():
     print(colored("\n\n(LineNumber)LineContent\n","green"))
     print(colored("---------\nGeneral Settings\n---------","red"))
-    keywords = ["kDim", "numberEventsToSavePerProcess", "seedShift", "nProcess", "nentries", "override_nentries", "verbose", "makeGraphs","weightingScheme"]
+    keywords = ["kDim", "numberEventsToSavePerProcess", "seedShift", "nProcess", "nentries" \
+            ,"override_nentries", "verbose", "makeGraphs","emailWhenFinished","weightingScheme"
+            ,"runFullFit"
+            ]
     keywords = ["^"+keyword for keyword in keywords]
     searchFile(["run.py"],keywords,True)
     
@@ -35,15 +38,7 @@ def check():
     keywords=["binRange","fitRange"]
     keywords = ["^"+keyword for keyword in keywords]
     files = ["main.h", "getInitParams.C"]
-    searchFile(files, keywords,True)
-    
-    
-    print("\n\n")
-    print(colored("---------\nMake sure weightingScheme matches between run.py and getInitParams\n---------","red"))
-    keywords=["weightingScheme"]
-    keywords = ["^"+keyword for keyword in keywords]
-    files = ["run.py", "getInitParams.C"]
-    searchFile(files, keywords,True)
+    searchFile(files, keywords,False)
     
     print("\n\n")
     shouldIContinue = raw_input("continue? (y/n): ")

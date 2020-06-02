@@ -7,16 +7,16 @@
 // 2. All the fit data will be in the logFile so make sure main.h loads in this file
 
 
-#include "main.h"
+
 #include "/d/grid15/ln16/pi0eta/092419/makeGraphs.h"
+#include "helperFuncs.h"
 
-string rootFileLoc="bcal";
-string rootTreeName="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_bcal_tree_flat";
 string fileTag="bcal";
-string weightingScheme;
-weightingScheme="as"; // initialized it this way so we can search for it easier 
+string weightingScheme="as*bs"; // "" or "as*bs"
 
-void getInitParams{
+void getInitParams(){
 	gStyle->SetOptFit(111);
 	gStyle->SetOptStat(0);
 	gStyle->SetStatH(0.1);
@@ -32,8 +32,8 @@ void getInitParams{
 
     		ofstream logFile_discrimVar1;
     		ofstream logFile_discrimVar2;
-    		logFile_discrimVar1.open(("fitResults/etaFitNoAccSub_"+detectorNames[i]+".txt").c_str());
-    		logFile_discrimVar2.open(("fitResults/pi0FitNoAccSub_"+detectorNames[i]+".txt").c_str());
+    		logFile_discrimVar1.open(("fitResults/etaFitNoAccSub_"+fileTag+".txt").c_str());
+    		logFile_discrimVar2.open(("fitResults/pi0FitNoAccSub_"+fileTag+".txt").c_str());
 
     		TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
         	bool isUniqueEtaB;
@@ -73,7 +73,6 @@ void getInitParams{
 
 		double integralBKG;
 		double integralSIG;
-		double weightedSigma;
 
 		// ///////////////////////////////////////////////////
 		// START ETA FIT
@@ -104,20 +103,11 @@ void getInitParams{
 		massHistPi0Eta = new TH1F("","", 350, 0, 3.5);
 		cout << "Initialized for a specific mass (eta/pi0) fit" << endl;
 		
-		double sbRL = 0.09; // Right sideband left line
-		double sbRR = 0.105; // Right sideband right line
-		double sigL = 0.12;
-		double sigR = 0.15;
-		double sbLL = 0.165;
-		double sbLR = 0.18;
 		double sbWeight;
 		for (int ientry=0; ientry<nentries; ientry++)
 		{
 			dataTree->GetEntry(ientry);
-			if ( Mpi0 > sbRL && Mpi0 < sbRR ) { sbWeight = -1; } 
-			else if ( Mpi0 > sbLL && Mpi0 < sbLR ) { sbWeight = -1; } 
-			else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
-			else { sbWeight = 0; }
+                        getSBWeight(Mpi0,&sbWeight);
                         double weight;
                         if (weightingScheme==""){ weight=1; }
                         if (weightingScheme=="as"){ weight=AccWeight; }
@@ -137,7 +127,7 @@ void getInitParams{
 		massHistPi0Eta->Draw("HIST");
 		massHistPi0Eta->GetXaxis()->SetTitleSize(0.04);
 		massHistPi0Eta->GetYaxis()->SetTitleSize(0.04);
-		allCanvases->SaveAs(("fitResults/Mpi0eta_fit_"+detectorNames[i]+".png").c_str());
+		allCanvases->SaveAs(("fitResults/Mpi0eta_fit_"+fileTag+".png").c_str());
 		allCanvases->Clear();
 		
 		massHistEta->Fit("fit","RQB"); // B will enforce the bounds
@@ -151,6 +141,8 @@ void getInitParams{
 		        logFile_discrimVar1 << namePar[iPar+1] << " " << par[iPar] << endl;
 		}
 		
+                cout << "IF SIDEBAND SUBTRACTING ON THIS, THE INTEGRALS WILL OBVIOULSY BE WEIRD" << endl;
+                cout << "----------------------------------------------------------------------" << endl;
 		integralBKG = bkgFit->Integral(fitRangeEta[0],fitRangeEta[1]);
 		integralSIG = sigFit->Integral(fitRangeEta[0],fitRangeEta[1]);
 		cout << "IntegralBKG before scaling: " << integralBKG << endl;
@@ -162,7 +154,6 @@ void getInitParams{
 		cout << "IntegralSIG after scaling: " << integralSIG << endl;
 		cout << "nentries: " << nentries << endl;
 
-		//double weightedSigma = 1.0/(1+par[5]/par[6])*par[4]+1.0/(1+par[6]/par[5])*par[6]*par[4];
 		double weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
 		logFile_discrimVar1 << "integralBKG " << integralBKG << endl;
 		logFile_discrimVar1 << "integralSIG " << integralSIG << endl;
@@ -199,7 +190,7 @@ void getInitParams{
 		massHistEta->GetXaxis()->SetTitleSize(0.04);
 		massHistEta->GetYaxis()->SetTitleSize(0.04);
 		massHistEta->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
-		allCanvases->SaveAs(("fitResults/Meta_fit_"+detectorNames[i]+".png").c_str());
+		allCanvases->SaveAs(("fitResults/Meta_fit_"+fileTag+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
         	
 
@@ -223,6 +214,8 @@ void getInitParams{
 		        logFile_discrimVar2 << namePar[iPar+1] << " " << par[iPar] << endl;
 		}
 		
+                cout << "IF SIDEBAND SUBTRACTING ON THIS, THE INTEGRALS WILL OBVIOULSY BE WEIRD" << endl;
+                cout << "----------------------------------------------------------------------" << endl;
 		integralBKG = bkgFit->Integral(fitRangePi0[0],fitRangePi0[1]);
 		integralSIG = sigFit->Integral(fitRangePi0[0],fitRangePi0[1]);
 		cout << "IntegralBKG before scaling: " << integralBKG << endl;
@@ -236,7 +229,6 @@ void getInitParams{
 		cout << "IntegralSIG after scaling: " << integralSIG << endl;
 		cout << "nentries: " << nentries << endl;
 
-		//weightedSigma = 1.0/(1+par[5]/par[6])*par[4]+1.0/(1+par[6]/par[5])*par[6]*par[4];
 		weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
 		logFile_discrimVar2 << "weightedSigma: " << weightedSigma << endl;
 
@@ -273,7 +265,7 @@ void getInitParams{
 		//line->DrawLine( sbLL, 0, sbLL, massHistPi0->GetMaximum());
 		//line->DrawLine( sbLR, 0, sbLR, massHistPi0->GetMaximum());
 
-		allCanvases->SaveAs(("fitResults/Mpi0_fit_"+detectorNames[i]+".png").c_str());
+		allCanvases->SaveAs(("fitResults/Mpi0_fit_"+fileTag+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
 	}
 }

@@ -12,13 +12,14 @@ start_time = time.time()
 kDim=300 # number of neighbors
 numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
 seedShift=1212 # in case we dont want the same q-value histogram we can choose another random seed
-nProcess=3 # how many processes to spawn
-nentries=1000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
+nProcess=16 # how many processes to spawn
+nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
 override_nentries=1 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
-verbose=0 # how much information we want to output to the logs
-makeGraphs=False # do we want to run makeDiagnosticHists
-weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
+verbose=1 # how much information we want to output to the logs
+weightingScheme="as*bs" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
 emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
+makeGraphs=False # do we want to run makeDiagnosticHists
+runFullFit=False # do we want to run the full fit to extract the initialization parameters?
 
 check() # Outputting some checks to make sure getInitParams, main.h, and makeDiagnosticHists agree
 
@@ -26,8 +27,8 @@ check() # Outputting some checks to make sure getInitParams, main.h, and makeDia
 # Also need a tag to save the data to so that we dont overwrite other runs
 rootFileLocs=[
         ("/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root", "degALL_bcal_tree_flat", "bcal")
-        ,("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
-        ,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
+        #,("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
+        #,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
         ]
 
 
@@ -36,10 +37,30 @@ varStringBase="cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs"#;Mpi0s;phi_X_relativ
 varVec=varStringBase.rstrip().split(";")
 # --------------------------------------------------------------------------------------------------------
 
+
+def execFullFit(rootFileLoc,rootTreeName,fileTag):
+    # First we clean the folders 
+    os.system("rm -rf fitResults")
+    os.system("mkdir fitResults")
+
+    # Change the settings
+    sedArgs=["sed","-i",'s@rootFileLoc=".*";@rootFileLoc="'+rootFileLoc+'";@g',"getInitParams.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@rootTreeName=".*";@rootTreeName="'+rootTreeName+'";@g',"getInitParams.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@fileTag=".*";@fileTag="'+fileTag+'";@g',"getInitParams.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@weightingScheme=".*";@weightingScheme="'+weightingScheme+'";@g',"getInitParams.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+
+    # get the initialization parameters
+    subprocess.Popen("root -l -b -q getInitParams.C",shell=True).wait()
+      
+
+
 def runOverCombo(combo,nentries,rootFileLoc,rootTreeName,fileTag):
-    """ 
-    This function takes in an arguement like (3,) to use the 3rd variable as the distance metric. (1,2) would be using the first 2
-    """
+
+
     # this combo is used when looping through all combinations for phase space variables to determine which set of variables are the best. 
     tagVec=["0" for i in range(len(varVec))]
     for ele in combo:
@@ -69,24 +90,24 @@ def runOverCombo(combo,nentries,rootFileLoc,rootTreeName,fileTag):
     print(" ".join(compileMain))
     
     # setting rootFile, tree, fileTag and weightingScheme in main.h
-    replaceNumProcess=["sed","-i",'s@rootFileLoc=".*";@rootFileLoc="'+rootFileLoc+'";@g',"main.h"]
-    subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    replaceNumProcess=["sed","-i",'s@rootTreeName=".*";@rootTreeName="'+rootTreeName+'";@g',"main.h"]
-    subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    replaceNumProcess=["sed","-i",'s@fileTag=".*";@fileTag="'+fileTag+'";@g',"main.h"]
-    subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    replaceNumProcess=["sed","-i",'s@weightingScheme=".*";@weightingScheme="'+weightingScheme+'";@g',"main.h"]
-    subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@rootFileLoc=".*";@rootFileLoc="'+rootFileLoc+'";@g',"main.h"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@rootTreeName=".*";@rootTreeName="'+rootTreeName+'";@g',"main.h"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@fileTag=".*";@fileTag="'+fileTag+'";@g',"main.h"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@weightingScheme=".*";@weightingScheme="'+weightingScheme+'";@g',"main.h"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
     # setting rootFile, tree, fileTag and weightingScheme in makeDiagnosticHists
-    replaceNumProcess=["sed","-i",'s@rootFileLoc=".*";@rootFileLoc="'+rootFileLoc+'";@g',"makeDiagnosticHists.C"]
-    subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    replaceNumProcess=["sed","-i",'s@rootTreeName=".*";@rootTreeName="'+rootTreeName+'";@g',"makeDiagnosticHists.C"]
-    subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    replaceNumProcess=["sed","-i",'s@fileTag=".*";@fileTag="'+fileTag+'";@g',"makeDiagnosticHists.C"]
-    subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    replaceNumProcess=["sed","-i",'s@weightingScheme=".*";@weightingScheme="'+weightingScheme+'";@g',"makeDiagnosticHists.C"]
-    subprocess.Popen(replaceNumProcess, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@rootFileLoc=".*";@rootFileLoc="'+rootFileLoc+'";@g',"makeDiagnosticHists.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@rootTreeName=".*";@rootTreeName="'+rootTreeName+'";@g',"makeDiagnosticHists.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@fileTag=".*";@fileTag="'+fileTag+'";@g',"makeDiagnosticHists.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@weightingScheme=".*";@weightingScheme="'+weightingScheme+'";@g',"makeDiagnosticHists.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
     
     # most processes shoudl have a wait but for some it doesnt matter. i.e. we have to wait for exchangeVar to run before compileMain
@@ -132,7 +153,6 @@ os.system("rm -f main")
 os.system("rm -rf logs")
 os.system("rm -rf histograms")
 os.system("rm -rf diagnosticPlots")
-os.system("rm -rf fitResults")
 
 
 for rootFileLoc, rootTreeName, fileTag in rootFileLocs:
@@ -158,6 +178,8 @@ for rootFileLoc, rootTreeName, fileTag in rootFileLocs:
     
     numVar=len(varVec)
     # We are going pass as arugment a list of lists known as combo. This combo list contains all the lists of combos with numVar elements from the list varVec. If we use the command comboinations(range(3),2) we would get something like [ [1,2], [2,3], [1,3] ]. We can use these as indicies to index a a string of 0's to fill in whether a variable will be in use. i.e. if [1,3] is chosen then the string would be 101 with the second var turnedo off. This is useful when we are doing a scan of which variables we should use. Bruteforce style. 
+    if runFullFit:
+        execFullFit(rootFileLoc,rootTreeName,fileTag)
     runOverCombo(range(numVar),nentries,rootFileLoc,rootTreeName,fileTag)
     # Use this code block to run over all possible combinations of variables
     #counter=0

@@ -5,10 +5,10 @@
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 bool verbose = true;
-string fileTag="split";
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root";
-string rootTreeName="degALL_split_tree_flat";
-string weightingScheme="as"; // "" or "as*bs"
+string fileTag="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_bcal_tree_flat";
+string weightingScheme="as*bs"; // "" or "as*bs"
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -235,12 +235,6 @@ void makeDiagnosticHists(){
 
 	std::vector< double > sbWeights; sbWeights.reserve(c_nentries2);
 	double sbWeight;
-	double sbRL = 0.09; // Right sideband left line
-	double sbRR = 0.105; // Right sideband right line
-	double sigL = 0.12;
-	double sigR = 0.15;
-	double sbLL = 0.165;
-	double sbLR = 0.18;
 
         // ***************** CHECK 1 ********************
         for (int iEntry=0; iEntry<c_nentries2; ++iEntry){
@@ -285,10 +279,7 @@ void makeDiagnosticHists(){
 		outputTree->GetEntry(ientry);
                 AccWeights.push_back(AccWeight);
 
-		if ( Mpi0 > sbRL && Mpi0 < sbRR ) { sbWeight = -1; } 
-		else if ( Mpi0 > sbLL && Mpi0 < sbLR ) { sbWeight = -1; } 
-		else if ( Mpi0 > sigL && Mpi0 < sigR ) { sbWeight = 1; } 
-		else { sbWeight = 0; }
+                getSBWeight(Mpi0,&sbWeight);
 		sbWeights.push_back(sbWeight);
 
 		Metas2.push_back(Meta2);
@@ -364,10 +355,10 @@ void makeDiagnosticHists(){
                 double weight; 
                 if (weightingScheme==""){ weight=1; }
                 if (weightingScheme=="as"){ weight=AccWeight; }
-                if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight; }
-		sigWeight = qvalue*weight;//*sbWeights[ientry];
-		totWeight = weight;//*sbWeights[ientry];
-		bkgWeight = conjugate_qvalue*weight;//*sbWeights[ientry];
+                if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight[ientry]; }
+		sigWeight = qvalue*weight;
+		totWeight = weight;
+		bkgWeight = conjugate_qvalue*weight;
                 //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
                 if ( isUniqueEtaBs[ientry] ) {
 			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs2[ientry], sigWeight);
