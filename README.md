@@ -28,12 +28,20 @@ All combinatons from all events that passed your selections should be kept in a 
 ## Code
 There are a few programs working together:
 1. getInitParams.C does the initial fit to the full discriminating variable's distribution. Save the fit parameters to a file which is then read in later
-2. main.h/C is the Q-factor program. QFactor class is in main.h and there are bunch of helper functions in helperFunc.C. The inputs are not entirely decoupled so some checks should be done to make sure there is consistency of setting in between all the files. QFactorAnalysis class has multiple methods which load the data and fitted parameters from getInitParams and spawns the threads to do the analysis
+2. main.h/C is the Q-factor program. QFactorAnalysis class is defined here. The inputs are not entirely decoupled so some checks should be done to make sure there is consistency of setting in between all the files. QFactorAnalysis class has multiple methods which load the data and fitted parameters from getInitParams and spawns the threads to do the analysis
 3. makeDiagnosticHists aggregates all the results from the main program. Various plots are made with the q-factor weighting
 4. run.py drives the main program and makeDiagnosticHists. Most of the important variables are configued here and modifies main directly using search and replace, which can be slightly dangerous. run.py also modifies makeDiagnosticHists in a similar way to keep things consistent. main is also compiled at this stage, directories are cleaned to reduce confusion. 
 5. convertROOTtoPNG.C is needed since outputting histograms into image formats, in a multithreaded way, causes errors. Maybe due to some blocking issues. Anyways, we can save them all as root files and then convert them to pngs or whatever
+6. helperFunc.h contains a bunch of auxilliary functions that help run the code. The most important ones to set are the signal/bkg distributions and the parameter limits and degrees of freedom.
 
 Things you need to configure:
 1. Most importantly the settings at the top of the run.py file needs to configured properly.
 2. The distribution for the signal and bkg must be given. "main" program uses fitFunc, background, and signal function definitions defined in helperFunc.h. Typically a polynomial bkg is taken with a Gaussian signal.  
-3. The fit parameters and the fit initializations need to be set in getInitParams and main.h
+3. The fit and parameter limits must be set accordingly in helperFunc.h
+
+
+## Outputs
+fitResults folder is created to hold information about the initialization parameters. These parameters are obtained from a fit to the reference distribution using the entire dataset
+histograms folder contains the saved Q-factor histograms for various combo entries. 
+logs folder contains information about the processing times and chiSqs for each combo. From here we can try to improve performance.
+
