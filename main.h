@@ -43,12 +43,12 @@ bool verbose_outputDistCalc=false;
 TRandom rgen;
 
 using namespace std;
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_bcal_tree_flat";
-string fileTag="bcal";
+// NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_fcal_tree_flat";
+string fileTag="fcal";
 string weightingScheme="as*bs"; // "" or "as*bs"
-bool useEta=true;
-
+string standardizationType="range"; // range or stdev standardization
 
 // OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
 //class rooFitML{
@@ -121,49 +121,38 @@ class QFactorAnalysis{
 		bool override_nentries;
 		bool verbose;
 		string varString;
-		int numVars;
+                string discrimVarStr;
+                string sideBandVarStr;
 		std::chrono::time_point<std::chrono::high_resolution_clock> start2;
                 
                 // These block of variables will be used to hold the initialization parameters. In the Q-factor paper they use 3 different initializations which
                 // correspond to 100% bkg, 50/50, and 100% sig. If we want to do this here, the yields in the bkg and signal need to be modified. These vectors
                 // will hold that information
-		std::vector<double> par0;
-		std::vector<double> par1;
-		std::vector<double> par2;
-		std::vector<double> correctInit;
+		//std::vector<double> par0;
+		//std::vector<double> par1;
+		//std::vector<double> par2;
+		std::vector<double> initPars;
 		double ampRatio;
 		double widthRatio;
 		double peakLoc;
 		double sigValue;
+                std::vector<double> redistributeFactorBkg;
+                std::vector<double> redistributeFactorSig;
 	
-		// importing all the data to RAM instead of reading from root file
-		std::vector<double> Metas; 
-		std::vector<double> Mpi0s; 
-		std::vector<double> Mpi0etas; 
-		std::vector<double> cosTheta_X_cms; 
-		std::vector<double> cosTheta_eta_gjs; 
-		std::vector<double> phi_eta_gjs; 
+                // initialize vectors to hold the discriminating and phase space variables
+		std::vector<double> discrimVars; 
+		std::vector<double> sideBandVars; 
+                std::vector<std::vector<double>> phaseSpaceVars;
+                std::vector<double> phaseSpaceVars0;
 		std::vector<double> AccWeights; 
 		std::vector<double> sbWeights; 
 		std::vector<ULong64_t> spectroscopicComboIDs; 
-		//std::vector<double> phi_X_relativeToBeamPols; 
-		//std::vector<double> phi_X_cms; phi_X_cms.reserve(nentries);
-		//std::vector<double> cosThetaHighestEphotonIneta_gjs; cosThetaHighestEphotonIneta_gjs.reserve(nentries);
-		//std::vector<double> cosThetaHighestEphotonInpi0_cms; cosThetaHighestEphotonInpi0_cms.reserve(nentries);
-		//std::vector<double> pi0_energies; pi0_energies.reserve(nentries);
-		//std::vector<double> mandelstam_tps; mandelstam_tps.reserve(nentries);
-		//std::vector<double> vanHove_xs; vanHove_xs.reserve(nentries);
-		//std::vector<double> vanHove_ys; vanHove_ys.reserve(nentries);
-		//std::vector<double> vanHove_omegas; vanHove_omegas.reserve(nentries);
-	
                 // Not all combinations will be a valid pairing. Suppose we only care about spectroscopically unique pairs, then we can fill phasePoint2PotentailNeighbor with
                 // only unique combos.
 		std::vector<int> phasePoint2PotentailNeighbor; 
-		// will hold all the phaseSpace vectors so we can easily iterator over them
-		std::vector< std::vector< double > > varVector;
 	
 	public:
-		QFactorAnalysis(int kDim1, string varString1, int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, bool override_nentries1, bool verbose1){ 
+		QFactorAnalysis(int kDim1, string varString1, string discrimVarStr1, string sideBandVarStr1, int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, bool override_nentries1, bool verbose1){ 
 			cout << "Constructed QFactorAnalysis class..." << endl;
 			kDim=kDim1;
 			numberEventsToSavePerProcess=numberEventsToSavePerProcess1;
@@ -174,17 +163,23 @@ class QFactorAnalysis{
 			verbose=verbose1;
 			start2 = std::chrono::high_resolution_clock::now();
 			varString=varString1;
+                        discrimVarStr=discrimVarStr1;
+                        sideBandVarStr=sideBandVarStr1;
 	
-			Metas.reserve(nentries);
-			Mpi0s.reserve(nentries);
-			Mpi0etas.reserve(nentries);
-			cosTheta_X_cms.reserve(nentries);
-			cosTheta_eta_gjs.reserve(nentries);
-			phi_eta_gjs.reserve(nentries);
-			//phi_X_relativeToBeamPols.reserve(nentries);
+		        // Use these vectors to import all the data to RAM instead of reading from root file
+                        // First we should reserve the space so there is no resizing of the vectors
+			discrimVars.reserve(nentries);
+                        std::vector<double> emptyVec;
+                        for (auto it=0; it<dim; ++it){
+                            // copy over emptyVec and then expand
+                            phaseSpaceVars.push_back(emptyVec);
+                            phaseSpaceVars[it].reserve(nentries);
+                        }
+			sideBandVars.reserve(nentries);
 			AccWeights.reserve(nentries);
 			sbWeights.reserve(nentries);
 			spectroscopicComboIDs.reserve(nentries);
+
 			// will hold all the ids of the unique combos
 			phasePoint2PotentailNeighbor.reserve(nentries);
 		}
@@ -210,20 +205,20 @@ void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
 
 void QFactorAnalysis::loadFitParameters(string fitLocation){
 	cout << "Loading the fit parameters" << endl;
-	double fittedConst_pi0 = 1;
-	double fittedLinear_pi0 = 1;
-	double fittedAmp_pi0 = 1;
-	double peak_pi0 = 1;
-	double sigma_pi0 = 1;
-	double ampRatio_pi0 = 1;
-	double sigmaRatio_pi0 = 1;
-	double fittedConst_eta = 1;
-	double fittedLinear_eta = 1;
-	double fittedAmp_eta = 1;
-	double peak_eta = 1;
-	double sigma_eta = 1;
-	double ampRatio_eta = 1;
-	double sigmaRatio_eta = 1;
+	//double fittedConst_pi0 = 1;
+	//double fittedLinear_pi0 = 1;
+	//double fittedAmp_pi0 = 1;
+	//double peak_pi0 = 1;
+	//double sigma_pi0 = 1;
+	//double ampRatio_pi0 = 1;
+	//double sigmaRatio_pi0 = 1;
+	//double fittedConst_eta = 1;
+	//double fittedLinear_eta = 1;
+	//double fittedAmp_eta = 1;
+	//double peak_eta = 1;
+	//double sigma_eta = 1;
+	//double ampRatio_eta = 1;
+	//double sigmaRatio_eta = 1;
 	double eventRatioSigToBkg = 1;
 
 	// -----------------------------------------------------
@@ -236,24 +231,33 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 	double varVal;
 	ifstream inFile;
 	inFile.open(fitLocation.c_str());
-	while (inFile >> varName >> varVal){
-		if (varName == "const"){ fittedConst_eta = varVal; }
-		if (varName == "linear"){ fittedLinear_eta = varVal;}
-		if (varName == "amp1"){ fittedAmp_eta = varVal;}
-		if (varName == "mass"){ peak_eta = varVal;}
-		if (varName == "sigma1"){ sigma_eta = varVal;}
-		if (varName == "ampRatio"){ ampRatio_eta = varVal;}
-		if (varName == "sigmaRatio"){ sigmaRatio_eta = varVal;}
-		if (varName == "eventRatioSigToBkg"){ eventRatioSigToBkg = varVal;}
-	}
+        std::vector<string> initParNames;
         cout << "RootFile(treeName)(fileTag): " << rootFileLoc << "(" << rootTreeName << ")(" << fileTag << ")" << endl;
-	cout << "const: " << fittedConst_eta << endl;
-	cout << "linear: " << fittedLinear_eta << endl;
-	cout << "amp1: " << fittedAmp_eta << endl;
-	cout << "mass: " << peak_eta << endl;
-	cout << "sigma1: " << sigma_eta << endl;
-	cout << "ampRatio: " << ampRatio_eta << endl;
-	cout << "sigmaRatio: " << sigmaRatio_eta << endl;
+	while (inFile >> varName >> varVal){
+            if (varName.at(0) != '#'){ 
+                initPars.push_back(varVal);
+                initParNames.push_back(varName);
+                cout << varName << ": " << varVal << endl;
+            }
+            if (varName == "#eventRatioSigToBkg"){
+                eventRatioSigToBkg = varVal;
+            }
+		//if (varName == "const"){ fittedConst_eta = varVal; }
+		//if (varName == "linear"){ fittedLinear_eta = varVal;}
+		//if (varName == "amp1"){ fittedAmp_eta = varVal;}
+		//if (varName == "mass"){ peak_eta = varVal;}
+		//if (varName == "sigma1"){ sigma_eta = varVal;}
+		//if (varName == "ampRatio"){ ampRatio_eta = varVal;}
+		//if (varName == "sigmaRatio"){ sigmaRatio_eta = varVal;}
+		//if (varName == "eventRatioSigToBkg"){ eventRatioSigToBkg = varVal;}
+	}
+	//cout << "const: " << fittedConst_eta << endl;
+	//cout << "linear: " << fittedLinear_eta << endl;
+	//cout << "amp1: " << fittedAmp_eta << endl;
+	//cout << "mass: " << peak_eta << endl;
+	//cout << "sigma1: " << sigma_eta << endl;
+	//cout << "ampRatio: " << ampRatio_eta << endl;
+	//cout << "sigmaRatio: " << sigmaRatio_eta << endl;
 	cout << "eventRatioSigToBkg: " << eventRatioSigToBkg << endl;
 	inFile.close();
 
@@ -264,46 +268,45 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
         // If we use a normalized Gaussian then the amplitude is simply scaled by the kDim/total
 	double scaleFactor = (double)kDim/total_nentries;
 	cout << "scaleFactor: " << scaleFactor << endl;
-	double fittedConst;
-	double fittedLinear;
-	double fittedAmp;
 
-	if (useEta) { 
-		fittedConst = fittedConst_eta;
-		fittedLinear = fittedLinear_eta;
-		fittedAmp = fittedAmp_eta;
-		ampRatio = ampRatio_eta;
-		widthRatio = sigmaRatio_eta;
-		peakLoc = peak_eta;
-		sigValue = sigma_eta;
-	}
-	else { 
-		fittedConst = fittedConst_pi0;
-		fittedLinear = fittedLinear_pi0;
-		fittedAmp = fittedAmp_pi0;
-		ampRatio = ampRatio_pi0;
-		widthRatio = sigmaRatio_pi0;
-		peakLoc = peak_pi0;
-		sigValue = sigma_pi0;
-	}
+	//double fittedConst;
+	//double fittedLinear;
+	//double fittedAmp;
+	//fittedConst = fittedConst_eta;
+	//fittedLinear = fittedLinear_eta;
+	//fittedAmp = fittedAmp_eta;
+	//ampRatio = ampRatio_eta;
+	//widthRatio = sigmaRatio_eta;
+	//peakLoc = peak_eta;
+	//sigValue = sigma_eta;
 	
+        // scaling signal distribution
+        for ( auto iVar : sigVarsNeedScaling) {
+            initPars[iVar] = scaleFactor*initPars[iVar];
+        }
+        // scaling bkg distribution
+        for ( auto iVar : bkgVarsNeedScaling) {
+            initPars[iVar] = scaleFactor*initPars[iVar];
+        }
+        cout << "Scaled initialization parameters, scaled down to kDim" << endl;
+        for ( int iVar=0; iVar<numDOFbkg+numDOFsig; ++iVar ){
+            cout << initParNames[iVar] << ": " << initPars[iVar] << endl; 
+        }
 
+        redistributeFactorSig = { 0, (1+1/eventRatioSigToBkg)/2, (1+1/eventRatioSigToBkg) };
+        redistributeFactorBkg = { (1+eventRatioSigToBkg), (1+eventRatioSigToBkg)/2, 0 };
         // We will d potentially 3 iterations. Not sure if I am doing this correctly
         // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
-	cout << "Scaled Const: " << scaleFactor*fittedConst << endl;
-	cout << "Scaled Linear: " << scaleFactor*fittedLinear << endl;
-	cout << "Scaled Amp: " << scaleFactor*fittedAmp << endl;
-	par0 = { scaleFactor*fittedConst*(1+eventRatioSigToBkg), scaleFactor*fittedConst*(1+eventRatioSigToBkg)/2, 0 }; 
-	par1 = { scaleFactor*fittedLinear*(1+eventRatioSigToBkg), scaleFactor*fittedLinear*(1+eventRatioSigToBkg)/2, 0 }; 
-	par2 = { 0, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg)/2, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg) }; 
-	correctInit = { scaleFactor*fittedConst, scaleFactor*fittedLinear, scaleFactor*fittedAmp };
-	
-	cout << "------------- CHECKING | 100% | 50%/50% | 100% | parameter initialization -----------------" << endl;
-	cout << "total_nentries: " << total_nentries << endl;
-	cout << "100% bkg (par0,par1,par2): " << par0[0] << ", " << par1[0] << ", " << par2[0] << endl; 
-	cout << "50/50 (par0,par1,par2): " << par0[1] << ", " << par1[1] << ", " << par2[1] << endl; 
-	cout << "100% sig (par0,par1,par2): " << par0[2] << ", " << par1[2] << ", " << par2[2] << endl; 
-	cout << "===========================================================================================" << endl;
+	//par0 = { scaleFactor*fittedConst*(1+eventRatioSigToBkg), scaleFactor*fittedConst*(1+eventRatioSigToBkg)/2, 0 }; 
+	//par1 = { scaleFactor*fittedLinear*(1+eventRatioSigToBkg), scaleFactor*fittedLinear*(1+eventRatioSigToBkg)/2, 0 }; 
+	//par2 = { 0, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg)/2, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg) }; 
+	//
+	//cout << "------------- CHECKING | 100% | 50%/50% | 100% | parameter initialization -----------------" << endl;
+	//cout << "total_nentries: " << total_nentries << endl;
+	//cout << "100% bkg (par0,par1,par2): " << par0[0] << ", " << par1[0] << ", " << par2[0] << endl; 
+	//cout << "50/50 (par0,par1,par2): " << par0[1] << ", " << par1[1] << ", " << par2[1] << endl; 
+	//cout << "100% sig (par0,par1,par2): " << par0[2] << ", " << par1[2] << ", " << par2[2] << endl; 
+	//cout << "===========================================================================================" << endl;
 }
 
 
@@ -315,52 +318,39 @@ void QFactorAnalysis::loadData(){
 	// -----------------------------------------------------
 	// -----------------------------------------------------
 	// Create variables to hold the data as we read in the data from the tree
-	double Meta;
-	double Mpi0;
-	double Mpi0eta;
-	double cosTheta_X_cm;
-	double phi_X_cm;
-	double cosTheta_eta_gj;
-	double phi_eta_gj;
-	//double phi_X_relativeToBeamPol;
-	double cosThetaHighestEphotonIneta_gj;
-	double cosThetaHighestEphotonInpi0_cm;
-	double vanHove_x;
-	double vanHove_y;
-	double vanHove_omega;
-	double pi0_energy;
-	double mandelstam_tp;
+	double discrimVar;
+        double phaseSpaceVar[dim];
+        double sideBandVar;
+	double AccWeight;
+	ULong64_t spectroscopicComboID;
+
+        // vars we will use to fill but not use directly
 	ULong64_t eventNumber;
 	double uniqueComboID;
-	double AccWeight;
 	bool isUniqueEtaB;
 	bool isUniquePi0B;
 	bool isUniquePi0EtaB;
-	ULong64_t  spectroscopicComboID;
 
 	// Set branch addresses so we can read in the data
-	dataTree->SetBranchAddress("Meta",&Meta);
-	dataTree->SetBranchAddress("Mpi0",&Mpi0);
-	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
-	dataTree->SetBranchAddress("cosTheta_X_cm", &cosTheta_X_cm); 
-	dataTree->SetBranchAddress("phi_X_cm",&phi_X_cm); 
-	dataTree->SetBranchAddress("cosTheta_eta_gj",&cosTheta_eta_gj);
-	dataTree->SetBranchAddress("phi_eta_gj",&phi_eta_gj); 
-	//dataTree->SetBranchAddress("phi_X_relativeToBeamPol",&phi_X_relativeToBeamPol); 
-	dataTree->SetBranchAddress("cosThetaHighestEphotonIneta_gj",&cosThetaHighestEphotonIneta_gj);
-	dataTree->SetBranchAddress("cosThetaHighestEphotonInpi0_cm",&cosThetaHighestEphotonInpi0_cm);
-	dataTree->SetBranchAddress("vanHove_x",&vanHove_x);
-	dataTree->SetBranchAddress("vanHove_y",&vanHove_y);
-	dataTree->SetBranchAddress("vanHove_omega",&vanHove_omega);
-	dataTree->SetBranchAddress("pi0_energy", &pi0_energy);
-	dataTree->SetBranchAddress("mandelstam_tp", &mandelstam_tp);
-	dataTree->SetBranchAddress("uniqueComboID",&uniqueComboID);
-	dataTree->SetBranchAddress("event",&eventNumber);
+        dataTree->SetBranchAddress(discrimVarStr.c_str(), &discrimVar);
+	parseVarString parse(varString);
+	parse.parseString();
+        if ( parse.varStringSet.size() != dim ) { cout << "Uh-oh something went wrong. varString size not the same as dim" << endl; }
+	for (int iVar=0; iVar<dim; ++iVar){
+            cout << "Setting " << parse.varStringSet[iVar] << " to phaseSpaceVar index " << iVar << endl; 
+            dataTree->SetBranchAddress(parse.varStringSet[iVar].c_str(),&phaseSpaceVar[iVar]);
+        }
+	dataTree->SetBranchAddress(discrimVarStr.c_str(), &discrimVar);
+	dataTree->SetBranchAddress(sideBandVarStr.c_str(), &sideBandVar);
 	dataTree->SetBranchAddress("AccWeight",&AccWeight);
+	dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
+        
+        // vars we will use to fill but not use directly
+	dataTree->SetBranchAddress("event",&eventNumber);
+	dataTree->SetBranchAddress("uniqueComboID",&uniqueComboID);
 	dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
 	dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
 	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-	dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
 
         double sbWeight;
 	
@@ -368,33 +358,22 @@ void QFactorAnalysis::loadData(){
 	for (Long64_t ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
-		Metas.push_back(Meta);
-		Mpi0s.push_back(Mpi0);
-		Mpi0etas.push_back(Mpi0eta);
-		cosTheta_X_cms.push_back(cosTheta_X_cm);
-		cosTheta_eta_gjs.push_back(cosTheta_eta_gj);
-		phi_eta_gjs.push_back(phi_eta_gj);
-		//phi_X_relativeToBeamPols.push_back(phi_X_relativeToBeamPol);
-		//phi_X_cms.push_back(phi_X_cm);
-		//cosThetaHighestEphotonIneta_gjs.push_back(cosThetaHighestEphotonIneta_gj);	 
-		//cosThetaHighestEphotonInpi0_cms.push_back(cosThetaHighestEphotonInpi0_cm);	 
-	        //vanHove_xs.push_back(vanHove_x);
-	        //vanHove_ys.push_back(vanHove_y);
-	        //vanHove_omegas.push_back(vanHove_omega);
-	        //pi0_energies.push_back(pi0_energy);
-	        //mandelstam_tps.push_back(mandelstam_tp);
+		discrimVars.push_back(discrimVar);
+	        for (int iVar=0; iVar<dim; ++iVar){
+                    phaseSpaceVars[iVar].push_back(phaseSpaceVar[iVar]);
+                }
+                sideBandVars.push_back(sideBandVar);
 	        AccWeights.push_back(AccWeight);
-                getSBWeight(Mpi0,&sbWeight);
+                getSBWeight(sideBandVar,&sbWeight,weightingScheme);
 		sbWeights.push_back(sbWeight);
-
 	        spectroscopicComboIDs.push_back(spectroscopicComboID);
 	}
 
 	if ( verbose_outputDistCalc ) {
-	    cout << "Before standarization" << endl;
+	    cout << "Before standarization the first nentries of phaseSpaceVar[0]" << endl;
 	    for ( int ientry=0 ; ientry < nentries; ientry++){
-	        cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
-	        //cout << phi_X_cms[ientry] <<endl;// "," << cosTheta_eta_gjs[ientry] << endl;
+	        cout << phaseSpaceVars[0][ientry] << endl;
+	        //cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
 	    }
 	}
 
@@ -406,76 +385,25 @@ void QFactorAnalysis::loadData(){
 	// -----------------------------------------------------
 	// -----------------------------------------------------
 	//
-	// outputting the results before and after standardizeArray will show that it works
-	// for(auto& cosTheta_X_cm1 : cosTheta_X_cms){ cout << cosTheta_X_cm1 << endl; }
 	standardizeArray standarizationClass;
-	standarizationClass.rangeStandardization(cosTheta_X_cms,nentries);	
-	standarizationClass.rangeStandardization(cosTheta_eta_gjs,nentries);
-	//standarizationClass.rangeStandardization(phi_X_relativeToBeamPols,nentries);
-	standarizationClass.rangeStandardization(Mpi0s,nentries);
-	standarizationClass.rangeStandardization(phi_eta_gjs,nentries);
-	//
-	//standarizationClass(,nentries);
-	//standardizeArray class_cosTheta_X_cms(cosTheta_X_cms,nentries);
-	//standardizeArray class_cosTheta_eta_gjs(cosTheta_eta_gjs,nentries);
-	//standardizeArray class_phi_eta_gjs(phi_eta_gjs,nentries);
-	//standardizeArray class_phi_X_cms(phi_X_cms,nentries);
-	//standardizeArray class_cosThetaHighestEphotonIneta_gjs(cosThetaHighestEphotonIneta_gjs,nentries);
-	//standardizeArray class_cosThetaHighestEphotonInpi0_cms(cosThetaHighestEphotonInpi0_cms,nentries);
-	//standardizeArray class_vanHove_xs(vanHove_xs,nentries);
-	//standardizeArray class_vanHove_ys(vanHove_ys,nentries);
-	//standardizeArray class_vanHove_omegas(vanHove_omegas,nentries);
-	//standardizeArray class_pi0_energies(pi0_energies, nentries);
-	//standardizeArray class_mandelstam_tps(mandelstam_tps, nentries);
-	//standardizeArray class_Metas(Metas,nentries);
-	cout << "Standardizing the arrays" << endl;
+	for (int iVar=0; iVar<dim; ++iVar){
+            phaseSpaceVars[iVar].push_back(phaseSpaceVar[iVar]);
 
-	map<std::string, std::vector<double>> nameToVec;
-	nameToVec["cosTheta_X_cms"] = cosTheta_X_cms;
-	nameToVec["cosTheta_eta_gjs"] = cosTheta_eta_gjs; 
-	//nameToVec["phi_X_relativeToBeamPols"] = phi_X_relativeToBeamPols; 
-	nameToVec["Mpi0s"] = Mpi0s; 
-	nameToVec["phi_eta_gjs"] = phi_eta_gjs; 
-	//nameToVec["phi_X_cms"] = phi_X_cms; 
-	//nameToVec["cosThetaHighestEphotonIneta_gjs"] = cosThetaHighestEphotonIneta_gjs; 
-	//nameToVec["cosThetaHighestEphotonInpi0_cms"] = cosThetaHighestEphotonInpi0_cms; 
-	//nameToVec["vanHove_omegas"] = vanHove_omegas; 
-	//nameToVec["vanHove_xs"] = vanHove_xs; 
-	//nameToVec["vanHove_ys"] = vanHove_ys; 
-	//nameToVec["pi0_energies"] = pi0_energies; 
-	//nameToVec["mandelstam_tps"] = mandelstam_tps; 
-	//nameToVec["Metas"] = Metas; 
-
-	//int nameMapCounter=0;
-	//for(auto elem : nameToVec){
-	//    phasePoint1[nameMapCounter] = elem.second[ientry];
-	//    ++nameMapCounter;
-	//}
+            if(standardizationType=="range"){
+                standarizationClass.rangeStandardization(phaseSpaceVars[iVar],nentries);
+            }
+            else if (standardizationType=="std"){
+                standarizationClass.stdevStandardization(phaseSpaceVars[iVar],nentries);
+            }
+        }
 
 	if ( verbose_outputDistCalc ) {
-	    cout << "After standardization" << endl;
+	    cout << "After standarization the first nentries of phaseSpaceVar[0]" << endl;
 	    for ( int ientry=0 ; ientry < nentries; ientry++){
-	        cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
-	        //cout << phi_X_cms[ientry] << endl;//"," << cosTheta_eta_gjs[ientry] << endl;
+	        cout << phaseSpaceVars[0][ientry] << endl;
+	        //cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
 	    }
 	}
-
-        
-        // Parse the string of variables and use them to build a vector of variables. Looping over this variable and calculate distances
-	parseVarString parse(varString);
-	parse.parseString();
-	cout << "----------------------------" << endl;
-	cout << "----------------------------" << endl;
-	numVars=parse.varStringSet.size();
-	for (int iVar=0; iVar<numVars; ++iVar){
-	    cout << "var" << std::to_string(iVar) << ": " << parse.varStringSet[iVar] << endl;
-	}
-	if (numVars!=dim){ cout << " **** ERROR THE NUMBER OF VARIABLES USED IS NOT THE SAME HERE! *******" << endl; exit(0); }
-	for (int iVar=0; iVar<numVars; ++iVar){
-	    varVector.push_back(nameToVec[parse.varStringSet[iVar]]);
-	}
-	cout << "----------------------------" << endl;
-	cout << "----------------------------" << endl;
 
 	
 	// phasePoint1 will consider all events from lowest to largest since these will be our attached q values. phasePoint2 on the other hand will only look at a subset of the events where the
@@ -489,6 +417,7 @@ void QFactorAnalysis::loadData(){
 	    }
 	    ///phasePoint2PotentailNeighbor.push_back(ientry);
 	}
+        cout << "\n\n--------------------------------------" << endl;
 	cout << phasePoint2PotentailNeighbor.size() << "/" << nentries << " are used as potential neighbors" << endl;
 }
 
@@ -502,7 +431,6 @@ void QFactorAnalysis::runQFactorThreaded(){
 	cout << "nentries: " << nentries << endl;
 	cout << "override_nentries: " << override_nentries << endl;
 	cout << "verbose: " << verbose << endl;
-	cout << "numVars: " << numVars << endl;
 
 	// [=] refers to a capture list which is used by this lambda expression. The lambda gets a copy of all the local variables that it uses when it is created. If we
 	// just use [] we will get an error since the lambda will have no idea what these variables are	
@@ -520,8 +448,6 @@ void QFactorAnalysis::runQFactorThreaded(){
         	ULong64_t flatEntryNumber;
         	double bestChiSq;
 		double worstChiSq;
-		double chiSq_eta_01;
-		double chiSq_eta_02;
         	double best_qvalue;
 
                 // Saving the results along with some diagnostics
@@ -531,9 +457,8 @@ void QFactorAnalysis::runQFactorThreaded(){
         	TTree* resultsTree = new TTree("resultsTree","results");
         	resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
         	resultsTree->Branch("qvalue",&best_qvalue,"qvalue/D");
-        	resultsTree->Branch("chisq_eta",&bestChiSq,"chisq_eta/D");
-        	resultsTree->Branch("chisq_eta_01",&chiSq_eta_01,"chisq_eta/D");
-        	resultsTree->Branch("chisq_eta_02",&chiSq_eta_02,"chisq_eta/D");
+        	resultsTree->Branch("bestChiSq",&bestChiSq,"bestChiSq/D");
+        	resultsTree->Branch("worstChiSq",&worstChiSq,"worstChiSq/D");
         	resultsTree->Branch("combostd",&comboStd,"combostd/D");
         	resultsTree->Branch("combostd2",&comboStd2,"combostd2/D");
         	cout << "Set up branch addresses" << endl;
@@ -642,6 +567,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 		int savedN_badEvents=0;
         	for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
 			double unshiftedEntry = (double)(ientry-lowest_nentry);
+                        if(batchEntries<20){ cout << "Due to how we output the progress of the threads, we must have > 20 nentries\nEXITING\nEXITING" << endl; exit(0);}
 			int percentOfBatchEntries = (int)(batchEntries/20);
 			if ( (ientry-lowest_nentry) % percentOfBatchEntries == 0) { 
 				cout << "(Process " << iProcess << ") Percent done: " << (int)round( unshiftedEntry/(largest_nentry-lowest_nentry)*100 ) << "%" << endl;
@@ -657,17 +583,10 @@ void QFactorAnalysis::runQFactorThreaded(){
 			// clear data from previous events
 			mapDistToEntry.clear();
 			distances.clear();
-			if(useEta){
-				discriminatorHist = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
-				//discriminatorHist2 = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
-			}
-			else{
-				discriminatorHist = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
-				//discriminatorHist2 = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
-			}
+			discriminatorHist = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
 			
-			for ( int iVar=0; iVar<numVars; ++iVar ){
-				phasePoint1[iVar] = varVector[iVar][ientry];
+			for ( int iVar=0; iVar<dim; ++iVar ){
+				phasePoint1[iVar] = phaseSpaceVars[iVar][ientry];
 			}
                         // What if we wanted to look at k random neighbors?
 			//for (int jentry=0; jentry<kDim;++jentry) {  
@@ -679,8 +598,8 @@ void QFactorAnalysis::runQFactorThreaded(){
 			for (int jentry : phasePoint2PotentailNeighbor) {  
 				if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
 				
-				for ( int iVar=0; iVar<numVars; ++iVar ){
-				   	phasePoint2[iVar] = varVector[iVar][jentry];
+				for ( int iVar=0; iVar<dim; ++iVar ){
+				   	phasePoint2[iVar] = phaseSpaceVars[iVar][jentry];
 				}
 				if (spectroscopicComboIDs[jentry] != spectroscopicComboIDs[ientry]){
 				        distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
@@ -710,18 +629,9 @@ void QFactorAnalysis::runQFactorThreaded(){
                                 if (weightingScheme==""){ weight=1; }
                                 if (weightingScheme=="as"){ weight=AccWeights[newPair.second]; }
                                 if (weightingScheme=="as*bs"){ weight=AccWeights[newPair.second]*sbWeights[newPair.second]; }
-				if(useEta){
-			        	discriminatorHist->Fill(Metas[newPair.second],weight);
-			        	//discriminatorHist2->Fill(Mpi0s[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
-			        	//stdCalc.insertValue(Metas[newPair.second]);
-			        	//stdCalc2.insertValue(Mpi0s[newPair.second]);
-				}
-				else{
-			        	discriminatorHist->Fill(Mpi0s[newPair.second],weight);
-			        	//discriminatorHist2->Fill(Metas[newPair.second],AccWeights[newPair.second]*sbWeights[newPair.second]);
-			        	//stdCalc.insertValue(Mpi0s[newPair.second]);
-			        	//stdCalc2.insertValue(Metas[newPair.second]);
-				}
+			        discriminatorHist->Fill(discrimVars[newPair.second],weight);
+			        //stdCalc.insertValue(discrimVars[newPair.second]);
+                                
 			        //cout << "(" << newPair.first << ", " << newPair.second << ")"; 
 			        //cout << endl; 
 			}
@@ -732,7 +642,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 			if(verbose){logFile <<	"\tFilled neighbors: " << duration2 << "ms" << endl;}
 			
-			// Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the Meta has a asymmetry
+			// Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the discrimVar has a asymmetry
 			// such that there are more events to the left side of the peak. The second gaussian will have lower amplitude and a large sigma with a left shifted mean. We also want to 
 			// fix the amplitudes and constnat background to be strictly positive and choose kDim as the max value ( which is reached only if all values are filled into a single bin)
 			
@@ -756,29 +666,38 @@ void QFactorAnalysis::runQFactorThreaded(){
 			{
 				// have to use a mutex here or else we get some weird error
 				R__LOCKGUARD(gGlobalMutex);
-				if(useEta){
-					fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-					bkgFit = new TF1(("bkgFit"+to_string(iThread)).c_str(),background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
-					sigFit = new TF1(("sigFit"+to_string(iThread)).c_str(),signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
-				}
-				else{
-					fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRangePi0[0],fitRangePi0[1],numDOFbkg+numDOFsig);
-					bkgFit = new TF1(("bkgFit"+to_string(iThread)).c_str(),background,fitRangePi0[0],fitRangePi0[1],numDOFbkg);
-					sigFit = new TF1(("sigFit"+to_string(iThread)).c_str(),signal,fitRangePi0[0],fitRangePi0[1],numDOFsig);
-				}
+				fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
+				bkgFit = new TF1(("bkgFit"+to_string(iThread)).c_str(),background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
+				sigFit = new TF1(("sigFit"+to_string(iThread)).c_str(),signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
 			}
 
-
+                        // saving the initializations to see if they sort of make sense
+                        std::vector<TF1*> initFits;
+                        TF1* initFit;
 			for ( int iFit = 0; iFit < 3; ++iFit){
+                                std::vector<double> initParsVaryPercentSig = initPars;
+                                for ( auto sigVar : sigVarsNeedScaling ){ 
+                                    initParsVaryPercentSig[sigVar] = initParsVaryPercentSig[sigVar]*redistributeFactorSig[iFit];
+                                }
+                                for ( auto bkgVar : bkgVarsNeedScaling ){ 
+                                //for ( int iBkgVar=0; iBkgVar<bkgVarsNeedScaling.size(); ++iBkgVar ){ 
+                                    initParsVaryPercentSig[bkgVar] = initParsVaryPercentSig[bkgVar]*redistributeFactorBkg[iFit];
+                                }
+                                // saving the initialization to plot it later, just checking if the initializations look reasonable
+				initFit = new TF1(("initFit"+to_string(iFit)+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
+				initFit->SetParameters(&initParsVaryPercentSig[0]);
+                                initFits.push_back(initFit);
+
 				// Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
-				fit->SetParameters(par0[iFit],par1[iFit],par2[iFit],peakLoc,sigValue);//,ampRatio,widthRatio);
+				//fit->SetParameters(par0[iFit],par1[iFit],par2[iFit],peakLoc,sigValue);//,ampRatio,widthRatio);
+                                fit->SetParameters(&initParsVaryPercentSig[0]);
 				//fit->SetParameters(par0[0],par1[0],par2[2],peakLoc,sigValue);//,ampRatio,widthRatio);
 				//fit->FixParameter(1,0); 
 				fit->SetParLimits(0,-5,5); 
 				fit->SetParLimits(1,-10,10); 
 				fit->SetParLimits(2,0,kDim);
-				fit->SetParLimits(3,peakLoc*0.90, peakLoc*1.10);
-				fit->SetParLimits(4,sigValue*0.25, sigValue*1.75); 
+				fit->SetParLimits(3,initParsVaryPercentSig[3]*0.90, initParsVaryPercentSig[3]*1.10);
+				fit->SetParLimits(4,initParsVaryPercentSig[4]*0.25, initParsVaryPercentSig[4]*1.75); 
 				//fit->SetParLimits(3,peakLoc*0.95, peakLoc*1.05);
 				//fit->SetParLimits(4,sigValue*0.9, sigValue*1.1); 
 				//fit->SetParLimits(5,ampRatio*0.9, ampRatio*1.1 );
@@ -792,12 +711,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				fit->GetParameters(par);
 				bkgFit->SetParameters(par);
 				sigFit->SetParameters(&par[numDOFbkg]);
-				if(useEta){
-					qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
-				}
-				else{
-					qvalue=sigFit->Eval(Mpi0s[ientry])/fit->Eval(Mpi0s[ientry]);
-				}
+				qvalue=sigFit->Eval(discrimVars[ientry])/fit->Eval(discrimVars[ientry]);
 				
 				// Actually a lot of the times the value -> -0 so we should just make it zero at this point rather than refitting....
 				if ( abs(qvalue) < 0.00001 ){	
@@ -823,7 +737,7 @@ void QFactorAnalysis::runQFactorThreaded(){
         	        			fit->Draw("SAME");
   		        			bkgFit->Draw("SAME FC");
   		        			sigFit->Draw("SAME FC");
-						discrimVarLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
+						discrimVarLine = new TLine(discrimVars[ientry],0,discrimVars[ientry],kDim);
 						discrimVarLine->SetLineColor(kOrange);
 		        			discrimVarLine->Draw("same");
 						discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
@@ -831,14 +745,16 @@ void QFactorAnalysis::runQFactorThreaded(){
 						++savedN_badEvents;
 					}
 					
-				        fit->SetParameters(par0[0],0,par2[2],peakLoc,sigValue);//,ampRatio,widthRatio);
+                                        fit->SetParameters(&initParsVaryPercentSig[0]);
+                                        fit->SetParameter(1,0);
+				        //fit->SetParameters(par0[0],0,par2[2],peakLoc,sigValue);//,ampRatio,widthRatio);
 					fit->FixParameter(1,0); 
 					discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
 					fit->GetParameters(par);
 					bkgFit->SetParameters(par);
 					sigFit->SetParameters(&par[numDOFbkg]);
 
-					qvalue=sigFit->Eval(Metas[ientry])/fit->Eval(Metas[ientry]);
+					qvalue=sigFit->Eval(discrimVars[ientry])/fit->Eval(discrimVars[ientry]);
 					if (qvalue>1 || qvalue<0){
 					    cout << "Not sure why qvalue is still >1 or <0. Need to fix this!" << endl;
 					    cout << "These are the parameters:"<<endl;
@@ -902,7 +818,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 				if(verbose) { cout << "Keeping this event" << endl; }
 				discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq) + " (#Delta="+to_string(bestChiSq-worstChiSq)+ ")     Std="+to_string(comboStd)+"    iFit="+to_string(best_iFit)).c_str() );
-				discrimVarLine = new TLine(Metas[ientry],0,Metas[ientry],kDim);
+				discrimVarLine = new TLine(discrimVars[ientry],0,discrimVars[ientry],kDim);
 				discrimVarLine->SetLineColor(kOrange);
 				
         	          	fit->SetParameters(parBest);
@@ -916,14 +832,9 @@ void QFactorAnalysis::runQFactorThreaded(){
         	          	sigFit->SetLineColor(kBlue);
   		          	sigFit->SetFillStyle(3005);
 
-				if(useEta){
-					qSigLine = new TLine(0,sigFit->Eval(Metas[ientry]),binRangeEta[2],sigFit->Eval(Metas[ientry]));
-					qBkgLine = new TLine(0,bkgFit->Eval(Metas[ientry]),binRangeEta[2],bkgFit->Eval(Metas[ientry]));
-				}
-				else{
-					qSigLine = new TLine(0,sigFit->Eval(Mpi0s[ientry]),binRangePi0[2],sigFit->Eval(Mpi0s[ientry]));
-					qBkgLine = new TLine(0,bkgFit->Eval(Mpi0s[ientry]),binRangePi0[2],bkgFit->Eval(Mpi0s[ientry]));
-				}
+				qSigLine = new TLine(0,sigFit->Eval(discrimVars[ientry]),binRangeEta[2],sigFit->Eval(discrimVars[ientry]));
+				qBkgLine = new TLine(0,bkgFit->Eval(discrimVars[ientry]),binRangeEta[2],bkgFit->Eval(discrimVars[ientry]));
+				
         	          	qSigLine->SetLineColor(kBlue);
 				qSigLine->SetLineStyle(9);
         	          	qBkgLine->SetLineColor(kMagenta);
@@ -942,10 +853,9 @@ void QFactorAnalysis::runQFactorThreaded(){
         	          	//allCanvases->cd();
         	          	allCanvases->cd(1);
 		          	discriminatorHist->Draw();
-        	          	drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(Metas[ientry]),bkgFit->Eval(Metas[ientry]),fit->Eval(Metas[ientry]));
-				if(useEta){
-		          		discrimVarLine->Draw("same");
-				}
+        	          	drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(discrimVars[ientry]),bkgFit->Eval(discrimVars[ientry]),fit->Eval(discrimVars[ientry]));
+		          	discrimVarLine->Draw("same");
+
         	          	fit->Draw("SAME");
   		          	bkgFit->Draw("SAME FC");
   		          	sigFit->Draw("SAME FC");
@@ -960,27 +870,22 @@ void QFactorAnalysis::runQFactorThreaded(){
 				TH1F* clonedHist = (TH1F*) discriminatorHist->Clone();
                                 clonedHist->SetTitle("Initializations");
 		          	clonedHist->Draw();
-				TF1* initFit1 = new TF1(("initFit1"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-				initFit1->SetParameters(par0[0],par1[0],par2[0],peakLoc,sigValue);
-				initFit1->SetLineColor(kBlue-4);
-				initFit1->Draw("SAME");
-				TF1* initFit2 = new TF1(("initFit2"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-				initFit2->SetParameters(par0[1],par1[1],par2[1],peakLoc,sigValue);
-				initFit2->SetLineColor(kRed-3);
-				initFit2->Draw("SAME");
-				TF1* initFit3 = new TF1(("initFit3"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-				initFit3->SetParameters(par0[2],par1[2],par2[2],peakLoc,sigValue);
-				initFit3->SetLineColor(kGreen+2);
-				initFit3->Draw("SAME");
+
+				initFits[0]->SetLineColor(kBlue-4);
+				initFits[0]->Draw("SAME");
+				initFits[1]->SetLineColor(kRed-3);
+				initFits[1]->Draw("SAME");
+				initFits[2]->SetLineColor(kGreen+2);
+				initFits[2]->Draw("SAME");
 				TF1* initFit4 = new TF1(("initFit4"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-				initFit4->SetParameters(correctInit[0],correctInit[1],correctInit[2],peakLoc,sigValue);
+				initFit4->SetParameters(initPars[0],initPars[1],initPars[2],peakLoc,sigValue);
 				initFit4->SetLineColor(kOrange+1);
 				initFit4->Draw("SAME");
 
-                                legend_init->AddEntry(initFit1,"100% bkg");
-                                legend_init->AddEntry(initFit1,"50/50 bkg/sig");
-                                legend_init->AddEntry(initFit1,"100% sig");
-                                legend_init->AddEntry(initFit1,"Scaled Full Fit");
+                                legend_init->AddEntry(initFits[0],"100% bkg");
+                                legend_init->AddEntry(initFits[1],"50/50 bkg/sig");
+                                legend_init->AddEntry(initFits[2],"100% sig");
+                                legend_init->AddEntry(initFit4,"Scaled Full Fit");
                                 legend_init->Draw();
 				// need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one pdf converter
 				// or whatever and maybe if multiple threads calls it then a blocking effect can happen

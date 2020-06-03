@@ -5,9 +5,9 @@
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 bool verbose = true;
-string fileTag="bcal";
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_bcal_tree_flat";
+string fileTag="fcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_fcal_tree_flat";
 string weightingScheme="as*bs"; // "" or "as*bs"
 
 void makeDiagnosticHists(){
@@ -279,7 +279,7 @@ void makeDiagnosticHists(){
 		outputTree->GetEntry(ientry);
                 AccWeights.push_back(AccWeight);
 
-                getSBWeight(Mpi0,&sbWeight);
+                getSBWeight(Mpi0,&sbWeight,weightingScheme);
 		sbWeights.push_back(sbWeight);
 
 		Metas2.push_back(Meta2);

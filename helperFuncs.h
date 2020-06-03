@@ -8,21 +8,25 @@
 
 using namespace std;
 
-void getSBWeight(double discrimVar, double *sbWeight){
-    // Updates the weight variable given a value for the discriminating variable
-    // Determined by whether it is in the sideband region or the signal region.
-    double sbRL = 0.09; // Right sideband left line
-    double sbRR = 0.105; // Right sideband right line
-    double sigL = 0.12;
-    double sigR = 0.15;
-    double sbLL = 0.165;
-    double sbLR = 0.18;
 
-    if ( discrimVar > sbRL && discrimVar < sbRR ) { *sbWeight = -1; } 
-    else if ( discrimVar > sbLL && discrimVar < sbLR ) { *sbWeight = -1; } 
-    else if ( discrimVar > sigL && discrimVar < sigR ) { *sbWeight = 1; } 
-    else { *sbWeight = 0; }
 
+// -----------------------------
+int numDOFsig = 3; // degrees of freedom for the signal distribution
+int numDOFbkg = 2;
+// we need to tell "main" which variables need scaling when using the full reference distribution to the k nearest neighbors
+std::vector<int> sigVarsNeedScaling = {2};
+std::vector<int> bkgVarsNeedScaling = {0,1};
+// -----------------------------
+// Code for a single gaussian
+double signal(double *x, double *par){
+	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
+
+}
+double background(double *x, double *par){
+	return par[0]+par[1]*x[0];
+}
+double fitFunc(double *x, double *par){
+	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
 
 // Code for a breit Wigner
@@ -42,21 +46,31 @@ void getSBWeight(double discrimVar, double *sbWeight){
 //	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
 //
 //}
-//
-// Code for a single gaussian
-int numDOFsig = 3;
-double signal(double *x, double *par){
-	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
+
+
+void getSBWeight(double discrimVar, double *sbWeight, std::string weightingScheme){
+    // Updates the weight variable given a value for the discriminating variable
+    // Determined by whether it is in the sideband region or the signal region.
+    if (weightingScheme=="as*bs"){
+        double sbRL = 0.09; // Right sideband left line
+        double sbRR = 0.105; // Right sideband right line
+        double sigL = 0.12;
+        double sigR = 0.15;
+        double sbLL = 0.165;
+        double sbLR = 0.18;
+
+        if ( discrimVar > sbRL && discrimVar < sbRR ) { *sbWeight = -1; } 
+        else if ( discrimVar > sbLL && discrimVar < sbLR ) { *sbWeight = -1; } 
+        else if ( discrimVar > sigL && discrimVar < sigR ) { *sbWeight = 1; } 
+        else { *sbWeight = 0; }
+    }
+    else{
+        *sbWeight=1;
+    }
+
+
 
 }
-int numDOFbkg = 2;
-double background(double *x, double *par){
-	return par[0]+par[1]*x[0];
-}
-double fitFunc(double *x, double *par){
-	return background(x,par)+signal(x,&par[numDOFbkg]);
-}
-
 
 
 
@@ -119,7 +133,7 @@ class standardizeArray{
 				inputVector[ientry] = (inputVector[ientry]-min_inputVector)/(max_inputVector-min_inputVector);
 			}
                         std::cout << "Max,min: " << max_inputVector << "," << min_inputVector << std::endl;
-                        std::cout << "--Finished standardizing " << std::endl;
+                        std::cout << "--Finished Range standardizing " << std::endl;
 		}
 		
 		double calcStd(std::vector<double> &inputVector, long long nentries){
@@ -146,6 +160,7 @@ class standardizeArray{
 			for (int ientry=0; ientry < nentries; ++ientry){
 				inputVector[ientry] = inputVector[ientry]/std; 
 			} 
+                        std::cout << "Finished Stdev Standardization" << endl;
 		}
 };
 

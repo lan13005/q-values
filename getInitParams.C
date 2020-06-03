@@ -1,19 +1,13 @@
 // README
 // The purpose of this code is to fit the distribution of the discriminating variables and extract the fit parameters
 // We can then pass these fitted parameters, scale them, and use them as initializations for the q-values
-// This step is very important so make sure there is consistency between this file and the "main.C, main.h and run.py"
-// 1. Make sure the discriminating variables are the same...
-    // That means make sure the rootFile and tree name is the same...
-// 2. All the fit data will be in the logFile so make sure main.h loads in this file
-
-
 
 #include "/d/grid15/ln16/pi0eta/092419/makeGraphs.h"
 #include "helperFuncs.h"
 
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_bcal_tree_flat";
-string fileTag="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_fcal_tree_flat";
+string fileTag="fcal";
 string weightingScheme="as*bs"; // "" or "as*bs"
 
 void getInitParams(){
@@ -32,8 +26,8 @@ void getInitParams(){
 
     		ofstream logFile_discrimVar1;
     		ofstream logFile_discrimVar2;
-    		logFile_discrimVar1.open(("fitResults/etaFitNoAccSub_"+fileTag+".txt").c_str());
-    		logFile_discrimVar2.open(("fitResults/pi0FitNoAccSub_"+fileTag+".txt").c_str());
+    		logFile_discrimVar1.open(("fitResults/etaFit_toMain_"+fileTag+".txt").c_str());
+    		logFile_discrimVar2.open(("fitResults/pi0Fit_toMain_"+fileTag+".txt").c_str());
 
     		TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
         	bool isUniqueEtaB;
@@ -77,12 +71,6 @@ void getInitParams(){
 		// ///////////////////////////////////////////////////
 		// START ETA FIT
 		// ///////////////////////////////////////////////////
-		//// eta -> 2g
-		//binRangeEta={100,0.25,0.8};
-		//fitRangeEta={0.38,0.65};
-		//binRangePi0={100,0.05,0.25};
-		//fitRangePi0={0.1,0.17};
-		// eta->3pi0
 		binRangeEta={200,0.25,0.85};
 		fitRangeEta={0.4,0.7};
 		binRangePi0={200,0.05,0.25};
@@ -107,7 +95,7 @@ void getInitParams(){
 		for (int ientry=0; ientry<nentries; ientry++)
 		{
 			dataTree->GetEntry(ientry);
-                        getSBWeight(Mpi0,&sbWeight);
+                        getSBWeight(Mpi0,&sbWeight,weightingScheme);
                         double weight;
                         if (weightingScheme==""){ weight=1; }
                         if (weightingScheme=="as"){ weight=AccWeight; }
@@ -135,7 +123,7 @@ void getInitParams(){
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
 		massHistEta->SetTitle(";M(#eta) (GeV)");
-		logFile_discrimVar1 << namePar[0] << " " << nentries << endl;
+		logFile_discrimVar1 << "#" << namePar[0] << " " << nentries << endl;
 		
 		for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
 		        logFile_discrimVar1 << namePar[iPar+1] << " " << par[iPar] << endl;
@@ -155,33 +143,33 @@ void getInitParams(){
 		cout << "nentries: " << nentries << endl;
 
 		double weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
-		logFile_discrimVar1 << "integralBKG " << integralBKG << endl;
-		logFile_discrimVar1 << "integralSIG " << integralSIG << endl;
-		logFile_discrimVar1 << "weightedSigma " << weightedSigma << endl;
+		logFile_discrimVar1 << "#integralBKG " << integralBKG << endl;
+		logFile_discrimVar1 << "#integralSIG " << integralSIG << endl;
+		logFile_discrimVar1 << "#weightedSigma " << weightedSigma << endl;
 
 		double eventRatioSigToBkg = integralSIG/integralBKG;
-		logFile_discrimVar1 << "eventRatioSigToBkg " << eventRatioSigToBkg << endl;
+		logFile_discrimVar1 << "#eventRatioSigToBkg " << eventRatioSigToBkg << endl;
 
 		int nSig=3;
 		TLine *line = new TLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
 		line->SetLineColor(kMagenta);
 		double integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthEta;
 		double integralSIG_nsig = sigFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthEta;
-		logFile_discrimVar1 << "integralBKG_nSig " << integralBKG_nsig << endl;
-		logFile_discrimVar1 << "integralSIG_nSig " << integralSIG_nsig << endl;
+		logFile_discrimVar1 << "#integralBKG_nSig " << integralBKG_nsig << endl;
+		logFile_discrimVar1 << "#integralSIG_nSig " << integralSIG_nsig << endl;
 		Int_t binx1 = massHistEta->GetXaxis()->FindBin(par[3]-nSig*weightedSigma);
 		Int_t binx2 = massHistEta->GetXaxis()->FindBin(par[3]+nSig*weightedSigma);
-		logFile_discrimVar1 << "-- 3sigma BinLower, BinUpper = " << binx1 << ", " << binx2 << endl;
-		logFile_discrimVar1 << "-- Actual counts in the 3sigma range " << massHistEta->Integral(binx1,binx2) << endl;
-		logFile_discrimVar1 << "-- integralBKG_nSig+integralSIG_nSig " << integralBKG_nsig+integralSIG_nsig << endl;
+		logFile_discrimVar1 << "#-- 3sigma BinLower, BinUpper = " << binx1 << ", " << binx2 << endl;
+		logFile_discrimVar1 << "#-- Actual counts in the 3sigma range " << massHistEta->Integral(binx1,binx2) << endl;
+		logFile_discrimVar1 << "#-- integralBKG_nSig+integralSIG_nSig " << integralBKG_nsig+integralSIG_nsig << endl;
 		if ( abs(1-massHistEta->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) < 0.05 ) {
-			logFile_discrimVar1 << "--There is agreement within 5%" << endl;
+			logFile_discrimVar1 << "#--There is agreement within 5%" << endl;
 		}
 		else {
-			logFile_discrimVar1 << "--Percent off " << abs(1-massHistEta->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) << endl;
+			logFile_discrimVar1 << "#--Percent off " << abs(1-massHistEta->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) << endl;
 		}
 		double purity = integralSIG_nsig/(integralBKG_nsig+integralSIG_nsig);
-		logFile_discrimVar1 << "purity " << purity << endl;
+		logFile_discrimVar1 << "#purity " << purity << endl;
 
 		
 		massHistEta->Draw();
@@ -208,7 +196,7 @@ void getInitParams(){
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
 		massHistPi0->SetTitle(";M(#pi^{0}) (GeV)");
-		logFile_discrimVar2 << namePar[0] << " " << nentries << endl;
+		logFile_discrimVar2 << "#" << namePar[0] << " " << nentries << endl;
 		
 		for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
 		        logFile_discrimVar2 << namePar[iPar+1] << " " << par[iPar] << endl;
@@ -222,33 +210,33 @@ void getInitParams(){
 		cout << "IntegralSIG before scaling: " << integralSIG << endl;
 		integralBKG *= 1/binWidthPi0;
 		integralSIG *= 1/binWidthPi0;
-		logFile_discrimVar2 << "integralBKG " << integralBKG << endl;
-		logFile_discrimVar2 << "integralSIG " << integralSIG << endl;
+		logFile_discrimVar2 << "#integralBKG " << integralBKG << endl;
+		logFile_discrimVar2 << "#integralSIG " << integralSIG << endl;
 
 		cout << "IntegralBKG after scaling: " << integralBKG << endl;
 		cout << "IntegralSIG after scaling: " << integralSIG << endl;
 		cout << "nentries: " << nentries << endl;
 
 		weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
-		logFile_discrimVar2 << "weightedSigma: " << weightedSigma << endl;
+		logFile_discrimVar2 << "#weightedSigma: " << weightedSigma << endl;
 
 		integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
 		integralSIG_nsig = sigFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
-		logFile_discrimVar2 << "integralBKG_nSig " << integralBKG_nsig << endl;
-		logFile_discrimVar2 << "integralSIG_nSig " << integralSIG_nsig << endl;
+		logFile_discrimVar2 << "#integralBKG_nSig " << integralBKG_nsig << endl;
+		logFile_discrimVar2 << "#integralSIG_nSig " << integralSIG_nsig << endl;
 		binx1 = massHistPi0->GetXaxis()->FindBin(par[3]-nSig*weightedSigma);
 		binx2 = massHistPi0->GetXaxis()->FindBin(par[3]+nSig*weightedSigma);
-		logFile_discrimVar1 << "-- 3sigma BinLower, BinUpper = " << binx1 << ", " << binx2 << endl;
-		logFile_discrimVar1 << "-- Actual counts in the 3sigma range " << massHistPi0->Integral(binx1,binx2) << endl;
-		logFile_discrimVar1 << "-- integralBKG_nSig+integralSIG_nSig " << integralBKG_nsig+integralSIG_nsig << endl;
+		logFile_discrimVar2 << "#-- 3sigma BinLower, BinUpper = " << binx1 << ", " << binx2 << endl;
+		logFile_discrimVar2 << "#-- Actual counts in the 3sigma range " << massHistPi0->Integral(binx1,binx2) << endl;
+		logFile_discrimVar2 << "#-- integralBKG_nSig+integralSIG_nSig " << integralBKG_nsig+integralSIG_nsig << endl;
 		if ( abs(1-massHistPi0->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) < 0.05 ) {
-			logFile_discrimVar1 << "--There is agreement within 5%" << endl;
+			logFile_discrimVar2 << "#--There is agreement within 5%" << endl;
 		}
 		else {
-			logFile_discrimVar1 << "--Percent off " << abs(1-massHistPi0->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) << endl;
+			logFile_discrimVar2 << "#--Percent off " << abs(1-massHistPi0->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) << endl;
 		}
 		purity = integralSIG_nsig/(integralBKG_nsig+integralSIG_nsig);
-		logFile_discrimVar2 << "purity " << purity << endl;
+		logFile_discrimVar2 << "#purity " << purity << endl;
 		
 		massHistPi0->Draw();
 		line->DrawLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());

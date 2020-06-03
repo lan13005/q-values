@@ -19,20 +19,22 @@ int main( int argc, char* argv[] ){
 	// -----------------------------------------------------
         int kDim= atoi(argv[1]);
         std::string varString=argv[2];
-        int numberEventsToSavePerProcess= atoi(argv[3]);
-	int nProcess=atoi(argv[4]);
-        int seedShift= atoi(argv[5]);
-        Long64_t nentries= atoi(argv[6]);
+        std::string discrimVarStr=argv[3];
+        std::string sideBandVarStr=argv[4];
+        int numberEventsToSavePerProcess= atoi(argv[5]);
+	int nProcess=atoi(argv[6]);
+        int seedShift= atoi(argv[7]);
+        Long64_t nentries= atoi(argv[8]);
         bool override_nentries;
         cout << "Num Vars="<< dim << endl;
-        if ( atoi(argv[7]) ==1 ){ 
+        if ( atoi(argv[9]) ==1 ){ 
             override_nentries=true;
         }
         else{ 
             override_nentries=false;
         }
         bool verbose;
-        if ( atoi(argv[8])==1 ){ verbose=true;}
+        if ( atoi(argv[10])==1 ){ verbose=true;}
         else{ verbose=false;}
         cout << "----------------------------" << endl;
         cout << "kDim: " << kDim << endl;
@@ -42,11 +44,13 @@ int main( int argc, char* argv[] ){
         cout << "override_nentries: " << override_nentries << endl;
         cout << "verbose: " << verbose  << endl; 
 	cout << "varString: " << varString << endl; 
+	cout << "discrimVarStr: " << discrimVarStr << endl; 
+	cout << "sideBandVarStr: " << sideBandVarStr << endl; 
         cout << "nProcess: " << nProcess << endl;
         cout << "----------------------------" << endl;
     
-	QFactorAnalysis analysisControl(kDim, varString, numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);
-	string fitLocation = "fitResults/etaFitNoAccSub_"+fileTag+".txt";
+	QFactorAnalysis analysisControl(kDim, varString, discrimVarStr, sideBandVarStr, numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);
+	string fitLocation = "fitResults/etaFit_toMain_"+fileTag+".txt";
 	analysisControl.loadTree(rootFileLoc, rootTreeName);
 	analysisControl.loadFitParameters(fitLocation);
 	analysisControl.loadData();

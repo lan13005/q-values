@@ -9,17 +9,21 @@ from checkSettings import check # contain function that compares files for keywo
 
 start_time = time.time()
 
-kDim=300 # number of neighbors
+kDim=200 # number of neighbors
 numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
 seedShift=1212 # in case we dont want the same q-value histogram we can choose another random seed
-nProcess=16 # how many processes to spawn
-nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
+nProcess=4 # how many processes to spawn
+nentries=10000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
 override_nentries=1 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
 verbose=1 # how much information we want to output to the logs
 weightingScheme="as*bs" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
+varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
+discrimVar="Meta" # discriminating/reference variable
+sideBandVar="Mpi0" # side band subtract on this variable
+standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
 emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 makeGraphs=False # do we want to run makeDiagnosticHists
-runFullFit=False # do we want to run the full fit to extract the initialization parameters?
+runFullFit=True # do we want to run the full fit to extract the initialization parameters? If you change nentries, fitFuncs, weightingScheme, discrimVar, sideBandVar then keep this as True
 
 check() # Outputting some checks to make sure getInitParams, main.h, and makeDiagnosticHists agree
 
@@ -27,17 +31,11 @@ check() # Outputting some checks to make sure getInitParams, main.h, and makeDia
 # Also need a tag to save the data to so that we dont overwrite other runs
 rootFileLocs=[
         ("/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root", "degALL_bcal_tree_flat", "bcal")
-        #,("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
-        #,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
+        ,("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
+        ,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
         ]
 
-
-# ---- REMEMBER TO CHANGE THE MAIN FUNCTION BELOW TO INCLUDE ALL THE VARIABLES YOU WOULD LIKE TO USE -----
-varStringBase="cosTheta_X_cms;cosTheta_eta_gjs;phi_eta_gjs"#;Mpi0s;phi_X_relativeToBeamPols;phi_eta_gjs;phi_X_cms;cosThetaHighestEphotonIneta_gjs;cosThetaHighestEphotonInpi0_cms;vanHove_omegas'
 varVec=varStringBase.rstrip().split(";")
-# --------------------------------------------------------------------------------------------------------
-
-
 def execFullFit(rootFileLoc,rootTreeName,fileTag):
     # First we clean the folders 
     os.system("rm -rf fitResults")
@@ -98,6 +96,8 @@ def runOverCombo(combo,nentries,rootFileLoc,rootTreeName,fileTag):
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@weightingScheme=".*";@weightingScheme="'+weightingScheme+'";@g',"main.h"]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@standardizationType=".*";@standardizationType="'+standardizationType+'";@g',"main.h"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
     # setting rootFile, tree, fileTag and weightingScheme in makeDiagnosticHists
     sedArgs=["sed","-i",'s@rootFileLoc=".*";@rootFileLoc="'+rootFileLoc+'";@g',"makeDiagnosticHists.C"]
@@ -122,9 +122,9 @@ def runOverCombo(combo,nentries,rootFileLoc,rootTreeName,fileTag):
     
     subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
-    print('./main "$kDim" $varString "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &')
+    print('./main "$kDim" $varString $discrimVar $sideBandVar "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &')
     print('Number of threads: '+str(nProcess))
-    executeMain=["./main",str(kDim),varString,str(numberEventsToSavePerProcess),str(nProcess),str(seedShift),str(nentries),str(override_nentries),str(verbose),"&"]
+    executeMain=["./main",str(kDim),varString,discrimVar,sideBandVar,str(numberEventsToSavePerProcess),str(nProcess),str(seedShift),str(nentries),str(override_nentries),str(verbose),"&"]
     print(" ".join(executeMain))
     subprocess.Popen(executeMain).wait()
         

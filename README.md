@@ -21,10 +21,19 @@ There are a bit of caveats which this package tries to tackle.
 - What is best way to find the nearest neighbors. Currently, a priority queue is set up which has O(logn) to insert and to remove the smallest element. Offloading this to a GPU could be beneficial if the sequentail part for the CPU is relatively long.
 - How do we know which phase space variables to select? Currently, the program is able to take in a set of variables and just scan through all possible permutations and subsets. Left to the analyzer to decide from there.
 
+## Requirements
+Minuit is not threadsafe so this code requires TMinuit2. I believe the ROOT version needed for this is atleast 6.19.
+All combinatons from all events that passed your selections should be kept in a root file. Each combination is an entry. At GlueX, this is the flat tree format from the DSelector.  
 
 ## Code
-There are 3 main programs which does everything:
+There are a few programs working together:
 1. getInitParams.C does the initial fit to the full discriminating variable's distribution. Save the fit parameters to a file which is then read in later
-2. main.h/C is the Q-factor program. All the function definitions are in the header file, includes some helper functions. The inputs are not entirely decoupled so some checks should be done to make sure there is consistency of setting in between all the files. QFactorAnalysis class has multiple methods which load the data and fitted parameters from getInitParams and spawns the threads to do the analysis
+2. main.h/C is the Q-factor program. QFactor class is in main.h and there are bunch of helper functions in helperFunc.C. The inputs are not entirely decoupled so some checks should be done to make sure there is consistency of setting in between all the files. QFactorAnalysis class has multiple methods which load the data and fitted parameters from getInitParams and spawns the threads to do the analysis
 3. makeDiagnosticHists aggregates all the results from the main program. Various plots are made with the q-factor weighting
-run.py drives the main program and makeDiagnosticHists. Most of the important variables are configued here and modifies main and makeDiagnosticHiste to do the correct thing. main is also compiled at this stage, directories are cleaned. There are still variables which need to be decoupled from the body of other programs, like the binRange and fitRanges. 
+4. run.py drives the main program and makeDiagnosticHists. Most of the important variables are configued here and modifies main directly using search and replace, which can be slightly dangerous. run.py also modifies makeDiagnosticHists in a similar way to keep things consistent. main is also compiled at this stage, directories are cleaned to reduce confusion. 
+5. convertROOTtoPNG.C is needed since outputting histograms into image formats, in a multithreaded way, causes errors. Maybe due to some blocking issues. Anyways, we can save them all as root files and then convert them to pngs or whatever
+
+Things you need to configure:
+1. Most importantly the settings at the top of the run.py file needs to configured properly.
+2. The distribution for the signal and bkg must be given. "main" program uses fitFunc, background, and signal function definitions defined in helperFunc.h. Typically a polynomial bkg is taken with a Gaussian signal.  
+3. The fit parameters and the fit initializations need to be set in getInitParams and main.h

@@ -26,7 +26,7 @@ def check():
     print(colored("---------\nGeneral Settings\n---------","red"))
     keywords = ["kDim", "numberEventsToSavePerProcess", "seedShift", "nProcess", "nentries" \
             ,"override_nentries", "verbose", "makeGraphs","emailWhenFinished","weightingScheme"
-            ,"runFullFit"
+            ,"runFullFit", "discrimVar", "sideBandVar", "standardizationType" 
             ]
     keywords = ["^"+keyword for keyword in keywords]
     searchFile(["run.py"],keywords,True)
