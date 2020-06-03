@@ -5,10 +5,13 @@
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 bool verbose = true;
-string fileTag="fcal";
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_fcal_tree_flat";
+string fileTag="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_bcal_tree_flat";
 string weightingScheme="as*bs"; // "" or "as*bs"
+string accWeight="AccWeight";
+string discrimVar="Meta";
+string sideBandVar="Mpi0";
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -57,11 +60,6 @@ void makeDiagnosticHists(){
 	const int c_nentries2 = (const int)nentries;
         cout << "c_nentries2: " << c_nentries2 << endl;
 
-
-	// make a comparison set to see if we have all the combos
-        // set<ULong64_t> all_ientries;
-        // set<ULong64_t> all_flatEntryNumber;
-        // cout << "built comparision sets..." << endl;
 
 	// make a vector of 0s such that we can fill the q-values in order to unscramble to multiprocessing effects
 	std::vector< double > qvalues(c_nentries2,0);

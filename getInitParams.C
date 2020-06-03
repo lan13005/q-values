@@ -5,10 +5,14 @@
 #include "/d/grid15/ln16/pi0eta/092419/makeGraphs.h"
 #include "helperFuncs.h"
 
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_fcal_tree_flat";
-string fileTag="fcal";
+
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_bcal_tree_flat";
+string fileTag="bcal";
 string weightingScheme="as*bs"; // "" or "as*bs"
+string s_accWeight="AccWeight";
+string s_discrimVar="Meta";
+string s_sideBandVar="Mpi0";
 
 void getInitParams(){
 	gStyle->SetOptFit(111);
@@ -33,14 +37,14 @@ void getInitParams(){
         	bool isUniqueEtaB;
         	bool isUniquePi0B;
         	bool isUniquePi0EtaB;
-		double Meta;
-		double Mpi0;
+		double discrimVar;
+		double sideBandVar;
 		double Mpi0eta;
 		double AccWeight;
-		dataTree->SetBranchAddress("Meta",&Meta);
-		dataTree->SetBranchAddress("Mpi0",&Mpi0);
+		dataTree->SetBranchAddress(s_discrimVar.c_str(),&discrimVar);
+		dataTree->SetBranchAddress(s_sideBandVar.c_str(),&sideBandVar);
 		dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
-		dataTree->SetBranchAddress("AccWeight",&AccWeight);
+		dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
         	dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
         	dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
         	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
@@ -52,10 +56,10 @@ void getInitParams(){
 		TF1* fit;
         	TF1* bkgFit;
         	TF1* sigFit;
-        	double par[7];
+        	double par[5];
 		
         	cout <<"Initialized" << endl;
-        	string namePar[8] = {"nentries","const","linear","amp1","mass","sigma1","ampRatio","sigmaRatio"};
+        	string namePar[6] = {"nentries","const","linear","amp1","mass","sigma1"};//,"ampRatio","sigmaRatio"};
 
 		allCanvases->Clear();
 		std::vector<double> binRangeEta;
@@ -71,9 +75,15 @@ void getInitParams(){
 		// ///////////////////////////////////////////////////
 		// START ETA FIT
 		// ///////////////////////////////////////////////////
-		binRangeEta={200,0.25,0.85};
-		fitRangeEta={0.4,0.7};
-		binRangePi0={200,0.05,0.25};
+                double _SET_DiscrimBinLower = 0.25;
+                double _SET_DiscrimBinUpper = 0.85;
+                double _SET_DiscrimBinNum = 200;
+                double _SET_DiscrimFitLower = 0.4;
+                double _SET_DiscrimFitUpper = 0.7;
+
+		binRangeEta={_SET_DiscrimBinNum,_SET_DiscrimBinLower,_SET_DiscrimBinUpper};
+		fitRangeEta={_SET_DiscrimFitLower,_SET_DiscrimFitUpper};
+		binRangePi0={200,0.005,0.25};
 		fitRangePi0={0.1,0.17};
 
 		binWidthEta=(binRangeEta[2]-binRangeEta[1])/binRangeEta[0];
@@ -84,7 +94,7 @@ void getInitParams(){
 		bkgFit = new TF1("bkgFit",background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
 		sigFit = new TF1("sigFit",signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
 
-		fit->SetParameters(11500,250,1750,0.547,0.003,3,5);
+		fit->SetParameters(11500,250,1750,0.547,0.003);//,3,5);
 
 		massHistEta = new TH1F("","",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
 		massHistPi0 = new TH1F("","",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
@@ -95,16 +105,16 @@ void getInitParams(){
 		for (int ientry=0; ientry<nentries; ientry++)
 		{
 			dataTree->GetEntry(ientry);
-                        getSBWeight(Mpi0,&sbWeight,weightingScheme);
+                        getSBWeight(sideBandVar,&sbWeight,weightingScheme);
                         double weight;
                         if (weightingScheme==""){ weight=1; }
                         if (weightingScheme=="as"){ weight=AccWeight; }
                         if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight; }
                 	if ( isUniqueEtaB ) {
-		        	massHistEta->Fill(Meta,weight);//*sbWeight);
+		        	massHistEta->Fill(discrimVar,weight);//*sbWeight);
 			}
                 	if ( isUniquePi0B ) {
-		        	massHistPi0->Fill(Mpi0,weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
+		        	massHistPi0->Fill(sideBandVar,weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
 			}
                 	if ( isUniquePi0EtaB ) {
 				massHistPi0Eta->Fill(Mpi0eta,weight);//*sbWeight);
@@ -120,6 +130,9 @@ void getInitParams(){
 		
 		massHistEta->Fit("fit","RQB"); // B will enforce the bounds
 		fit->GetParameters(par);
+                cout << "Setting par[4] = width to be positive" << endl;
+                if(par[4] < 0){ par[4] = abs(par[4]); }
+                fit->SetParameters(par);
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
 		massHistEta->SetTitle(";M(#eta) (GeV)");
@@ -142,15 +155,16 @@ void getInitParams(){
 		cout << "IntegralSIG after scaling: " << integralSIG << endl;
 		cout << "nentries: " << nentries << endl;
 
-		double weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
 		logFile_discrimVar1 << "#integralBKG " << integralBKG << endl;
 		logFile_discrimVar1 << "#integralSIG " << integralSIG << endl;
-		logFile_discrimVar1 << "#weightedSigma " << weightedSigma << endl;
 
 		double eventRatioSigToBkg = integralSIG/integralBKG;
 		logFile_discrimVar1 << "#eventRatioSigToBkg " << eventRatioSigToBkg << endl;
 
 		int nSig=3;
+		//double weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
+                double weightedSigma = par[4];
+		logFile_discrimVar1 << "#weightedSigma " << weightedSigma << endl;
 		TLine *line = new TLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
 		line->SetLineColor(kMagenta);
 		double integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthEta;
@@ -177,8 +191,8 @@ void getInitParams(){
 		line->DrawLine(par[3]+nSig*weightedSigma,0,par[3]+nSig*weightedSigma,massHistEta->GetMaximum());
 		massHistEta->GetXaxis()->SetTitleSize(0.04);
 		massHistEta->GetYaxis()->SetTitleSize(0.04);
-		massHistEta->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
-		allCanvases->SaveAs(("fitResults/Meta_fit_"+fileTag+".png").c_str());
+		massHistEta->SetTitle(("Peak: "+to_string(par[3])+"    width: "+to_string(weightedSigma)).c_str());
+		allCanvases->SaveAs(("fitResults/"+s_discrimVar+"_fit_"+fileTag+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
         	
 
@@ -189,10 +203,13 @@ void getInitParams(){
 		bkgFit = new TF1("bkgFit",background,fitRangePi0[0],fitRangePi0[1],numDOFbkg);
 		sigFit = new TF1("sigFit",signal,fitRangePi0[0],fitRangePi0[1],numDOFsig);
 
-		fit->SetParameters(11500,250,1750,0.134,0.001,5,2);
+		fit->SetParameters(11500,250,1750,0.134,0.001);//,5,2);
 
 		massHistPi0->Fit("fit","RQB"); // B will enforce the bounds
 		fit->GetParameters(par);
+                cout << "Setting par[4] = width to be positive" << endl;
+                if(par[4] < 0){ par[4] = abs(par[4]); }
+                fit->SetParameters(par);
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
 		massHistPi0->SetTitle(";M(#pi^{0}) (GeV)");
@@ -217,7 +234,8 @@ void getInitParams(){
 		cout << "IntegralSIG after scaling: " << integralSIG << endl;
 		cout << "nentries: " << nentries << endl;
 
-		weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
+		//weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
+                weightedSigma=par[4];
 		logFile_discrimVar2 << "#weightedSigma: " << weightedSigma << endl;
 
 		integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
@@ -243,7 +261,7 @@ void getInitParams(){
 		line->DrawLine(par[3]+nSig*weightedSigma,0,par[3]+nSig*weightedSigma,massHistEta->GetMaximum());
 		massHistPi0->GetXaxis()->SetTitleSize(0.04);
 		massHistPi0->GetYaxis()->SetTitleSize(0.04);
-		massHistPi0->SetTitle(("Peak: "+to_string(par[4])+"    width: "+to_string(par[5])).c_str());
+		massHistPi0->SetTitle(("Peak: "+to_string(par[3])+"    width: "+to_string(weightedSigma)).c_str());
 		//TLine *line = new TLine( sbRL, 0, sbRL, massHistPi0->GetMaximum());
 		//line->SetLineColor(kRed);
 		//line->Draw("SAME");
@@ -253,7 +271,7 @@ void getInitParams(){
 		//line->DrawLine( sbLL, 0, sbLL, massHistPi0->GetMaximum());
 		//line->DrawLine( sbLR, 0, sbLR, massHistPi0->GetMaximum());
 
-		allCanvases->SaveAs(("fitResults/Mpi0_fit_"+fileTag+".png").c_str());
+		allCanvases->SaveAs(("fitResults/"+s_sideBandVar+"_fit_"+fileTag+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
 	}
 }

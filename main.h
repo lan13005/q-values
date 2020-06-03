@@ -44,10 +44,14 @@ TRandom rgen;
 
 using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_fcal_tree_flat";
-string fileTag="fcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_bcal_tree_flat";
+string fileTag="bcal";
 string weightingScheme="as*bs"; // "" or "as*bs"
+string s_accWeight="AccWeight";
+string s_discrimVar="Meta";
+string s_sideBandVar="Mpi0";
+
 string standardizationType="range"; // range or stdev standardization
 
 // OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
@@ -121,24 +125,16 @@ class QFactorAnalysis{
 		bool override_nentries;
 		bool verbose;
 		string varString;
-                string discrimVarStr;
-                string sideBandVarStr;
 		std::chrono::time_point<std::chrono::high_resolution_clock> start2;
                 
                 // These block of variables will be used to hold the initialization parameters. In the Q-factor paper they use 3 different initializations which
                 // correspond to 100% bkg, 50/50, and 100% sig. If we want to do this here, the yields in the bkg and signal need to be modified. These vectors
                 // will hold that information
-		//std::vector<double> par0;
-		//std::vector<double> par1;
-		//std::vector<double> par2;
 		std::vector<double> initPars;
-		double ampRatio;
-		double widthRatio;
-		double peakLoc;
-		double sigValue;
                 std::vector<double> redistributeFactorBkg;
                 std::vector<double> redistributeFactorSig;
-	
+                parameterLimits parLimits;
+
                 // initialize vectors to hold the discriminating and phase space variables
 		std::vector<double> discrimVars; 
 		std::vector<double> sideBandVars; 
@@ -152,7 +148,7 @@ class QFactorAnalysis{
 		std::vector<int> phasePoint2PotentailNeighbor; 
 	
 	public:
-		QFactorAnalysis(int kDim1, string varString1, string discrimVarStr1, string sideBandVarStr1, int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, bool override_nentries1, bool verbose1){ 
+		QFactorAnalysis(int kDim1, string varString1, int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, bool override_nentries1, bool verbose1){ 
 			cout << "Constructed QFactorAnalysis class..." << endl;
 			kDim=kDim1;
 			numberEventsToSavePerProcess=numberEventsToSavePerProcess1;
@@ -163,8 +159,6 @@ class QFactorAnalysis{
 			verbose=verbose1;
 			start2 = std::chrono::high_resolution_clock::now();
 			varString=varString1;
-                        discrimVarStr=discrimVarStr1;
-                        sideBandVarStr=sideBandVarStr1;
 	
 		        // Use these vectors to import all the data to RAM instead of reading from root file
                         // First we should reserve the space so there is no resizing of the vectors
@@ -268,17 +262,6 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
         // If we use a normalized Gaussian then the amplitude is simply scaled by the kDim/total
 	double scaleFactor = (double)kDim/total_nentries;
 	cout << "scaleFactor: " << scaleFactor << endl;
-
-	//double fittedConst;
-	//double fittedLinear;
-	//double fittedAmp;
-	//fittedConst = fittedConst_eta;
-	//fittedLinear = fittedLinear_eta;
-	//fittedAmp = fittedAmp_eta;
-	//ampRatio = ampRatio_eta;
-	//widthRatio = sigmaRatio_eta;
-	//peakLoc = peak_eta;
-	//sigValue = sigma_eta;
 	
         // scaling signal distribution
         for ( auto iVar : sigVarsNeedScaling) {
@@ -293,20 +276,17 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
             cout << initParNames[iVar] << ": " << initPars[iVar] << endl; 
         }
 
+        // We will 3 iterations. Not sure if I am doing this correctly
+        // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
+	cout << "------------- SETTING UP | 100% | 50%/50% | 100% | parameter initialization -----------------" << endl;
         redistributeFactorSig = { 0, (1+1/eventRatioSigToBkg)/2, (1+1/eventRatioSigToBkg) };
         redistributeFactorBkg = { (1+eventRatioSigToBkg), (1+eventRatioSigToBkg)/2, 0 };
-        // We will d potentially 3 iterations. Not sure if I am doing this correctly
-        // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
-	//par0 = { scaleFactor*fittedConst*(1+eventRatioSigToBkg), scaleFactor*fittedConst*(1+eventRatioSigToBkg)/2, 0 }; 
-	//par1 = { scaleFactor*fittedLinear*(1+eventRatioSigToBkg), scaleFactor*fittedLinear*(1+eventRatioSigToBkg)/2, 0 }; 
-	//par2 = { 0, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg)/2, scaleFactor*fittedAmp*(1+1/eventRatioSigToBkg) }; 
-	//
-	//cout << "------------- CHECKING | 100% | 50%/50% | 100% | parameter initialization -----------------" << endl;
-	//cout << "total_nentries: " << total_nentries << endl;
-	//cout << "100% bkg (par0,par1,par2): " << par0[0] << ", " << par1[0] << ", " << par2[0] << endl; 
-	//cout << "50/50 (par0,par1,par2): " << par0[1] << ", " << par1[1] << ", " << par2[1] << endl; 
-	//cout << "100% sig (par0,par1,par2): " << par0[2] << ", " << par1[2] << ", " << par2[2] << endl; 
-	//cout << "===========================================================================================" << endl;
+
+        // we can set up the parameter limits now
+        parLimits.initPars = initPars;
+        parLimits.eventRatioSigToBkg = eventRatioSigToBkg;
+        parLimits.setupParLimits();
+        parLimits.printParLimits();
 }
 
 
@@ -332,7 +312,7 @@ void QFactorAnalysis::loadData(){
 	bool isUniquePi0EtaB;
 
 	// Set branch addresses so we can read in the data
-        dataTree->SetBranchAddress(discrimVarStr.c_str(), &discrimVar);
+        dataTree->SetBranchAddress(s_discrimVar.c_str(), &discrimVar);
 	parseVarString parse(varString);
 	parse.parseString();
         if ( parse.varStringSet.size() != dim ) { cout << "Uh-oh something went wrong. varString size not the same as dim" << endl; }
@@ -340,9 +320,9 @@ void QFactorAnalysis::loadData(){
             cout << "Setting " << parse.varStringSet[iVar] << " to phaseSpaceVar index " << iVar << endl; 
             dataTree->SetBranchAddress(parse.varStringSet[iVar].c_str(),&phaseSpaceVar[iVar]);
         }
-	dataTree->SetBranchAddress(discrimVarStr.c_str(), &discrimVar);
-	dataTree->SetBranchAddress(sideBandVarStr.c_str(), &sideBandVar);
-	dataTree->SetBranchAddress("AccWeight",&AccWeight);
+	dataTree->SetBranchAddress(s_discrimVar.c_str(), &discrimVar);
+	dataTree->SetBranchAddress(s_sideBandVar.c_str(), &sideBandVar);
+	dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
 	dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
         
         // vars we will use to fill but not use directly
@@ -441,10 +421,10 @@ void QFactorAnalysis::runQFactorThreaded(){
 		// Open up a root file to save the q-factors and other diagnostics to it
 		// ---------------------------------------
                 // Initializing some variables we can track during the q-value extraction
-        	double comboStd; 
+        	//double comboStd; 
         	double chiSq;
         	double chiSq_pi0;
-        	double comboStd2; 
+        	//double comboStd2; 
         	ULong64_t flatEntryNumber;
         	double bestChiSq;
 		double worstChiSq;
@@ -459,8 +439,8 @@ void QFactorAnalysis::runQFactorThreaded(){
         	resultsTree->Branch("qvalue",&best_qvalue,"qvalue/D");
         	resultsTree->Branch("bestChiSq",&bestChiSq,"bestChiSq/D");
         	resultsTree->Branch("worstChiSq",&worstChiSq,"worstChiSq/D");
-        	resultsTree->Branch("combostd",&comboStd,"combostd/D");
-        	resultsTree->Branch("combostd2",&comboStd2,"combostd2/D");
+        	//resultsTree->Branch("combostd",&comboStd,"combostd/D");
+        	//resultsTree->Branch("combostd2",&comboStd2,"combostd2/D");
         	cout << "Set up branch addresses" << endl;
 
 		// Define some needed variables like canvases, histograms, and legends
@@ -515,15 +495,18 @@ void QFactorAnalysis::runQFactorThreaded(){
 		}
         	cout << "randomly selected some events to save" << endl;
 
-        	std::vector<double> fitRangeEta;
-        	std::vector<double> fitRangePi0;
-        	fitRangeEta={0.3,0.8};
-        	fitRangePi0={0.1,0.17};
 
-		std::vector<double> binRangePi0;
-		binRangePi0 = {200,0.05,0.25};
 		std::vector<double> binRangeEta;
-		binRangeEta = {200,0.25,0.85};
+        	std::vector<double> fitRangeEta;
+
+                double _SET_DiscrimBinLower = 0.25;
+                double _SET_DiscrimBinUpper = 0.85;
+                double _SET_DiscrimBinNum = 200;
+                double _SET_DiscrimFitLower = 0.3;
+                double _SET_DiscrimFitUpper = 0.8;
+
+		binRangeEta={_SET_DiscrimBinNum,_SET_DiscrimBinLower,_SET_DiscrimBinUpper};
+		fitRangeEta={_SET_DiscrimFitLower,_SET_DiscrimFitUpper};
 
         	// Going to keep a track of the fits to see how they move around
         	// TF1 *showInit[3];
@@ -546,13 +529,9 @@ void QFactorAnalysis::runQFactorThreaded(){
         	// Getting the scaling of the flat bkg is a bit tricky. Have to count how much bins we have in our fit range. kDim divided by the bins in fit range is the height of the flat function.
         	double numBinsInFit = (fitRangeEta[1]-fitRangeEta[0])/((binRangeEta[2]-binRangeEta[1])/binRangeEta[0]);
         	double binSize=((binRangeEta[2]-binRangeEta[1])/binRangeEta[0]);
-        	double numBinsInFit2 = (fitRangePi0[1]-fitRangePi0[0])/((binRangePi0[2]-binRangePi0[1])/binRangePi0[0]);
-        	double binSize2=((binRangePi0[2]-binRangePi0[1])/binRangePi0[0]);
 
         	if (verbose) {cout << "Eta hist range: " << binRangeEta[0] << ", " << binRangeEta[1] << ", " << binRangeEta[2] << endl;}
         	if (verbose) {cout << "Eta fit range: " << fitRangeEta[0] << ", " << fitRangeEta[1] << endl;}
-        	if (verbose) {cout << "Pi0 hist range: " << binRangePi0[0] << ", " << binRangePi0[1] << ", " << binRangePi0[2] << endl;}
-        	if (verbose) {cout << "Pi0 fit range: " << fitRangePi0[0] << ", " << fitRangePi0[1] << endl;}
         	
 
 		TF1 *fit;
@@ -567,7 +546,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 		int savedN_badEvents=0;
         	for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
 			double unshiftedEntry = (double)(ientry-lowest_nentry);
-                        if(batchEntries<20){ cout << "Due to how we output the progress of the threads, we must have > 20 nentries\nEXITING\nEXITING" << endl; exit(0);}
+                        if(batchEntries<20){ cout << "Due to how we output the progress of the threads, we must have > 20 nentries PER nProcess\nEXITING\nEXITING" << endl; exit(0);}
 			int percentOfBatchEntries = (int)(batchEntries/20);
 			if ( (ientry-lowest_nentry) % percentOfBatchEntries == 0) { 
 				cout << "(Process " << iProcess << ") Percent done: " << (int)round( unshiftedEntry/(largest_nentry-lowest_nentry)*100 ) << "%" << endl;
@@ -636,8 +615,8 @@ void QFactorAnalysis::runQFactorThreaded(){
 			        //cout << endl; 
 			}
 			// We will not calculate std for now, but lets just leave the structure here
-			comboStd = 1;// stdCalc.calcStd();
-			comboStd2 = 1;//stdCalc2.calcStd();
+			//comboStd = 1;// stdCalc.calcStd();
+			//comboStd2 = 1;//stdCalc2.calcStd();
 			
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 			if(verbose){logFile <<	"\tFilled neighbors: " << duration2 << "ms" << endl;}
@@ -680,7 +659,6 @@ void QFactorAnalysis::runQFactorThreaded(){
                                     initParsVaryPercentSig[sigVar] = initParsVaryPercentSig[sigVar]*redistributeFactorSig[iFit];
                                 }
                                 for ( auto bkgVar : bkgVarsNeedScaling ){ 
-                                //for ( int iBkgVar=0; iBkgVar<bkgVarsNeedScaling.size(); ++iBkgVar ){ 
                                     initParsVaryPercentSig[bkgVar] = initParsVaryPercentSig[bkgVar]*redistributeFactorBkg[iFit];
                                 }
                                 // saving the initialization to plot it later, just checking if the initializations look reasonable
@@ -688,20 +666,11 @@ void QFactorAnalysis::runQFactorThreaded(){
 				initFit->SetParameters(&initParsVaryPercentSig[0]);
                                 initFits.push_back(initFit);
 
-				// Should use getInitParams.C whenever we get a new dataset to initialize the peak and width of the pi0 and eta
-				//fit->SetParameters(par0[iFit],par1[iFit],par2[iFit],peakLoc,sigValue);//,ampRatio,widthRatio);
                                 fit->SetParameters(&initParsVaryPercentSig[0]);
-				//fit->SetParameters(par0[0],par1[0],par2[2],peakLoc,sigValue);//,ampRatio,widthRatio);
-				//fit->FixParameter(1,0); 
-				fit->SetParLimits(0,-5,5); 
-				fit->SetParLimits(1,-10,10); 
-				fit->SetParLimits(2,0,kDim);
-				fit->SetParLimits(3,initParsVaryPercentSig[3]*0.90, initParsVaryPercentSig[3]*1.10);
-				fit->SetParLimits(4,initParsVaryPercentSig[4]*0.25, initParsVaryPercentSig[4]*1.75); 
-				//fit->SetParLimits(3,peakLoc*0.95, peakLoc*1.05);
-				//fit->SetParLimits(4,sigValue*0.9, sigValue*1.1); 
-				//fit->SetParLimits(5,ampRatio*0.9, ampRatio*1.1 );
-				//fit->SetParLimits(6,widthRatio*0.9, widthRatio*1.1 );
+                                for (int iPar=0; iPar<parLimits.numDOF; ++iPar){
+                                    fit->SetParLimits(iPar,parLimits.lowerParLimits[iPar], parLimits.upperParLimits[iPar]);
+                                }
+                                
 
 				{
 					// have to use a mutex here or else we get some weird error
@@ -722,7 +691,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				// need to calcuclate new q-value since it is out of bounds
 				// /////////////////////////////////////////
 				if (qvalue>1 || qvalue<0){
-					cout << "Using flat fit instead of linear on event: " << ientry << " -- QFactor = " << qvalue << endl;
+					cout << "Using less complex fit instead on event: " << ientry << " -- QFactor = " << qvalue << endl;
 					// first we will save the bad event to get a sample then fix the linear component of the bkg
 					if ( savedN_badEvents < saveN_badEvents ) {
 						allCanvases_badFit->cd();
@@ -746,9 +715,11 @@ void QFactorAnalysis::runQFactorThreaded(){
 					}
 					
                                         fit->SetParameters(&initParsVaryPercentSig[0]);
-                                        fit->SetParameter(1,0);
-				        //fit->SetParameters(par0[0],0,par2[2],peakLoc,sigValue);//,ampRatio,widthRatio);
-					fit->FixParameter(1,0); 
+                                        for (auto iPar : parLimits.zeroTheseParsOnFail){
+                                            cout << "fixing to 0 Par" << iPar << endl;
+                                            fit->SetParameters(iPar,0);
+                                            fit->FixParameter(iPar,0);
+                                        } 
 					discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
 					fit->GetParameters(par);
 					bkgFit->SetParameters(par);
@@ -761,6 +732,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 					    for ( double parVal : par ){
 							cout << " " << parVal << endl;
 					    }
+                                            cout << " Is your kDim very small?" << endl;
 					    cout << " **************** BREAKING (q-value out of bounds) ****************** " << endl;
 					    exit(0);
 					}
@@ -817,7 +789,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			        legend_fit->Clear();
 
 				if(verbose) { cout << "Keeping this event" << endl; }
-				discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq) + " (#Delta="+to_string(bestChiSq-worstChiSq)+ ")     Std="+to_string(comboStd)+"    iFit="+to_string(best_iFit)).c_str() );
+				discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq) + " (#Delta="+to_string(bestChiSq-worstChiSq)+ ") iFit="+to_string(best_iFit)).c_str() );
 				discrimVarLine = new TLine(discrimVars[ientry],0,discrimVars[ientry],kDim);
 				discrimVarLine->SetLineColor(kOrange);
 				
@@ -878,7 +850,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				initFits[2]->SetLineColor(kGreen+2);
 				initFits[2]->Draw("SAME");
 				TF1* initFit4 = new TF1(("initFit4"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-				initFit4->SetParameters(initPars[0],initPars[1],initPars[2],peakLoc,sigValue);
+				initFit4->SetParameters(initPars[0],initPars[1],initPars[2],initPars[3],initPars[4]);
 				initFit4->SetLineColor(kOrange+1);
 				initFit4->Draw("SAME");
 

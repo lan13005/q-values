@@ -8,13 +8,11 @@
 
 using namespace std;
 
-
-
 // -----------------------------
 int numDOFsig = 3; // degrees of freedom for the signal distribution
-int numDOFbkg = 2;
+int numDOFbkg = 2; //
 // we need to tell "main" which variables need scaling when using the full reference distribution to the k nearest neighbors
-std::vector<int> sigVarsNeedScaling = {2};
+std::vector<int> sigVarsNeedScaling = {2}; // these parameter indices are relative to fitFunc
 std::vector<int> bkgVarsNeedScaling = {0,1};
 // -----------------------------
 // Code for a single gaussian
@@ -28,6 +26,56 @@ double background(double *x, double *par){
 double fitFunc(double *x, double *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
+struct parameterLimits{
+    // this vector will contain the initialization parameters (variable initPar in main.h) from which we can use to set par limits if we want
+    // These parameters would be a scaled version of the parameters taken from getInitParams.C, scaled down to kDim
+    std::vector<double> initPars; 
+    int numDOF = numDOFsig+numDOFbkg;
+    double eventRatioSigToBkg;
+    std::vector<double> lowerParLimits;
+    std::vector<double> upperParLimits;
+    // The Q-Factor code would do 2 fits. The first would use the scaled initalization parameters with the parLimits defined by lowerParLimits upperParLimits
+    // If the q-value return is out of bounds, i.e >1 or <0 then we can make the model less complex by zeroing some parameters. i.e. instead of using a linear 1st order poly fit we can use 0th order.
+    std::vector<int> zeroTheseParsOnFail = {1}; 
+
+    void setupParLimits(){
+        double scaleFactor = 5; // allow the parameters some flexibility
+        double scaleSig = (1+1/eventRatioSigToBkg); // scale factor for the signal distribution to contain 100% of events
+        double scaleBkg = (1+eventRatioSigToBkg); // scale factor for the bkg distribution to contain 100% of events
+        double abs_par = abs(initPars[0]*scaleBkg);
+        // Since we do 3 different initializations, with 100%bkg, 50/50, 100% sig the parameters for the bkg all go to zero in the 100% signal case
+        double lowLimit = scaleBkg*initPars[0]-scaleFactor*abs_par;
+        if (lowLimit > 0){ lowLimit = -1; }
+        lowerParLimits.push_back(lowLimit);
+        upperParLimits.push_back(scaleBkg*initPars[0]+scaleFactor*abs_par);
+
+        abs_par = abs(scaleBkg*initPars[1]);
+        lowLimit = scaleBkg*initPars[1]-scaleFactor*abs_par;
+        if (lowLimit > 0){ lowLimit = -1; }
+        lowerParLimits.push_back(lowLimit);
+        upperParLimits.push_back(scaleBkg*initPars[1]+scaleFactor*abs_par);
+
+        // There is a strict limit on the amplitude of the Gaussian which is kDim. 
+        abs_par = abs(scaleSig*initPars[2]);
+        lowerParLimits.push_back(0);
+        upperParLimits.push_back(scaleSig*initPars[2]+scaleFactor*abs_par);
+
+        lowerParLimits.push_back(initPars[3]*0.9);
+        upperParLimits.push_back(initPars[3]*1.1);
+
+        lowerParLimits.push_back(initPars[4]*0.25);
+        upperParLimits.push_back(initPars[4]*1.75);
+    }
+    void printParLimits(){
+        for (size_t i=0; i<numDOF; ++i){
+            cout << "Par" << i << " has lower,upper limits: " << lowerParLimits[i] << ", " << upperParLimits[i] << endl;
+        }
+    }
+};
+
+
+std::vector<double> _SET_ParLimPercent = {300, 300, 300, 10, 75}; // These will be the percent deviations allowed for the parameters relative to initialization
+std::vector<int> fixParToZero = {1}; // If the q-value return is not [0,1] then we will rerun ONE more time zeroing out some parameters. 
 
 // Code for a breit Wigner
 //double signalBW(double* x, double* par) {
@@ -67,13 +115,7 @@ void getSBWeight(double discrimVar, double *sbWeight, std::string weightingSchem
     else{
         *sbWeight=1;
     }
-
-
-
 }
-
-
-
 
 // draws a textbox to output the fitted parameter values per Q-factor histogram
 void drawText(Double_t *par, int dof, std::string tag, double qSigValue, double qBkgValue, double qTotValue){
