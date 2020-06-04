@@ -30,7 +30,7 @@ void getInitParams(){
 
     		ofstream logFile_discrimVar1;
     		ofstream logFile_discrimVar2;
-    		logFile_discrimVar1.open(("fitResults/etaFit_toMain_"+fileTag+".txt").c_str());
+    		logFile_discrimVar1.open(("fitResults/discrimVarFit_toMain_"+fileTag+".txt").c_str());
     		logFile_discrimVar2.open(("fitResults/pi0Fit_toMain_"+fileTag+".txt").c_str());
 
     		TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
@@ -164,6 +164,7 @@ void getInitParams(){
 		int nSig=3;
 		//double weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
                 double weightedSigma = par[4];
+                cout << "Checking if our calculated integrals for the bkg and signal add up to the total" << endl;
 		logFile_discrimVar1 << "#weightedSigma " << weightedSigma << endl;
 		TLine *line = new TLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
 		line->SetLineColor(kMagenta);
@@ -238,6 +239,7 @@ void getInitParams(){
                 weightedSigma=par[4];
 		logFile_discrimVar2 << "#weightedSigma: " << weightedSigma << endl;
 
+                cout << "Checking if our calculated integrals for the bkg and signal add up to the total" << endl;
 		integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
 		integralSIG_nsig = sigFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
 		logFile_discrimVar2 << "#integralBKG_nSig " << integralBKG_nsig << endl;

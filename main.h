@@ -53,6 +53,7 @@ string s_discrimVar="Meta";
 string s_sideBandVar="Mpi0";
 
 string standardizationType="range"; // range or stdev standardization
+string fitLocation = "fitResults/discrimVarFit_toMain_"+fileTag+".txt"; // the output of the fit parameters from the getInitParams program
 
 // OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
 //class rooFitML{
@@ -557,7 +558,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			
 			auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 			auto duration_beginEvent = std::chrono::high_resolution_clock::now();
-			if(verbose) { logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Time: " << duration2 << "ms" << endl; }
+			if(verbose) { logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Global Time: " << duration2 << "ms" << endl; }
 			
 			// clear data from previous events
 			mapDistToEntry.clear();
@@ -572,7 +573,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			//      randomEntry = rand() % nentries;
 			//      distKNN.insertPair(make_pair(1, randomEntry) );
 			//}
-			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 			if(verbose){logFile << "\tBegin finding neighbors: " << duration2 << "ms" << endl; }
 			for (int jentry : phasePoint2PotentailNeighbor) {  
 				if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
@@ -592,7 +593,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				//	}
 				//}
 			}
-			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 			if(verbose){logFile << "\tFound neighbors: " << duration2 << "ms" << endl; }
 			if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim! size,kDim="<< distKNN.kNN.size() << "," << kDim 
 			    << "\n    -- if size is 1 less than kDim it is probably because kDim=nentries and event i cannot be a neighbor to itself" << 
@@ -618,7 +619,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 			//comboStd = 1;// stdCalc.calcStd();
 			//comboStd2 = 1;//stdCalc2.calcStd();
 			
-			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 			if(verbose){logFile <<	"\tFilled neighbors: " << duration2 << "ms" << endl;}
 			
 			// Building the fit functions. We have to set some parameter limits to try to guide Minuit. We choose a double gaussian since for whatever reason the discrimVar has a asymmetry
@@ -716,8 +717,8 @@ void QFactorAnalysis::runQFactorThreaded(){
 					
                                         fit->SetParameters(&initParsVaryPercentSig[0]);
                                         for (auto iPar : parLimits.zeroTheseParsOnFail){
-                                            cout << "fixing to 0 Par" << iPar << endl;
-                                            fit->SetParameters(iPar,0);
+                                            cout << "Fixing to 0 Par" << iPar << endl;
+                                            fit->SetParameter(iPar,0);
                                             fit->FixParameter(iPar,0);
                                         } 
 					discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
@@ -765,7 +766,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				if (chiSq > worstChiSq){
 					worstChiSq = chiSq;
 				}
-				duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+				duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 				if(verbose){logFile << "\t("+to_string(iFit+1)+"st init config) Fitted the reference distribution: " << duration2 << "ms" << endl; }
 			}
 

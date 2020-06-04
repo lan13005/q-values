@@ -1,17 +1,20 @@
-// main outputs some histograms to check the q-value calculation for some events
-// This file aggregates all the results from all the threads and plots various distributions with the q-values applied
+// "main" outputs results files that contain the q-values. The goal of tihs program is to read in all the q-value results and organizes them to be used when creating any histogram
+
 
 #include <ctime>
 #include <math.h> 
 #include "makeDiagnosticHists.h"
+#include "helperFuncs.h"
+
+
 bool verbose = true;
 string fileTag="bcal";
 string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
 string rootTreeName="degALL_bcal_tree_flat";
 string weightingScheme="as*bs"; // "" or "as*bs"
-string accWeight="AccWeight";
-string discrimVar="Meta";
-string sideBandVar="Mpi0";
+string s_accWeight="AccWeight";
+string s_discrimVar="Meta";
+string s_sideBandVar="Mpi0";
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -19,77 +22,81 @@ void makeDiagnosticHists(){
 	gStyle->SetStatW(0.1);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
 	
-	TH1F* dHist_chisq= new TH1F( "dHist_chisq", "#Chi^2; Events/0.1", 50, 0, 5);
-	TH1F* dHist_chisq01= new TH1F( "dHist_chisq01", "#Chi^2; Events/0.1", 50, 0, 5);
-	TH1F* dHist_chisq02= new TH1F( "dHist_chisq02", "#Chi^2; Events/0.1", 50, 0, 5);
+	TH1F* dHist_bestChiSq= new TH1F( "dHist_bestChiSq", "#Chi^2; Events/0.1", 50, 0, 5);
+	TH1F* dHist_deltaChiSq= new TH1F( "dHist_deltaChiSq", "Best #Chi^2 - Worst #Chi^2; Events/0.1", 50, 0, 5);
 
-        TH1F* dHist_std = new TH1F("dHist_std", "#sigma; Event/0.0033", 60, 0, 0.2);
 	TH1F* dHist_qvalues = new TH1F( "dHist_qvalues", "Q-Values; Events/0.01", 100, -1, 1);
 
 	// ---------------------------------------------------------------------------
-	// --------------------------------------------- Settting branch addresses for Q-Value Results
+	// ------------------------------Settting branch addresses for Q-Value Results
+        // AFTER THIS SECTION, ALL THE Q-FACTORS SHOULD BE ORDERED, WE JUST HAVE TO 
+        // READ IN THE DATA AND AND FILL THEM. YOU PROABLY DONT HAVE TO EDIT THIS SECTION
+        // JUST DEFINE YOUR HISTOGRAMS AND DRAW THEM
 	// ---------------------------------------------------------------------------
+        
 
 	// Read in the qvalue data
-	string preQFileName = "diagnosticPlots/"+fileTa+"/qvalResults_"+fileTa+".root";
+	string preQFileName = "diagnosticPlots/"+fileTag+"/qvalResults_"+fileTag+".root";
 	cout << "Opening " << preQFileName << endl;
-	TFile* dataFile2 = new TFile((preQFileName).c_str());
-        TTree* dataTree2;
-	dataFile2->GetObject("resultsTree",dataTree2);
-        cout << "Loaded the results file" << endl;
+	TFile* qResultsFile = new TFile((preQFileName).c_str());
+        TTree* qResultsTree;
+	qResultsFile->GetObject("resultsTree",qResultsTree);
+        cout << "Loaded the Q-factor results file" << endl;
 
 	Double_t qvalue;
 	Double_t conjugate_qvalue;
-	Double_t chisq;
-        Double_t combostd;
+	Double_t bestChiSq;
+	Double_t worstChiSq;
         Bool_t bool_MetaFlat;
 	ULong64_t flatEntryNumber;
-	Double_t chiSq_eta_01;
-	Double_t chiSq_eta_02;
 
-	dataTree2->SetBranchAddress("qvalue",&qvalue);
-	dataTree2->SetBranchAddress("chisq_eta",&chisq);
-	dataTree2->SetBranchAddress("chisq_eta_01", &chiSq_eta_01);
-	dataTree2->SetBranchAddress("chisq_eta_02", &chiSq_eta_02);
-	dataTree2->SetBranchAddress("combostd",&combostd);
-	dataTree2->SetBranchAddress("flatEntryNumber",&flatEntryNumber);
+	qResultsTree->SetBranchAddress("qvalue",&qvalue);
+	qResultsTree->SetBranchAddress("bestChiSq",&bestChiSq);
+	qResultsTree->SetBranchAddress("worstChiSq",&worstChiSq);
+	qResultsTree->SetBranchAddress("flatEntryNumber",&flatEntryNumber);
 
 
 	ULong64_t nentries;
-	nentries=dataTree2->GetEntries();
-	const int c_nentries2 = (const int)nentries;
-        cout << "c_nentries2: " << c_nentries2 << endl;
+	nentries=qResultsTree->GetEntries();
+	const int c_nentriesResults = (const int)nentries;
+        cout << "Total number of events in Q-factor results: " << c_nentriesResults << endl;
 
 
 	// make a vector of 0s such that we can fill the q-values in order to unscramble to multiprocessing effects
-	std::vector< double > qvalues(c_nentries2,0);
-	std::vector< double > chisqs(c_nentries2,0);
-	std::vector< double > combostds(c_nentries2,0);
-        std::vector<ULong64_t> flatEntryNumbers(c_nentries2,0);
-	for (int ientry=0; ientry<c_nentries2; ientry++)
+	std::vector< double > qvalues(c_nentriesResults,0);
+	std::vector< double > bestChiSqs(c_nentriesResults,0);
+	std::vector< double > worstChiSqs(c_nentriesResults,0);
+        std::vector<ULong64_t> flatEntryNumbers(c_nentriesResults,0);
+	for (int ientry=0; ientry<c_nentriesResults; ientry++)
 	{
-        	dataTree2->GetEntry(ientry);
+        	qResultsTree->GetEntry(ientry);
         	//cout << "ientry, flatEntryNumber: " << ientry << "," << flatEntryNumber << endl;            
         	
-        	//all_ientries.insert(ientry);
-        	//all_flatEntryNumber.insert(flatEntryNumber);
         	qvalues[flatEntryNumber]=qvalue;
-        	chisqs[flatEntryNumber]=chisq;
-        	combostds[flatEntryNumber]=combostd;
+        	bestChiSqs[flatEntryNumber]=bestChiSq;
+        	worstChiSqs[flatEntryNumber]=worstChiSq;
         	flatEntryNumbers[flatEntryNumber] = flatEntryNumber;
         	
         	dHist_qvalues->Fill(qvalue);
-        	dHist_chisq->Fill(chisq);
-		dHist_chisq01->Fill(chiSq_eta_01);
-		dHist_chisq02->Fill(chiSq_eta_02);
-        	dHist_std->Fill(combostd);
+        	dHist_bestChiSq->Fill(bestChiSq);
+        	dHist_deltaChiSq->Fill(bestChiSq-worstChiSq);
         }
-	dataFile2->Close();
-        cout << "Loaded all the results file" << endl;
+	qResultsFile->Close();
+        cout << "Loaded all the q-factor results from the results file" << endl;
 
+        allCanvases->Clear();
+	dHist_qvalues->Draw();
+        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/qvalues.png").c_str());
+        allCanvases->Clear();
+	dHist_bestChiSq->Draw();
+        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/bestChiSq.png").c_str());
+        allCanvases->Clear();
+	dHist_deltaChiSq->Draw();
+        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/deltaChiSq.png").c_str());
+        cout << "Making some diagnostic distributions of the Q-factors results" << endl;
 
 	// ---------------------------------------------------------------------------
-	// ----------------------------------------------------- Define the histograms 
+	// ------------------------------------------------MANUALLY DEFINE HISTOGRAMS
 	// ---------------------------------------------------------------------------
 	TH1F* Meta_tot[2];
 	TH1F* Meta_sig[2];
@@ -138,6 +145,9 @@ void makeDiagnosticHists(){
 		phiEta_GJ_sig[i] = new TH1F( ("phiEta_GJ_sig_"+tag).c_str(), "#phi of #eta;#phi of #eta ;Events/0.02 GeV", 90, -180, 180 );
 		phiEta_GJ_bkg[i] = new TH1F( ("phiEta_GJ_bkg_"+tag).c_str(), "#phi of #eta;#phi of #eta ;Events/0.02 GeV", 90, -180, 180 );
 	}
+        cout << "Defined all histograms" << endl;
+
+
 
 	// ---------------------------------------------------------------------------
 	// ----------------------------------------------------- Set up branch address of the data file 
@@ -148,7 +158,7 @@ void makeDiagnosticHists(){
 	//
 	// setting up some basic root stuff and getting the file and tree
 	string inputFileLoc = rootFileLoc;
-	cout << "Loading the data root " << inputFileLoc << endl;
+	cout << "Loading the entire data root file" << inputFileLoc << endl;
 	TFile* dataFile=new TFile((inputFileLoc).c_str());
 	TTree *dataTree;
 	dataFile->GetObject((rootTreeName).c_str(),dataTree);
@@ -163,22 +173,23 @@ void makeDiagnosticHists(){
 	double cosTheta_X_cm;
 	double cosTheta_eta_gj;
 	double phi_eta_gj;
-	double Meta2;
-	double Mpi02;
-	double Mpi0eta2;
-	double cosTheta_X_cm2;
-	double cosTheta_eta_gj2;
-	double phi_eta_gj2;
+	double Meta_meas;
+	double Mpi0_meas;
+	double Mpi0eta_meas;
+	double cosTheta_X_cm_meas;
+	double cosTheta_eta_gj_meas;
+	double phi_eta_gj_meas;
 
         dataTree->SetBranchAddress("AccWeight",&AccWeight);
-	dataTree->SetBranchAddress("Meta_meas",&Meta2);
-	dataTree->SetBranchAddress("Mpi0_meas",&Mpi02);
-	dataTree->SetBranchAddress("Mpi0eta_meas",&Mpi0eta2);
-        dataTree->SetBranchAddress("cosTheta_X_cm_meas", &cosTheta_X_cm2); 
-        dataTree->SetBranchAddress("cosTheta_eta_gj_meas",&cosTheta_eta_gj2);
-        dataTree->SetBranchAddress("phi_eta_gj_meas",&phi_eta_gj2); 
+	dataTree->SetBranchAddress("Meta_meas",&Meta_meas);
+	dataTree->SetBranchAddress("Mpi0_meas",&Mpi0_meas);
 	dataTree->SetBranchAddress("Meta",&Meta);
 	dataTree->SetBranchAddress("Mpi0",&Mpi0);
+
+	dataTree->SetBranchAddress("Mpi0eta_meas",&Mpi0eta_meas);
+        dataTree->SetBranchAddress("cosTheta_X_cm_meas", &cosTheta_X_cm_meas); 
+        dataTree->SetBranchAddress("cosTheta_eta_gj_meas",&cosTheta_eta_gj_meas);
+        dataTree->SetBranchAddress("phi_eta_gj_meas",&phi_eta_gj_meas); 
 	dataTree->SetBranchAddress("Mpi0g1",&Mpi0g1);
 	dataTree->SetBranchAddress("Mpi0g2",&Mpi0g2);
 	dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
@@ -198,44 +209,45 @@ void makeDiagnosticHists(){
         dataTree->SetBranchAddress("isNotRepeated_pi0g2",&isUniquePi0g2B);
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
 
-        cout << "Finished setting up" << endl;
+        cout << "Finished setting up the tree" << endl;
 	
 	nentries=dataTree->GetEntries();
-	const int c_nentries = (const int)nentries;
-        cout << "c_nentries: " << c_nentries << endl;
-	if ( c_nentries != c_nentries2 ){
+	const int c_nentriesData = (const int)nentries;
+        cout << "c_nentriesData: " << c_nentriesData << endl;
+	if ( c_nentriesData != c_nentriesResults ){
 		cout << "Entries are not equal between dataFile and resultsFile. Ran over a subset" << endl;
+                cout << "Only making histograms for the subset" << endl;
 	}
 	else{
 		cout << "Entries are equal. Ran over the full dataset" << endl;
 	}
 
-        std::vector<double> AccWeights; AccWeights.reserve(c_nentries2); 
-        std::vector<bool> isUniqueEtaBs; isUniqueEtaBs.reserve(c_nentries2); 
-        std::vector<bool> isUniquePi0Bs; isUniquePi0Bs.reserve(c_nentries2); 
-        std::vector<bool> isUniquePi0g1Bs; isUniquePi0g1Bs.reserve(c_nentries2); 
-        std::vector<bool> isUniquePi0g2Bs; isUniquePi0g2Bs.reserve(c_nentries2); 
-        std::vector<bool> isUniquePi0EtaBs; isUniquePi0EtaBs.reserve(c_nentries2); 
-        std::vector<double> Metas2; Metas2.reserve(c_nentries2); 
-        std::vector<double> Mpi0s2; Mpi0s2.reserve(c_nentries2); 
-        std::vector<double> Mpi0etas2; Mpi0etas2.reserve(c_nentries2); 
-	std::vector<double> cosTheta_X_cms2; cosTheta_X_cms2.reserve(c_nentries2);
-	std::vector<double> cosTheta_eta_gjs2; cosTheta_eta_gjs2.reserve(c_nentries2);
-	std::vector<double> phi_eta_gjs2; phi_eta_gjs2.reserve(c_nentries2);
-        std::vector<double> Metas; Metas.reserve(c_nentries2); 
-        std::vector<double> Mpi0s; Mpi0s.reserve(c_nentries2); 
-        std::vector<double> Mpi0g1s; Mpi0g1s.reserve(c_nentries2); 
-        std::vector<double> Mpi0g2s; Mpi0g2s.reserve(c_nentries2); 
-        std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentries2); 
-	std::vector<double> cosTheta_X_cms; cosTheta_X_cms.reserve(c_nentries2);
-	std::vector<double> cosTheta_eta_gjs; cosTheta_eta_gjs.reserve(c_nentries2);
-	std::vector<double> phi_eta_gjs; phi_eta_gjs.reserve(c_nentries2);
+        std::vector<double> AccWeights; AccWeights.reserve(c_nentriesResults); 
+        std::vector<bool> isUniqueEtaBs; isUniqueEtaBs.reserve(c_nentriesResults); 
+        std::vector<bool> isUniquePi0Bs; isUniquePi0Bs.reserve(c_nentriesResults); 
+        std::vector<bool> isUniquePi0g1Bs; isUniquePi0g1Bs.reserve(c_nentriesResults); 
+        std::vector<bool> isUniquePi0g2Bs; isUniquePi0g2Bs.reserve(c_nentriesResults); 
+        std::vector<bool> isUniquePi0EtaBs; isUniquePi0EtaBs.reserve(c_nentriesResults); 
+        std::vector<double> Metas_meas; Metas_meas.reserve(c_nentriesResults); 
+        std::vector<double> Mpi0s_meas; Mpi0s_meas.reserve(c_nentriesResults); 
+        std::vector<double> Mpi0etas_meas; Mpi0etas_meas.reserve(c_nentriesResults); 
+	std::vector<double> cosTheta_X_cms_meas; cosTheta_X_cms_meas.reserve(c_nentriesResults);
+	std::vector<double> cosTheta_eta_gjs_meas; cosTheta_eta_gjs_meas.reserve(c_nentriesResults);
+	std::vector<double> phi_eta_gjs_meas; phi_eta_gjs_meas.reserve(c_nentriesResults);
+        std::vector<double> Metas; Metas.reserve(c_nentriesResults); 
+        std::vector<double> Mpi0s; Mpi0s.reserve(c_nentriesResults); 
+        std::vector<double> Mpi0g1s; Mpi0g1s.reserve(c_nentriesResults); 
+        std::vector<double> Mpi0g2s; Mpi0g2s.reserve(c_nentriesResults); 
+        std::vector<double> Mpi0etas; Mpi0etas.reserve(c_nentriesResults); 
+	std::vector<double> cosTheta_X_cms; cosTheta_X_cms.reserve(c_nentriesResults);
+	std::vector<double> cosTheta_eta_gjs; cosTheta_eta_gjs.reserve(c_nentriesResults);
+	std::vector<double> phi_eta_gjs; phi_eta_gjs.reserve(c_nentriesResults);
 
-	std::vector< double > sbWeights; sbWeights.reserve(c_nentries2);
+	std::vector< double > sbWeights; sbWeights.reserve(c_nentriesResults);
 	double sbWeight;
 
         // ***************** CHECK 1 ********************
-        for (int iEntry=0; iEntry<c_nentries2; ++iEntry){
+        for (int iEntry=0; iEntry<c_nentriesResults; ++iEntry){
             if ( flatEntryNumbers[iEntry] != iEntry){
                 cout << "flatEntryNumbers[iEntry] != iEntry: flatEntryNumbers[iEntry], iEntry: " << flatEntryNumbers[iEntry] << ", " << iEntry << endl;
             }
@@ -259,6 +271,7 @@ void makeDiagnosticHists(){
 	// ---------------------------------------------------------------------------
 	// ----------------------------------------------------- Loading the datafile data
 	// and clone the datafile and add 3 new branches to track the qvalue, chiSq, flatEntryNumber
+        // Now we have a root tree that has all the data from the DSelector and the q-factors analysis
 	// ---------------------------------------------------------------------------
 
 	string postQFileName = "diagnosticPlots/"+fileTag+"/postQ_"+fileTag+"_flatTree.root";	
@@ -269,10 +282,11 @@ void makeDiagnosticHists(){
 	TBranch* b_qvalue_chisq;
 	TBranch* b_flatEntryNumber;
 	b_qvalue = outputTree->Branch("qvalue",&qvalue,"qvalue/D");
-	b_qvalue_chisq = outputTree->Branch("qvalue_chisq",&chisq,"qvalue_chisq/D");
+	b_qvalue_chisq = outputTree->Branch("qvalue_chisqBest",&bestChiSq,"qvalue_chisqBest/D");
+	b_qvalue_chisq = outputTree->Branch("qvalue_chisqWorst",&worstChiSq,"qvalue_chisqWorst/D");
 	b_flatEntryNumber = outputTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
 
-	for (int ientry=0; ientry<c_nentries2; ientry++)
+	for (int ientry=0; ientry<c_nentriesResults; ientry++)
 	{
 		outputTree->GetEntry(ientry);
                 AccWeights.push_back(AccWeight);
@@ -280,12 +294,12 @@ void makeDiagnosticHists(){
                 getSBWeight(Mpi0,&sbWeight,weightingScheme);
 		sbWeights.push_back(sbWeight);
 
-		Metas2.push_back(Meta2);
-		Mpi0s2.push_back(Mpi02);
-		Mpi0etas2.push_back(Mpi0eta2);
-		cosTheta_X_cms2.push_back(cosTheta_X_cm2);
-		cosTheta_eta_gjs2.push_back(cosTheta_eta_gj2);
-		phi_eta_gjs2.push_back(phi_eta_gj2);
+		Metas_meas.push_back(Meta_meas);
+		Mpi0s_meas.push_back(Mpi0_meas);
+		Mpi0etas_meas.push_back(Mpi0eta_meas);
+		cosTheta_X_cms_meas.push_back(cosTheta_X_cm_meas);
+		cosTheta_eta_gjs_meas.push_back(cosTheta_eta_gj_meas);
+		phi_eta_gjs_meas.push_back(phi_eta_gj_meas);
 		Metas.push_back(Meta);
 		Mpi0s.push_back(Mpi0);
 		Mpi0g1s.push_back(Mpi0g1);
@@ -303,7 +317,8 @@ void makeDiagnosticHists(){
                 
 		// will take the opportunity to save the now-ordered qvalues into the root file as we load the rest of the data
 		qvalue = qvalues[ientry];
-		chisq = chisqs[ientry];
+		bestChiSq = bestChiSqs[ientry];
+		worstChiSq = worstChiSqs[ientry];
 		flatEntryNumber = flatEntryNumbers[ientry];
 		b_qvalue->Fill();
 		b_qvalue_chisq->Fill();
@@ -311,39 +326,18 @@ void makeDiagnosticHists(){
 	}
 
         cout << "Imported all the tree data into arrays" << endl;
-        cout << "Size of array: " << c_nentries << endl;
+        cout << "Size of array: " << c_nentriesData << endl;
 
 	qd_dataFile->cd();
 	outputTree->Write(); 
 
-	
-        allCanvases->Clear();
-	dHist_chisq01->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/chisq01.png").c_str());
-        allCanvases->Clear();
-	dHist_chisq02->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/chisq02.png").c_str());
-
-        allCanvases->Clear();
-        dHist_std->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/combostds.png").c_str());
-	THStack* stackedHists = new THStack("stackedHists","");
-	dHist_qvalues->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/qvalues.png").c_str());
-        allCanvases->Clear();
-	dHist_chisq->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/chisq.png").c_str());
     
-        cout << "Drew the imported data" << endl;
-
-	double sigWeightNoSB;
-	double totWeightNoSB;
-	double bkgWeightNoSB;
+        // We can now fill the histograms, properly weighted
 	double sigWeight;
 	double totWeight;
 	double bkgWeight;
 	int numNan=0;
-	for (int ientry=0; ientry<c_nentries2; ientry++){
+	for (int ientry=0; ientry<c_nentriesResults; ientry++){
 		qvalue = qvalues[ientry];
 		conjugate_qvalue = 1-qvalue;
                 if(qvalue != qvalue){
@@ -353,21 +347,21 @@ void makeDiagnosticHists(){
                 double weight; 
                 if (weightingScheme==""){ weight=1; }
                 if (weightingScheme=="as"){ weight=AccWeight; }
-                if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight[ientry]; }
+                if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeights[ientry]; }
 		sigWeight = qvalue*weight;
 		totWeight = weight;
 		bkgWeight = conjugate_qvalue*weight;
                 //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
                 if ( isUniqueEtaBs[ientry] ) {
-			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs2[ientry], sigWeight);
-			cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs2[ientry], totWeight);
-			cosThetaEta_GJ_bkg[0]->Fill(cosTheta_eta_gjs2[ientry], bkgWeight);
-			cosThetaX_CM_sig[0]->Fill(cosTheta_X_cms2[ientry], sigWeight);
-			cosThetaX_CM_tot[0]->Fill(cosTheta_X_cms2[ientry], totWeight);
-			cosThetaX_CM_bkg[0]->Fill(cosTheta_X_cms2[ientry], bkgWeight);
-			Meta_sig[0]->Fill(Metas2[ientry],sigWeight);
-			Meta_tot[0]->Fill(Metas2[ientry],totWeight);
-			Meta_bkg[0]->Fill(Metas2[ientry],bkgWeight);
+			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs_meas[ientry], sigWeight);
+			cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs_meas[ientry], totWeight);
+			cosThetaEta_GJ_bkg[0]->Fill(cosTheta_eta_gjs_meas[ientry], bkgWeight);
+			cosThetaX_CM_sig[0]->Fill(cosTheta_X_cms_meas[ientry], sigWeight);
+			cosThetaX_CM_tot[0]->Fill(cosTheta_X_cms_meas[ientry], totWeight);
+			cosThetaX_CM_bkg[0]->Fill(cosTheta_X_cms_meas[ientry], bkgWeight);
+			Meta_sig[0]->Fill(Metas_meas[ientry],sigWeight);
+			Meta_tot[0]->Fill(Metas_meas[ientry],totWeight);
+			Meta_bkg[0]->Fill(Metas_meas[ientry],bkgWeight);
 
 			cosThetaEta_GJ_sig[1]->Fill(cosTheta_eta_gjs[ientry], sigWeight);
 			cosThetaEta_GJ_tot[1]->Fill(cosTheta_eta_gjs[ientry], totWeight);
@@ -390,21 +384,21 @@ void makeDiagnosticHists(){
 			Mpi0g_bkg->Fill(Mpi0g2s[ientry],bkgWeight);
 		}
                 if ( isUniquePi0Bs[ientry] ) { 
-			Mpi0_sig[0]->Fill(Mpi0s2[ientry],sigWeight);
-			Mpi0_tot[0]->Fill(Mpi0s2[ientry],totWeight);
-			Mpi0_bkg[0]->Fill(Mpi0s2[ientry], bkgWeight);
+			Mpi0_sig[0]->Fill(Mpi0s_meas[ientry],sigWeight);
+			Mpi0_tot[0]->Fill(Mpi0s_meas[ientry],totWeight);
+			Mpi0_bkg[0]->Fill(Mpi0s_meas[ientry], bkgWeight);
 
 			Mpi0_sig[1]->Fill(Mpi0s[ientry],sigWeight);
 			Mpi0_tot[1]->Fill(Mpi0s[ientry],totWeight);
 			Mpi0_bkg[1]->Fill(Mpi0s[ientry], bkgWeight);
                 }
                 if ( isUniquePi0EtaBs[ientry] ) { 
-			phiEta_GJ_sig[0]->Fill(phi_eta_gjs2[ientry], sigWeight);
-			phiEta_GJ_tot[0]->Fill(phi_eta_gjs2[ientry], totWeight);
-			phiEta_GJ_bkg[0]->Fill(phi_eta_gjs2[ientry], bkgWeight);
-			Mpi0eta_sig[0]->Fill(Mpi0etas2[ientry],sigWeight);
-			Mpi0eta_tot[0]->Fill(Mpi0etas2[ientry],totWeight);
-			Mpi0eta_bkg[0]->Fill(Mpi0etas2[ientry], bkgWeight);
+			phiEta_GJ_sig[0]->Fill(phi_eta_gjs_meas[ientry], sigWeight);
+			phiEta_GJ_tot[0]->Fill(phi_eta_gjs_meas[ientry], totWeight);
+			phiEta_GJ_bkg[0]->Fill(phi_eta_gjs_meas[ientry], bkgWeight);
+			Mpi0eta_sig[0]->Fill(Mpi0etas_meas[ientry],sigWeight);
+			Mpi0eta_tot[0]->Fill(Mpi0etas_meas[ientry],totWeight);
+			Mpi0eta_bkg[0]->Fill(Mpi0etas_meas[ientry], bkgWeight);
 
 			phiEta_GJ_sig[1]->Fill(phi_eta_gjs[ientry], sigWeight);
 			phiEta_GJ_tot[1]->Fill(phi_eta_gjs[ientry], totWeight);
@@ -433,6 +427,7 @@ void makeDiagnosticHists(){
         cout << "FINIHSED!"<<endl;
 	cout << "There were " << numNan << " nan values where q-value was not calculated. Fix me if nonzero!" << endl;
 
+        // we can also directly save all the histograms to a root file
 	TFile* dataFile3 = new TFile(("diagnosticPlots/"+fileTag+"/postQValHists_"+fileTag+".root").c_str(),"RECREATE");
 	for (int i=0; i<2; i++){
         	Meta_bkg[i]->Write();

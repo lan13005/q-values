@@ -46,7 +46,6 @@ int main( int argc, char* argv[] ){
         cout << "----------------------------" << endl;
     
 	QFactorAnalysis analysisControl(kDim, varString, numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);
-	string fitLocation = "fitResults/etaFit_toMain_"+fileTag+".txt";
 	analysisControl.loadTree(rootFileLoc, rootTreeName);
 	analysisControl.loadFitParameters(fitLocation);
 	analysisControl.loadData();
