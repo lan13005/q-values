@@ -20,12 +20,13 @@ void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
+        gStyle->SetOptStat(0);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
 	
-	TH1F* dHist_bestChiSq= new TH1F( "dHist_bestChiSq", "#Chi^2; Events/0.1", 50, 0, 5);
-	TH1F* dHist_deltaChiSq= new TH1F( "dHist_deltaChiSq", "Best #Chi^2 - Worst #Chi^2; Events/0.1", 50, 0, 5);
+	TH1F* dHist_bestChiSq= new TH1F( "dHist_bestChiSq", "#Chi^2; Events/0.01", 50, 0, 50);
+	TH1F* dHist_deltaChiSq= new TH1F( "dHist_deltaChiSq", "Best #Chi^2 - Worst #Chi^2; Events/0.5", 50, -1, 0);
 
-	TH1F* dHist_qvalues = new TH1F( "dHist_qvalues", "Q-Values; Events/0.01", 100, -1, 1);
+	TH1F* dHist_qvalues = new TH1F( "dHist_qvalues", "Q-Values; Events/0.01", 100, 0, 1);
 
 	// ---------------------------------------------------------------------------
 	// ------------------------------Settting branch addresses for Q-Value Results
@@ -91,8 +92,10 @@ void makeDiagnosticHists(){
 	dHist_bestChiSq->Draw();
         allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/bestChiSq.png").c_str());
         allCanvases->Clear();
+        gPad->SetLogy(1);
 	dHist_deltaChiSq->Draw();
         allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/deltaChiSq.png").c_str());
+        gPad->SetLogy(0);
         cout << "Making some diagnostic distributions of the Q-factors results" << endl;
 
 	// ---------------------------------------------------------------------------

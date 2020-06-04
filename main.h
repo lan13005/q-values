@@ -668,9 +668,14 @@ void QFactorAnalysis::runQFactorThreaded(){
                                 initFits.push_back(initFit);
 
                                 fit->SetParameters(&initParsVaryPercentSig[0]);
-                                for (int iPar=0; iPar<parLimits.numDOF; ++iPar){
-                                    fit->SetParLimits(iPar,parLimits.lowerParLimits[iPar], parLimits.upperParLimits[iPar]);
-                                }
+                                //for (int iPar=0; iPar<parLimits.numDOF; ++iPar){
+                                //    fit->SetParLimits(iPar,parLimits.lowerParLimits[iPar], parLimits.upperParLimits[iPar]);
+                                //}
+                                fit->SetParLimits(0,-5,5);
+                                fit->SetParLimits(1,-10,10);
+                                fit->SetParLimits(2,0,kDim);
+                                fit->SetParLimits(3,initPars[3]*0.90, initPars[3]*1.10);
+                                fit->SetParLimits(4,initPars[4]*0.25, initPars[4]*1.75);
                                 
 
 				{
@@ -746,7 +751,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				//showConv[iFit]->SetParameters(par); // save all the fits
 				//chiSqs[iFit]=chiSq;
 			
-				if (verbose) { logFile << "\tcurrent ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
+				//if (verbose) { logFile << "\tcurrent ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
 				
 				if (chiSq < bestChiSq){
 					best_qvalue = qvalue;
@@ -867,7 +872,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				
 
 				if(verbose){
-				     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
+				     duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 				     logFile << "\tSaved this histogram since it was randomly selected: " << duration2 <<  "ms" << endl;
 				}
 			} 
