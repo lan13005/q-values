@@ -16,9 +16,9 @@ start_time = time.time()
 _SET_kDim=200 # number of neighbors
 _SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
 _SET_seedShift=1212 # in case we dont want the same q-value histogram we can choose another random seed
-_SET_nProcess=16 # how many processes to spawn
-_SET_nentries=30000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
-_SET_override_nentries=1 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
+_SET_nProcess=36 # how many processes to spawn
+_SET_nentries=50000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
+_SET_override_nentries=0 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
 _SET_verbose=1 # how much information we want to output to the logs
 _SET_weightingScheme="as*bs" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
@@ -26,10 +26,12 @@ _SET_discrimVar="Meta" # discriminating/reference variable
 _SET_sideBandVar="Mpi0" # side band subtract on this variable
 _SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
+_SET_redistributeBkgSigFits=1 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
+_SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
-_SET_runMakeHists=True # do we want to run makeDiagnosticHists
 _SET_runFullFit=False # should we fit the full distribution of the discriminating variable to extract initialization parameters for q-factors?
-_SET_runQFactor=False # should we run the q-factor analysis
+_SET_runQFactor=True # should we run the q-factor analysis
+_SET_runMakeHists=True # do we want to run makeDiagnosticHists
 
 
 #check() # Outputting some checks to make sure getInitParams, main.h, and makeDiagnosticHists agree
@@ -41,16 +43,17 @@ rootFileLocs=[
         #,("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
         #,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
         ]
+_SET_fitLocationBase="fitResults/discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in _SET_fitLocationBase+"_"+fileTag+".txt"
+
+
 varVec=_SET_varStringBase.rstrip().split(";")
-
-
 #############################################################################
 ###################  FIRST DEFINE SOME FUNCTIONS   #########################
 #############################################################################
 
 def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     '''
-    Setting we need to set in getInitParams, main.h, and makeDiagnosticHists
+    Settings we need to set in getInitParams, main.h, and makeDiagnosticHists
     '''
     sedArgs=["sed","-i",'s@rootFileLoc=".*";@rootFileLoc="'+_SET_rootFileLoc+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
@@ -69,6 +72,9 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
 
 
 def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
+    '''
+    This programs cleans appropriate folders and runs getInitParams to extract the initialization parameters for the Q-factor analysis
+    '''
     # First we clean the folders 
     print("Cleaning fitResults folder")
     os.system("rm -rf fitResults")
@@ -79,6 +85,12 @@ def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
       
 
 def runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
+    '''
+    This is the main driver section that runs runs the "main" program with appropriate settings. 
+    Here we can accept a combo flag that selects the combination of varString variables to use. This
+    is useful if you are trying to do a scan over all possible combinations of phase space variables
+    of all set sizes. You should probably set a nentries or else you will wait a long time....
+    '''
     # clean up the outputs of the "main" program
     print("Cleaning folders that are used by main")
     subprocess.Popen("rm -f diagnosticPlots/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
@@ -118,8 +130,8 @@ def runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fil
     
     # reconfiguring the appropriate files to the current settings
     reconfigureSettings("main.h",_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
-    sedArgs=["sed","-i",'s@standardizationType=".*";@standardizationType="'+_SET_standardizationType+'";@g',"main.h"]
-    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    #sedArgs=["sed","-i",'s@standardizationType=".*";@standardizationType="'+_SET_standardizationType+'";@g',"main.h"]
+    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
     # most processes shoudl have a wait but for some it doesnt matter. i.e. we have to wait for exchangeVar to run before compileMain
     subprocess.Popen(exchangeVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait() # we have to wait for this command to finish before compiling...
@@ -129,14 +141,20 @@ def runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fil
     
     subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
-    print('./main "$kDim" $varString $discrimVar $sideBandVar "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &')
+    print('./main "$kDim" $varString $standardizationType $fitLocation "$redistributeBkgSigFits" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &')
     print('Number of threads: '+str(_SET_nProcess))
-    executeMain=["./main",str(_SET_kDim),_SET_varString,str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_override_nentries),str(_SET_verbose),"&"]
+    _SET_fitLocation = _SET_fitLocationBase+"_"+_SET_fileTag+".txt"
+    executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
+            str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_override_nentries),str(_SET_verbose),"&"]
     print(" ".join(executeMain))
     subprocess.Popen(executeMain).wait()
         
        
 def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
+    '''
+    Runs the program that aggregates all the results, from all the threads, and untangles them. Then various plots can be made.
+    This untangling is mainly necessary due to the hadd function not ordering things properly 
+    '''
     # clean up the files that are created by makeDiagnosticHists before we rerun it
     print("Cleaning diagnosticPlots folder")
     os.system("rm -rf diagnosticPlots/"+_SET_fileTag)
@@ -164,12 +182,6 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     print("Starting running of {0}".format(_SET_rootFileLoc))
     print("TreeName: {0}".format(_SET_rootFileLoc))
     print("FileTag: {0}".format(_SET_fileTag))
-
-    # open a file to output to
-    #print("Saving output to "+'log_'+_SET_fileTag+'.txt')
-    #os.system("rm -f log_"+_SET_fileTag+".txt");
-    #sys.stdout = open('log_'+_SET_fileTag+'.txt', 'w')
-
 
     numVar=len(varVec)
     # We are going pass as arugment a list of lists known as combo. This combo list contains all the lists of combos with numVar elements from the list varVec. If we use the command comboinations(range(3),2) we would get something like [ [1,2], [2,3], [1,3] ]. We can use these as indicies to index a a string of 0's to fill in whether a variable will be in use. i.e. if [1,3] is chosen then the string would be 101 with the second var turnedo off. This is useful when we are doing a scan of which variables we should use. Bruteforce style. 

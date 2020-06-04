@@ -52,8 +52,6 @@ string s_accWeight="AccWeight";
 string s_discrimVar="Meta";
 string s_sideBandVar="Mpi0";
 
-string standardizationType="range"; // range or stdev standardization
-string fitLocation = "fitResults/discrimVarFit_toMain_"+fileTag+".txt"; // the output of the fit parameters from the getInitParams program
 
 // OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
 //class rooFitML{
@@ -126,6 +124,9 @@ class QFactorAnalysis{
 		bool override_nentries;
 		bool verbose;
 		string varString;
+                string standardizationType;
+                bool redistributeBkgSigFits;
+                bool doKRandomNeighbors;
 		std::chrono::time_point<std::chrono::high_resolution_clock> start2;
                 
                 // These block of variables will be used to hold the initialization parameters. In the Q-factor paper they use 3 different initializations which
@@ -149,7 +150,7 @@ class QFactorAnalysis{
 		std::vector<int> phasePoint2PotentailNeighbor; 
 	
 	public:
-		QFactorAnalysis(int kDim1, string varString1, int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, bool override_nentries1, bool verbose1){ 
+		QFactorAnalysis(int kDim1, string varString1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1, int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, bool override_nentries1, bool verbose1){ 
 			cout << "Constructed QFactorAnalysis class..." << endl;
 			kDim=kDim1;
 			numberEventsToSavePerProcess=numberEventsToSavePerProcess1;
@@ -160,6 +161,9 @@ class QFactorAnalysis{
 			verbose=verbose1;
 			start2 = std::chrono::high_resolution_clock::now();
 			varString=varString1;
+                        standardizationType=standardizationType1;
+                        redistributeBkgSigFits=redistributeBkgSigFits1;
+                        doKRandomNeighbors=doKRandomNeighbors1;
 	
 		        // Use these vectors to import all the data to RAM instead of reading from root file
                         // First we should reserve the space so there is no resizing of the vectors
@@ -200,20 +204,6 @@ void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
 
 void QFactorAnalysis::loadFitParameters(string fitLocation){
 	cout << "Loading the fit parameters" << endl;
-	//double fittedConst_pi0 = 1;
-	//double fittedLinear_pi0 = 1;
-	//double fittedAmp_pi0 = 1;
-	//double peak_pi0 = 1;
-	//double sigma_pi0 = 1;
-	//double ampRatio_pi0 = 1;
-	//double sigmaRatio_pi0 = 1;
-	//double fittedConst_eta = 1;
-	//double fittedLinear_eta = 1;
-	//double fittedAmp_eta = 1;
-	//double peak_eta = 1;
-	//double sigma_eta = 1;
-	//double ampRatio_eta = 1;
-	//double sigmaRatio_eta = 1;
 	double eventRatioSigToBkg = 1;
 
 	// -----------------------------------------------------
@@ -237,22 +227,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
             if (varName == "#eventRatioSigToBkg"){
                 eventRatioSigToBkg = varVal;
             }
-		//if (varName == "const"){ fittedConst_eta = varVal; }
-		//if (varName == "linear"){ fittedLinear_eta = varVal;}
-		//if (varName == "amp1"){ fittedAmp_eta = varVal;}
-		//if (varName == "mass"){ peak_eta = varVal;}
-		//if (varName == "sigma1"){ sigma_eta = varVal;}
-		//if (varName == "ampRatio"){ ampRatio_eta = varVal;}
-		//if (varName == "sigmaRatio"){ sigmaRatio_eta = varVal;}
-		//if (varName == "eventRatioSigToBkg"){ eventRatioSigToBkg = varVal;}
 	}
-	//cout << "const: " << fittedConst_eta << endl;
-	//cout << "linear: " << fittedLinear_eta << endl;
-	//cout << "amp1: " << fittedAmp_eta << endl;
-	//cout << "mass: " << peak_eta << endl;
-	//cout << "sigma1: " << sigma_eta << endl;
-	//cout << "ampRatio: " << ampRatio_eta << endl;
-	//cout << "sigmaRatio: " << sigmaRatio_eta << endl;
 	cout << "eventRatioSigToBkg: " << eventRatioSigToBkg << endl;
 	inFile.close();
 
@@ -568,31 +543,34 @@ void QFactorAnalysis::runQFactorThreaded(){
 			for ( int iVar=0; iVar<dim; ++iVar ){
 				phasePoint1[iVar] = phaseSpaceVars[iVar][ientry];
 			}
-                        // What if we wanted to look at k random neighbors?
-			//for (int jentry=0; jentry<kDim;++jentry) {  
-			//      randomEntry = rand() % nentries;
-			//      distKNN.insertPair(make_pair(1, randomEntry) );
-			//}
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 			if(verbose){logFile << "\tBegin finding neighbors: " << duration2 << "ms" << endl; }
-			for (int jentry : phasePoint2PotentailNeighbor) {  
-				if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
-				
-				for ( int iVar=0; iVar<dim; ++iVar ){
-				   	phasePoint2[iVar] = phaseSpaceVars[iVar][jentry];
-				}
-				if (spectroscopicComboIDs[jentry] != spectroscopicComboIDs[ientry]){
-				        distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
-				        //distance = rgen.Uniform(nentries);
-				        distKNN.insertPair(make_pair(distance,jentry));
-				}
-				//if ( verbose) { 
-				//	cout << "CURRENT SET: " << endl;
-				//	for(auto elem : mapDistToEntry){
-				//		std::cout << elem.first << " " << elem.second << "\n";
-				//	}
-				//}
-			}
+                        // What if we wanted to look at k random neighbors?
+                        if (doKRandomNeighbors){
+			    for (int jentry=0; jentry<kDim;++jentry) {  
+			          randomEntry = rand() % nentries;
+			          distKNN.insertPair(make_pair(1, randomEntry) ); //just using 1 as a distance. Doesnt matter anyways
+			    }
+                        }
+                        else {
+			    for (int jentry : phasePoint2PotentailNeighbor) {  
+			    	if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
+			    	
+			    	for ( int iVar=0; iVar<dim; ++iVar ){
+			    	   	phasePoint2[iVar] = phaseSpaceVars[iVar][jentry];
+			    	}
+			    	if (spectroscopicComboIDs[jentry] != spectroscopicComboIDs[ientry]){
+			    	        distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
+			    	        distKNN.insertPair(make_pair(distance,jentry));
+			    	}
+			    	//if ( verbose) { 
+			    	//	cout << "CURRENT SET: " << endl;
+			    	//	for(auto elem : mapDistToEntry){
+			    	//		std::cout << elem.first << " " << elem.second << "\n";
+			    	//	}
+			    	//}
+			    }
+                        }
 			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 			if(verbose){logFile << "\tFound neighbors: " << duration2 << "ms" << endl; }
 			if (distKNN.kNN.size() != kDim){ cout << "size of distKNN is not equal to kDim! size,kDim="<< distKNN.kNN.size() << "," << kDim 
@@ -610,8 +588,8 @@ void QFactorAnalysis::runQFactorThreaded(){
                                 if (weightingScheme=="as"){ weight=AccWeights[newPair.second]; }
                                 if (weightingScheme=="as*bs"){ weight=AccWeights[newPair.second]*sbWeights[newPair.second]; }
 			        discriminatorHist->Fill(discrimVars[newPair.second],weight);
+
 			        //stdCalc.insertValue(discrimVars[newPair.second]);
-                                
 			        //cout << "(" << newPair.first << ", " << newPair.second << ")"; 
 			        //cout << endl; 
 			}
@@ -652,30 +630,35 @@ void QFactorAnalysis::runQFactorThreaded(){
 			}
 
                         // saving the initializations to see if they sort of make sense
+                        int numFits;
+                        if(redistributeBkgSigFits){ 
+                            numFits=3;
+                        }
+                        else{
+                            numFits=1;
+                        }
                         std::vector<TF1*> initFits;
                         TF1* initFit;
-			for ( int iFit = 0; iFit < 3; ++iFit){
+			for ( int iFit = 0; iFit < numFits; ++iFit){
                                 std::vector<double> initParsVaryPercentSig = initPars;
-                                for ( auto sigVar : sigVarsNeedScaling ){ 
-                                    initParsVaryPercentSig[sigVar] = initParsVaryPercentSig[sigVar]*redistributeFactorSig[iFit];
-                                }
-                                for ( auto bkgVar : bkgVarsNeedScaling ){ 
-                                    initParsVaryPercentSig[bkgVar] = initParsVaryPercentSig[bkgVar]*redistributeFactorBkg[iFit];
+                                if(redistributeBkgSigFits){
+                                    for ( auto sigVar : sigVarsNeedScaling ){ 
+                                        initParsVaryPercentSig[sigVar] = initParsVaryPercentSig[sigVar]*redistributeFactorSig[iFit];
+                                    }
+                                    for ( auto bkgVar : bkgVarsNeedScaling ){ 
+                                        initParsVaryPercentSig[bkgVar] = initParsVaryPercentSig[bkgVar]*redistributeFactorBkg[iFit];
+                                    }
                                 }
                                 // saving the initialization to plot it later, just checking if the initializations look reasonable
 				initFit = new TF1(("initFit"+to_string(iFit)+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
 				initFit->SetParameters(&initParsVaryPercentSig[0]);
                                 initFits.push_back(initFit);
-
                                 fit->SetParameters(&initParsVaryPercentSig[0]);
-                                //for (int iPar=0; iPar<parLimits.numDOF; ++iPar){
-                                //    fit->SetParLimits(iPar,parLimits.lowerParLimits[iPar], parLimits.upperParLimits[iPar]);
-                                //}
-                                fit->SetParLimits(0,-5,5);
-                                fit->SetParLimits(1,-10,10);
-                                fit->SetParLimits(2,0,kDim);
-                                fit->SetParLimits(3,initPars[3]*0.90, initPars[3]*1.10);
-                                fit->SetParLimits(4,initPars[4]*0.25, initPars[4]*1.75);
+
+
+                                for (int iPar=0; iPar<parLimits.numDOF; ++iPar){
+                                    fit->SetParLimits(iPar,parLimits.lowerParLimits[iPar], parLimits.upperParLimits[iPar]);
+                                }
                                 
 
 				{
@@ -849,12 +832,14 @@ void QFactorAnalysis::runQFactorThreaded(){
                                 clonedHist->SetTitle("Initializations");
 		          	clonedHist->Draw();
 
-				initFits[0]->SetLineColor(kBlue-4);
-				initFits[0]->Draw("SAME");
-				initFits[1]->SetLineColor(kRed-3);
-				initFits[1]->Draw("SAME");
-				initFits[2]->SetLineColor(kGreen+2);
-				initFits[2]->Draw("SAME");
+                                if (redistributeBkgSigFits){
+				    initFits[0]->SetLineColor(kBlue-4);
+				    initFits[0]->Draw("SAME");
+				    initFits[1]->SetLineColor(kRed-3);
+				    initFits[1]->Draw("SAME");
+				    initFits[2]->SetLineColor(kGreen+2);
+				    initFits[2]->Draw("SAME");
+                                }
 				TF1* initFit4 = new TF1(("initFit4"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
 				initFit4->SetParameters(initPars[0],initPars[1],initPars[2],initPars[3],initPars[4]);
 				initFit4->SetLineColor(kOrange+1);

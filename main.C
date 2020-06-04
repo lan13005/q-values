@@ -19,33 +19,56 @@ int main( int argc, char* argv[] ){
 	// -----------------------------------------------------
         int kDim= atoi(argv[1]);
         std::string varString=argv[2];
-        int numberEventsToSavePerProcess= atoi(argv[3]);
-	int nProcess=atoi(argv[4]);
-        int seedShift= atoi(argv[5]);
-        Long64_t nentries= atoi(argv[6]);
+        std::string standardizationType=argv[3];
+        std::string fitLocation=argv[4];
+        bool redistributeBkgSigFits;
+        if(atoi(argv[5])==1){
+           redistributeBkgSigFits=true; 
+        }
+        else{
+            redistributeBkgSigFits=false;
+        }
+        bool doKRandomNeighbors;
+        if(atoi(argv[6])==1){
+           doKRandomNeighbors=true; 
+        }
+        else{
+            doKRandomNeighbors=false;
+        }
+        int numberEventsToSavePerProcess=atoi(argv[7]);
+	int nProcess=atoi(argv[8]);
+        int seedShift= atoi(argv[9]);
+        Long64_t nentries= atoi(argv[10]);
         bool override_nentries;
         cout << "Num Vars="<< dim << endl;
-        if ( atoi(argv[7]) ==1 ){ 
+        if ( atoi(argv[11]) ==1 ){ 
             override_nentries=true;
         }
         else{ 
             override_nentries=false;
         }
         bool verbose;
-        if ( atoi(argv[8])==1 ){ verbose=true;}
+        if ( atoi(argv[12])==1 ){ verbose=true;}
         else{ verbose=false;}
         cout << "----------------------------" << endl;
         cout << "kDim: " << kDim << endl;
+        cout << "nProcess: " << nProcess << endl;
         cout << "numberEventsToSavePerProcess: " << numberEventsToSavePerProcess << endl;
         cout << "seedShift: " << seedShift << endl;
         cout << "nentries: " << nentries << endl; 
         cout << "override_nentries: " << override_nentries << endl;
-        cout << "verbose: " << verbose  << endl; 
 	cout << "varString: " << varString << endl; 
-        cout << "nProcess: " << nProcess << endl;
+        cout << "standardizationType: " << standardizationType << endl;
+        cout << "fitLocation: " << fitLocation << endl;
+        cout << "verbose: " << verbose  << endl; 
+        cout << "redistributeBkgSigFits: " << redistributeBkgSigFits << endl;
+        cout << "doKRandomNeighbors: " << doKRandomNeighbors << endl;
         cout << "----------------------------" << endl;
+        cout << "Sleeping for 10 seconds so you can look at these settings" << endl;
+        sleep(10);
     
-	QFactorAnalysis analysisControl(kDim, varString, numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);
+	QFactorAnalysis analysisControl(kDim, varString, standardizationType, redistributeBkgSigFits, doKRandomNeighbors, 
+                numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);
 	analysisControl.loadTree(rootFileLoc, rootTreeName);
 	analysisControl.loadFitParameters(fitLocation);
 	analysisControl.loadData();
