@@ -622,12 +622,11 @@ void QFactorAnalysis::runQFactorThreaded(){
 			// We use a normalized gaussian and a flat function. 
 			{
 				// have to use a mutex here or else we get some weird error
-				R__LOCKGUARD(gGlobalMutex);
+				//R__LOCKGUARD(gGlobalMutex);
 				fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
 				bkgFit = new TF1(("bkgFit"+to_string(iThread)).c_str(),background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
 				sigFit = new TF1(("sigFit"+to_string(iThread)).c_str(),signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
 			}
-
                         // saving the initializations to see if they sort of make sense
                         int numFits;
                         if(redistributeBkgSigFits){ 
@@ -638,6 +637,10 @@ void QFactorAnalysis::runQFactorThreaded(){
                         }
                         std::vector<TF1*> initFits;
                         TF1* initFit;
+
+			duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
+			if(verbose){logFile <<	"\tInitialized fits: " << duration2 << "ms" << endl;}
+
 			for ( int iFit = 0; iFit < numFits; ++iFit){
                                 std::vector<double> initParsVaryPercentSig = initPars;
                                 if(redistributeBkgSigFits){
@@ -700,7 +703,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 						discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
 				                {
 				                    R__LOCKGUARD(gGlobalMutex);
-				                    allCanvases_badFit->SaveAs(("histograms/"+fileTag+"/bad-Mass-event"+std::to_string(ientry)+".png").c_str());
+				                    allCanvases_badFit->SaveAs(("histograms/"+fileTag+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
                                                 }
 						++savedN_badEvents;
 					}
@@ -727,6 +730,8 @@ void QFactorAnalysis::runQFactorThreaded(){
 					    cout << " **************** BREAKING (q-value out of bounds) ****************** " << endl;
 					    exit(0);
 					}
+			                duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
+			                if(verbose){logFile <<	"\tFinished Flat fit: " << duration2 << "ms" << endl;}
 				}
 
 				// now that the q-value is found we can get the chiSq and save the parameters with the best chiSq
@@ -857,7 +862,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 				cout << "Choosing to save event " << ientry << endl;
                                 {
 				    R__LOCKGUARD(gGlobalMutex);
-				    allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".png").c_str());
+				    allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
                                 }
 				
 
@@ -892,11 +897,12 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 
         // Now that we have the lambda function we can start to spawn threads
-	cout << "Launching " << nProcess << " threads!" << endl;
+	cout << "Launching " << nProcess << " threads 1 second apart!" << endl;
 	vector<thread> threads;
 	for ( int iThread=0; iThread<nProcess; ++iThread){
 		cout << "(Thread " << iThread << ") is starting" << endl;
 		threads.emplace_back( [f, iThread] { f(iThread); } );
+                sleep(1);
 		//threads[iThread] = std::thread(QFactorAnalysis::staticEntryPoint, this, iThread);
 	}
 	for (auto&& t : threads) t.join(); // join waits for completion
