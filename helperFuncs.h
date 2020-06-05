@@ -39,11 +39,16 @@ struct parameterLimits{
     std::vector<int> zeroTheseParsOnFail = {1}; 
 
     void setupParLimits(){
+        // We allow each parameter to vary based on the magnitude of the parameter times some scaleFactor.
+        // Hopefully this is generic enough for different analyses but you can always set them directly here
+
+
         double scaleFactor = 5; // allow the parameters some flexibility
         double scaleSig = (1+1/eventRatioSigToBkg); // scale factor for the signal distribution to contain 100% of events
         double scaleBkg = (1+eventRatioSigToBkg); // scale factor for the bkg distribution to contain 100% of events
         double abs_par = abs(initPars[0]*scaleBkg);
-        // Since we do 3 different initializations, with 100%bkg, 50/50, 100% sig the parameters for the bkg all go to zero in the 100% signal case
+        // Since we do 3 different initializations, with 100%bkg, 50/50, 100% sig the parameters for the bkg all go to zero in the 100% signal case. So lowLimit must be smaller than 0. 
+        // arbitrarily chose lowLimit=-1
         double lowLimit = scaleBkg*initPars[0]-scaleFactor*abs_par;
         if (lowLimit > 0){ lowLimit = -1; }
         lowerParLimits.push_back(lowLimit);
@@ -60,9 +65,9 @@ struct parameterLimits{
         lowerParLimits.push_back(0);
         upperParLimits.push_back(scaleSig*initPars[2]+scaleFactor*abs_par);
 
+        // since the mean and the width of gaussian is always + we can just multiply by a percentage
         lowerParLimits.push_back(initPars[3]*0.9);
         upperParLimits.push_back(initPars[3]*1.1);
-
         lowerParLimits.push_back(initPars[4]*0.25);
         upperParLimits.push_back(initPars[4]*1.75);
     }
