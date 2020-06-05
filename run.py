@@ -3,7 +3,6 @@ import os
 import sys
 import time
 from itertools import combinations
-from checkSettings import check # contain function that compares files for keywords like checking discriminating variable bin size and ranges 
 
 start_time = time.time()
 
@@ -17,7 +16,7 @@ _SET_seedShift=1212 # in case we dont want the same q-value histogram we can cho
 _SET_nProcess=8 # how many processes to spawn
 _SET_nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
 _SET_override_nentries=0 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
-_SET_verbose=1 # how much information we want to output to the logs
+_SET_verbose=1 # how much information we want to output to the logs folder
 _SET_weightingScheme="as*bs" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
 _SET_discrimVar="Meta" # discriminating/reference variable
@@ -30,13 +29,10 @@ _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code 
 _SET_runFullFit=False # should we fit the full distribution of the discriminating variable to extract initialization parameters for q-factors?
 _SET_runQFactor=True # should we run the q-factor analysis
 _SET_runMakeHists=False # do we want to run makeDiagnosticHists
-
-
-#check() # Outputting some checks to make sure getInitParams, main.h, and makeDiagnosticHists agree
-
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
 rootFileLocs=[
+        # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
         ("/home/lawrence/Desktop/gluex/q-values/degALL_bcal_treeFlat_DSelector.root", "degALL_bcal_tree_flat", "bcal")
         #,("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
         #,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
@@ -44,11 +40,11 @@ rootFileLocs=[
 _SET_fitLocationBase="fitResults/discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in _SET_fitLocationBase+"_"+fileTag+".txt"
 
 
-varVec=_SET_varStringBase.rstrip().split(";")
 #############################################################################
 ###################  FIRST DEFINE SOME FUNCTIONS   #########################
 #############################################################################
 
+varVec=_SET_varStringBase.rstrip().split(";")
 def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     '''
     Settings we need to set in getInitParams, main.h, and makeDiagnosticHists
