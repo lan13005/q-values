@@ -33,7 +33,6 @@
 //#include "RooAddPdf.h"
 //#include "RooFormulaVar.h"
 
-
 //#include "Math/MinimizerOptions.h"
 //using namespace RooFit;
 
@@ -44,7 +43,7 @@ TRandom rgen;
 
 using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootFileLoc="/home/lawrence/Desktop/gluex/q-values/degALL_bcal_treeFlat_DSelector.root";
 string rootTreeName="degALL_bcal_tree_flat";
 string fileTag="bcal";
 string weightingScheme="as*bs"; // "" or "as*bs"
@@ -699,7 +698,10 @@ void QFactorAnalysis::runQFactorThreaded(){
 						discrimVarLine->SetLineColor(kOrange);
 		        			discrimVarLine->Draw("same");
 						discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
-						allCanvases_badFit->SaveAs(("histograms/"+fileTag+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
+				                {
+				                    R__LOCKGUARD(gGlobalMutex);
+				                    allCanvases_badFit->SaveAs(("histograms/"+fileTag+"/bad-Mass-event"+std::to_string(ientry)+".png").c_str());
+                                                }
 						++savedN_badEvents;
 					}
 					
@@ -853,7 +855,10 @@ void QFactorAnalysis::runQFactorThreaded(){
 				// need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one pdf converter
 				// or whatever and maybe if multiple threads calls it then a blocking effect can happen
 				cout << "Choosing to save event " << ientry << endl;
-				allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
+                                {
+				    R__LOCKGUARD(gGlobalMutex);
+				    allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".png").c_str());
+                                }
 				
 
 				if(verbose){

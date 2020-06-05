@@ -2,11 +2,11 @@
 // The purpose of this code is to fit the distribution of the discriminating variables and extract the fit parameters
 // We can then pass these fitted parameters, scale them, and use them as initializations for the q-values
 
-#include "/d/grid15/ln16/pi0eta/092419/makeGraphs.h"
+#include <string>
 #include "helperFuncs.h"
 
 
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootFileLoc="/home/lawrence/Desktop/gluex/q-values/degALL_bcal_treeFlat_DSelector.root";
 string rootTreeName="degALL_bcal_tree_flat";
 string fileTag="bcal";
 string weightingScheme="as*bs"; // "" or "as*bs"

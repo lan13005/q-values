@@ -64,8 +64,8 @@ int main( int argc, char* argv[] ){
         cout << "redistributeBkgSigFits: " << redistributeBkgSigFits << endl;
         cout << "doKRandomNeighbors: " << doKRandomNeighbors << endl;
         cout << "----------------------------" << endl;
-        cout << "Sleeping for 10 seconds so you can look at these settings" << endl;
-        sleep(10);
+        //cout << "Sleeping for 10 seconds so you can look at these settings" << endl;
+        //sleep(10);
     
 	QFactorAnalysis analysisControl(kDim, varString, standardizationType, redistributeBkgSigFits, doKRandomNeighbors, 
                 numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);

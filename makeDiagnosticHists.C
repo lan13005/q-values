@@ -9,7 +9,7 @@
 
 bool verbose = true;
 string fileTag="bcal";
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootFileLoc="/home/lawrence/Desktop/gluex/q-values/degALL_bcal_treeFlat_DSelector.root";
 string rootTreeName="degALL_bcal_tree_flat";
 string weightingScheme="as*bs"; // "" or "as*bs"
 string s_accWeight="AccWeight";
