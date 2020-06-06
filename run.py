@@ -11,13 +11,13 @@ start_time = time.time()
 #############################################################################
 
 _SET_kDim=200 # number of neighbors
-_SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
+_SET_numberEventsToSavePerProcess=0 # how many histograms (root files) we want to save.
 _SET_seedShift=1212 # in case we dont want the same q-value histogram we can choose another random seed
-_SET_nProcess=8 # how many processes to spawn
+_SET_nProcess=36 # how many processes to spawn
 _SET_nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
 _SET_override_nentries=0 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
 _SET_verbose=1 # how much information we want to output to the logs folder
-_SET_weightingScheme="as*bs" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
+_SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
 _SET_discrimVar="Meta" # discriminating/reference variable
 _SET_sideBandVar="Mpi0" # side band subtract on this variable
@@ -26,14 +26,14 @@ _SET_standardizationType="range" # what type of standardization to apply when no
 _SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
-_SET_runFullFit=False # should we fit the full distribution of the discriminating variable to extract initialization parameters for q-factors?
+_SET_runFullFit=True # should we fit the full distribution of the discriminating variable to extract initialization parameters for q-factors?
 _SET_runQFactor=True # should we run the q-factor analysis
-_SET_runMakeHists=False # do we want to run makeDiagnosticHists
+_SET_runMakeHists=True # do we want to run makeDiagnosticHists
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
 rootFileLocs=[
         # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
-        ("/home/lawrence/Desktop/gluex/q-values/degALL_bcal_treeFlat_DSelector.root", "degALL_bcal_tree_flat", "bcal")
+        ("/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root", "degALL_bcal_tree_flat", "bcal")
         #,("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
         #,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
         ]

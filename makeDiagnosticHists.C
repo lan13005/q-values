@@ -9,9 +9,9 @@
 
 bool verbose = true;
 string fileTag="bcal";
-string rootFileLoc="/home/lawrence/Desktop/gluex/q-values/degALL_bcal_treeFlat_DSelector.root";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
 string rootTreeName="degALL_bcal_tree_flat";
-string weightingScheme="as*bs"; // "" or "as*bs"
+string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_discrimVar="Meta";
 string s_sideBandVar="Mpi0";
@@ -349,12 +349,12 @@ void makeDiagnosticHists(){
                 }
                 double weight; 
                 if (weightingScheme==""){ weight=1; }
-                if (weightingScheme=="as"){ weight=AccWeight; }
-                if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeights[ientry]; }
+                if (weightingScheme=="as"){ weight=AccWeights[ientry]; }
+                if (weightingScheme=="as*bs"){ weight=AccWeights[ientry]*sbWeights[ientry]; }
 		sigWeight = qvalue*weight;
 		totWeight = weight;
 		bkgWeight = conjugate_qvalue*weight;
-                //cout << "ientry,qVal,conj_qVal: " << ientry << "," << qvalue << "," << conjugate_qvalue << endl;
+                cout << "ientry,qVal,conj_qVal,AccWeight,sbWeight: " << ientry << "," << qvalue << "," << conjugate_qvalue << ", " << AccWeight << ", " << sbWeight << endl;
                 if ( isUniqueEtaBs[ientry] ) {
 			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs_meas[ientry], sigWeight);
 			cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs_meas[ientry], totWeight);
