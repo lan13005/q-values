@@ -7,10 +7,14 @@
 #include <queue>
 
 using namespace std;
+// We need to define a maximum value for the bernstein polynomial. The domain is [0,1] so we have to scale the discriminating variable to be between 0,1. 
+// Since we know the maximum value for Meta is < 1 then everything is fine. For larger masses we can divide by a larger value or just dividing by Ebeam_max = 12 is fine. 
+// Without much calculation we know GlueX cannot produce anything with mass > 12 GeV. If you use other variables like then choose the appropriate maximum value
+#define MAXVALUE 1
 
 // -----------------------------
-int numDOFsig = 3; // degrees of freedom for the signal distribution
-int numDOFbkg = 2; //
+static const int numDOFsig = 3; // degrees of freedom for the signal distribution
+static const int numDOFbkg = 2; //
 // we need to tell "main" which variables need scaling when using the full reference distribution to the k nearest neighbors
 std::vector<int> sigVarsNeedScaling = {2}; // these parameter indices are relative to fitFunc
 std::vector<int> bkgVarsNeedScaling = {0,1};
@@ -20,8 +24,9 @@ double signal(double *x, double *par){
 	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
 
 }
+// Bernstein polynomial of degree 1
 double background(double *x, double *par){
-	return par[0]+par[1]*x[0];
+	return par[0]*x[0]+par[1]*(1-x[0]/MAXVALUE);
 }
 double fitFunc(double *x, double *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
@@ -46,18 +51,13 @@ struct parameterLimits{
         double scaleFactor = 5; // allow the parameters some flexibility
         double scaleSig = (1+1/eventRatioSigToBkg); // scale factor for the signal distribution to contain 100% of events
         double scaleBkg = (1+eventRatioSigToBkg); // scale factor for the bkg distribution to contain 100% of events
+        // Since we do 3 different initializations, with 100%bkg, 50/50, 100% sig the parameters for the bkg all go to zero in the 100% signal case. 
         double abs_par = abs(initPars[0]*scaleBkg);
-        // Since we do 3 different initializations, with 100%bkg, 50/50, 100% sig the parameters for the bkg all go to zero in the 100% signal case. So lowLimit must be smaller than 0. 
-        // arbitrarily chose lowLimit=-1
-        double lowLimit = scaleBkg*initPars[0]-scaleFactor*abs_par;
-        if (lowLimit > 0){ lowLimit = -1; }
-        lowerParLimits.push_back(lowLimit);
+        lowerParLimits.push_back(0);
         upperParLimits.push_back(scaleBkg*initPars[0]+scaleFactor*abs_par);
 
         abs_par = abs(scaleBkg*initPars[1]);
-        lowLimit = scaleBkg*initPars[1]-scaleFactor*abs_par;
-        if (lowLimit > 0){ lowLimit = -1; }
-        lowerParLimits.push_back(lowLimit);
+        lowerParLimits.push_back(0);
         upperParLimits.push_back(scaleBkg*initPars[1]+scaleFactor*abs_par);
 
         // There is a strict limit on the amplitude of the Gaussian which is kDim. 

@@ -6,9 +6,9 @@
 #include "helperFuncs.h"
 
 
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_bcal_tree_flat";
-string fileTag="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_fcal_tree_flat";
+string fileTag="fcal";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_discrimVar="Meta";
@@ -56,10 +56,13 @@ void getInitParams(){
 		TF1* fit;
         	TF1* bkgFit;
         	TF1* sigFit;
-        	double par[5];
+        	double par[numDOFbkg+numDOFsig];
 		
         	cout <<"Initialized" << endl;
-        	string namePar[6] = {"nentries","const","linear","amp1","mass","sigma1"};//,"ampRatio","sigmaRatio"};
+        	string namePar[numDOFbkg+numDOFsig] = {"bern01","bern11","amp","mass","sigma"};//,"ampRatio","sigmaRatio"};
+                int meanIndex=3;
+                int widthIndex=4;
+
 
 		allCanvases->Clear();
 		std::vector<double> binRangeEta;
@@ -84,7 +87,7 @@ void getInitParams(){
 		binRangeEta={_SET_DiscrimBinNum,_SET_DiscrimBinLower,_SET_DiscrimBinUpper};
 		fitRangeEta={_SET_DiscrimFitLower,_SET_DiscrimFitUpper};
 		binRangePi0={200,0.005,0.25};
-		fitRangePi0={0.1,0.17};
+		fitRangePi0={0.09,0.18};
 
 		binWidthEta=(binRangeEta[2]-binRangeEta[1])/binRangeEta[0];
 		binWidthPi0=(binRangePi0[2]-binRangePi0[1])/binRangePi0[0];
@@ -94,7 +97,12 @@ void getInitParams(){
 		bkgFit = new TF1("bkgFit",background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
 		sigFit = new TF1("sigFit",signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
 
-		fit->SetParameters(11500,250,1750,0.547,0.003);//,3,5);
+		fit->SetParameters(3000,2000,15000,0.547,0.003);//,3,5);
+                fit->SetParLimits(0,0,4000);
+                fit->SetParLimits(1,0,3000);
+                fit->SetParLimits(2,0,20000);
+                fit->SetParLimits(3,0.5,0.6);
+                fit->SetParLimits(4,0,0.05);
 
 		massHistEta = new TH1F("","",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
 		massHistPi0 = new TH1F("","",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
@@ -130,16 +138,16 @@ void getInitParams(){
 		
 		massHistEta->Fit("fit","RQB"); // B will enforce the bounds
 		fit->GetParameters(par);
-                cout << "Setting par[4] = width to be positive" << endl;
-                if(par[4] < 0){ par[4] = abs(par[4]); }
+                cout << "Setting par[" << widthIndex << "] = width to be positive" << endl;
+                if(par[widthIndex] < 0){ par[widthIndex] = abs(par[widthIndex]); }
                 fit->SetParameters(par);
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
 		massHistEta->SetTitle(";M(#eta) (GeV)");
-		logFile_discrimVar1 << "#" << namePar[0] << " " << nentries << endl;
+		logFile_discrimVar1 << "#nentries " << nentries << endl;
 		
 		for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
-		        logFile_discrimVar1 << namePar[iPar+1] << " " << par[iPar] << endl;
+		        logFile_discrimVar1 << namePar[iPar] << " " << par[iPar] << endl;
 		}
 		
                 cout << "IF SIDEBAND SUBTRACTING ON THIS, THE INTEGRALS WILL OBVIOULSY BE WEIRD" << endl;
@@ -163,17 +171,17 @@ void getInitParams(){
 
 		int nSig=3;
 		//double weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
-                double weightedSigma = par[4];
+                double weightedSigma = par[widthIndex];
                 cout << "Checking if our calculated integrals for the bkg and signal add up to the total" << endl;
 		logFile_discrimVar1 << "#weightedSigma " << weightedSigma << endl;
-		TLine *line = new TLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
+		TLine *line = new TLine(par[meanIndex]-nSig*weightedSigma,0,par[meanIndex]-nSig*weightedSigma,massHistEta->GetMaximum());
 		line->SetLineColor(kMagenta);
-		double integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthEta;
-		double integralSIG_nsig = sigFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthEta;
+		double integralBKG_nsig = bkgFit->Integral(par[meanIndex]-nSig*weightedSigma,par[meanIndex]+nSig*weightedSigma)/binWidthEta;
+		double integralSIG_nsig = sigFit->Integral(par[meanIndex]-nSig*weightedSigma,par[meanIndex]+nSig*weightedSigma)/binWidthEta;
 		logFile_discrimVar1 << "#integralBKG_nSig " << integralBKG_nsig << endl;
 		logFile_discrimVar1 << "#integralSIG_nSig " << integralSIG_nsig << endl;
-		Int_t binx1 = massHistEta->GetXaxis()->FindBin(par[3]-nSig*weightedSigma);
-		Int_t binx2 = massHistEta->GetXaxis()->FindBin(par[3]+nSig*weightedSigma);
+		Int_t binx1 = massHistEta->GetXaxis()->FindBin(par[meanIndex]-nSig*weightedSigma);
+		Int_t binx2 = massHistEta->GetXaxis()->FindBin(par[meanIndex]+nSig*weightedSigma);
 		logFile_discrimVar1 << "#-- 3sigma BinLower, BinUpper = " << binx1 << ", " << binx2 << endl;
 		logFile_discrimVar1 << "#-- Actual counts in the 3sigma range " << massHistEta->Integral(binx1,binx2) << endl;
 		logFile_discrimVar1 << "#-- integralBKG_nSig+integralSIG_nSig " << integralBKG_nsig+integralSIG_nsig << endl;
@@ -188,11 +196,11 @@ void getInitParams(){
 
 		
 		massHistEta->Draw();
-		line->DrawLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
-		line->DrawLine(par[3]+nSig*weightedSigma,0,par[3]+nSig*weightedSigma,massHistEta->GetMaximum());
+		line->DrawLine(par[meanIndex]-nSig*weightedSigma,0,par[meanIndex]-nSig*weightedSigma,massHistEta->GetMaximum());
+		line->DrawLine(par[meanIndex]+nSig*weightedSigma,0,par[meanIndex]+nSig*weightedSigma,massHistEta->GetMaximum());
 		massHistEta->GetXaxis()->SetTitleSize(0.04);
 		massHistEta->GetYaxis()->SetTitleSize(0.04);
-		massHistEta->SetTitle(("Peak: "+to_string(par[3])+"    width: "+to_string(weightedSigma)).c_str());
+		massHistEta->SetTitle(("Peak: "+to_string(par[meanIndex])+"    width: "+to_string(weightedSigma)).c_str());
 		allCanvases->SaveAs(("fitResults/"+s_discrimVar+"_fit_"+fileTag+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
         	
@@ -204,20 +212,26 @@ void getInitParams(){
 		bkgFit = new TF1("bkgFit",background,fitRangePi0[0],fitRangePi0[1],numDOFbkg);
 		sigFit = new TF1("sigFit",signal,fitRangePi0[0],fitRangePi0[1],numDOFsig);
 
-		fit->SetParameters(11500,250,1750,0.134,0.001);//,5,2);
+		fit->SetParameters(4000,3000,14000,0.134,0.015);//,5,2);
+                fit->SetParLimits(0,0,7000);
+                fit->SetParLimits(1,0,7000);
+                fit->SetParLimits(2,0,20000);
+                fit->SetParLimits(3,0.13,0.14);
+                fit->SetParLimits(4,0.001,0.01);
+
 
 		massHistPi0->Fit("fit","RQB"); // B will enforce the bounds
 		fit->GetParameters(par);
-                cout << "Setting par[4] = width to be positive" << endl;
-                if(par[4] < 0){ par[4] = abs(par[4]); }
+                cout << "Setting par[" << widthIndex << "] = width to be positive" << endl;
+                if(par[widthIndex] < 0){ par[widthIndex] = abs(par[widthIndex]); }
                 fit->SetParameters(par);
 		bkgFit->SetParameters(par);
 		sigFit->SetParameters(&par[numDOFbkg]);
 		massHistPi0->SetTitle(";M(#pi^{0}) (GeV)");
-		logFile_discrimVar2 << "#" << namePar[0] << " " << nentries << endl;
+		logFile_discrimVar2 << "#nentries " << nentries << endl;
 		
 		for (int iPar=0; iPar<numDOFbkg+numDOFsig; ++iPar){
-		        logFile_discrimVar2 << namePar[iPar+1] << " " << par[iPar] << endl;
+		        logFile_discrimVar2 << namePar[iPar] << " " << par[iPar] << endl;
 		}
 		
                 cout << "IF SIDEBAND SUBTRACTING ON THIS, THE INTEGRALS WILL OBVIOULSY BE WEIRD" << endl;
@@ -236,16 +250,16 @@ void getInitParams(){
 		cout << "nentries: " << nentries << endl;
 
 		//weightedSigma = par[2]/(par[2]+par[2]*par[5])*par[4]+(par[2]*par[5])/(par[2]+par[2]*par[5])*par[6]*par[4];
-                weightedSigma=par[4];
+                weightedSigma=par[widthIndex];
 		logFile_discrimVar2 << "#weightedSigma: " << weightedSigma << endl;
 
                 cout << "Checking if our calculated integrals for the bkg and signal add up to the total" << endl;
-		integralBKG_nsig = bkgFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
-		integralSIG_nsig = sigFit->Integral(par[3]-nSig*weightedSigma,par[3]+nSig*weightedSigma)/binWidthPi0;
+		integralBKG_nsig = bkgFit->Integral(par[meanIndex]-nSig*weightedSigma,par[meanIndex]+nSig*weightedSigma)/binWidthPi0;
+		integralSIG_nsig = sigFit->Integral(par[meanIndex]-nSig*weightedSigma,par[meanIndex]+nSig*weightedSigma)/binWidthPi0;
 		logFile_discrimVar2 << "#integralBKG_nSig " << integralBKG_nsig << endl;
 		logFile_discrimVar2 << "#integralSIG_nSig " << integralSIG_nsig << endl;
-		binx1 = massHistPi0->GetXaxis()->FindBin(par[3]-nSig*weightedSigma);
-		binx2 = massHistPi0->GetXaxis()->FindBin(par[3]+nSig*weightedSigma);
+		binx1 = massHistPi0->GetXaxis()->FindBin(par[meanIndex]-nSig*weightedSigma);
+		binx2 = massHistPi0->GetXaxis()->FindBin(par[meanIndex]+nSig*weightedSigma);
 		logFile_discrimVar2 << "#-- 3sigma BinLower, BinUpper = " << binx1 << ", " << binx2 << endl;
 		logFile_discrimVar2 << "#-- Actual counts in the 3sigma range " << massHistPi0->Integral(binx1,binx2) << endl;
 		logFile_discrimVar2 << "#-- integralBKG_nSig+integralSIG_nSig " << integralBKG_nsig+integralSIG_nsig << endl;
@@ -259,11 +273,11 @@ void getInitParams(){
 		logFile_discrimVar2 << "#purity " << purity << endl;
 		
 		massHistPi0->Draw();
-		line->DrawLine(par[3]-nSig*weightedSigma,0,par[3]-nSig*weightedSigma,massHistEta->GetMaximum());
-		line->DrawLine(par[3]+nSig*weightedSigma,0,par[3]+nSig*weightedSigma,massHistEta->GetMaximum());
+		line->DrawLine(par[meanIndex]-nSig*weightedSigma,0,par[meanIndex]-nSig*weightedSigma,massHistEta->GetMaximum());
+		line->DrawLine(par[meanIndex]+nSig*weightedSigma,0,par[meanIndex]+nSig*weightedSigma,massHistEta->GetMaximum());
 		massHistPi0->GetXaxis()->SetTitleSize(0.04);
 		massHistPi0->GetYaxis()->SetTitleSize(0.04);
-		massHistPi0->SetTitle(("Peak: "+to_string(par[3])+"    width: "+to_string(weightedSigma)).c_str());
+		massHistPi0->SetTitle(("Peak: "+to_string(par[meanIndex])+"    width: "+to_string(weightedSigma)).c_str());
 		//TLine *line = new TLine( sbRL, 0, sbRL, massHistPi0->GetMaximum());
 		//line->SetLineColor(kRed);
 		//line->Draw("SAME");

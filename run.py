@@ -6,13 +6,60 @@ from itertools import combinations
 
 start_time = time.time()
 
+
+args=sys.argv
+def showHelp():
+    print("\n-help\n")
+    print("run.py accepts only one argument. A 3 digit binary code is needed:")
+    print("1. 0/1 given to run the full fit to extract initialization parameters")
+    print("2. 0/1 given to run the q factor analysis")
+    print("3. 0/1 given to make all the diagnostic histograms appliyng the q-factors")
+    print("i.e. if we want to run the full fit, and q-factor analysis but do not make the graphs then 110 is the argument")
+
+
+def parseCmdArgs():
+    if(len(args)!=2):
+        showHelp()
+        exit()
+    for arg in args[1:]:
+        arg=str(arg)
+        if(len(arg)==3):
+            print("\n--------------")
+            if arg[0]=="1":
+                _SET_runFullFit=True
+                print("Running Full Fit")
+            elif arg[0]=="0":
+                _SET_runFullFit=False
+                print("Skipping Full Fit")
+            if arg[1]=="1":
+                _SET_runQFactor=True
+                print("Running Q-Factor Analysis")
+            elif arg[1]=="0":
+                _SET_runQFactor=False
+                print("Skipping Q Factor Analysis")
+            if arg[2]=="1":
+                _SET_runMakeHists=True
+                print("Running Make Diagnostic Hists")
+            elif arg[2]=="0":
+                _SET_runMakeHists=False
+                print("Skipping Make Diagnostic Hists")
+            print("--------------\n")
+            return _SET_runFullFit,_SET_runQFactor,_SET_runMakeHists
+        else:
+            showHelp()
+            exit()
+
+_SET_runFullFit,_SET_runQFactor,_SET_runMakeHists = parseCmdArgs()
+
+
+
 #############################################################################
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 
-_SET_kDim=200 # number of neighbors
-_SET_numberEventsToSavePerProcess=0 # how many histograms (root files) we want to save.
-_SET_seedShift=1212 # in case we dont want the same q-value histogram we can choose another random seed
+_SET_kDim=250 # number of neighbors
+_SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save.
+_SET_seedShift=9121 # in case we dont want the same q-value histogram we can choose another random seed
 _SET_nProcess=36 # how many processes to spawn
 _SET_nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
 _SET_override_nentries=0 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
@@ -26,15 +73,13 @@ _SET_standardizationType="range" # what type of standardization to apply when no
 _SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
-_SET_runFullFit=True # should we fit the full distribution of the discriminating variable to extract initialization parameters for q-factors?
-_SET_runQFactor=True # should we run the q-factor analysis
-_SET_runMakeHists=True # do we want to run makeDiagnosticHists
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
 rootFileLocs=[
         # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
-        ("/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root", "degALL_bcal_tree_flat", "bcal")
-        #,("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
+        
+        #("/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root", "degALL_bcal_tree_flat", "bcal")
+        ("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
         #,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
         ]
 _SET_fitLocationBase="fitResults/discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in _SET_fitLocationBase+"_"+fileTag+".txt"
@@ -71,8 +116,8 @@ def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     '''
     # First we clean the folders 
     print("Cleaning fitResults folder")
-    os.system("rm -rf fitResults")
-    os.system("mkdir fitResults")
+    os.system("rm -rf fitResults/*"+_SET_fileTag+".txt")
+    os.system("rm -rf fitResults/*"+_SET_fileTag+".png")
     reconfigureSettings("getInitParams.C", _SET_rootFileLoc, _SET_rootTreeName, Set_fileTag)
     # get the initialization parameters
     proc=subprocess.Popen("root -l -b -q getInitParams.C",shell=True).wait()
@@ -165,6 +210,26 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
 
 
+def combineAllGraphs():
+    '''
+    After running over all the different dataset we will just add all the histograms together and make one final plot
+    '''
+    tags = [rootFileLoc[2] for rootFileLoc in rootFileLocs]
+    haddHistCmd="hadd diagnosticPlots/postQVal.root"
+    haddTreeCmd="hadd diagnosticPlots/postQVal_flatTree"
+    for tag in tags:
+        haddHistCmd = haddHistCmd+" diagnosticPlots/"+tag+"/postQValHists_"+tag+".root"
+        haddTreeCmd = haddTreeCmd+" diagnosticPlots/"+tag+"/postQValTrees_"+tag+".root"
+    print("\n\n")
+    print(haddHistCmd)
+    print(haddTreeCmd)
+    sedArgs=["sed","-i",'s@haddHistCmd=".*";@haddHistCmd="'+haddHistCmd+'";@g',"makeDiagnosticHists_drawSum.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@haddTreeCmd=".*";@haddTreeCmd="'+haddTreeCmd+'";@g',"makeDiagnosticHists_drawSum.C"]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    os.system("root -l -b -q makeDiagnosticHists_drawSum.C")
+
+
 
 #############################################################################
 ###################    BEGIN RUNNING THE PROGRAM    #########################
@@ -201,6 +266,8 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     #        print combo
     #        runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     
+#if _SET_runMakeHists:
+#    combineAllGraphs()
 
 print("--- %s seconds ---" % (time.time() - start_time))
 

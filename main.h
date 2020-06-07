@@ -43,14 +43,13 @@ TRandom rgen;
 
 using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_bcal_tree_flat";
-string fileTag="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_fcal_tree_flat";
+string fileTag="fcal";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_discrimVar="Meta";
 string s_sideBandVar="Mpi0";
-
 
 // OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
 //class rooFitML{
@@ -387,6 +386,7 @@ void QFactorAnalysis::runQFactorThreaded(){
 	cout << "override_nentries: " << override_nentries << endl;
 	cout << "verbose: " << verbose << endl;
 
+	ROOT::EnableThreadSafety();
 	// [=] refers to a capture list which is used by this lambda expression. The lambda gets a copy of all the local variables that it uses when it is created. If we
 	// just use [] we will get an error since the lambda will have no idea what these variables are	
 	auto f = [=](int iProcess){
@@ -681,58 +681,55 @@ void QFactorAnalysis::runQFactorThreaded(){
 				// /////////////////////////////////////////
 				// need to calcuclate new q-value since it is out of bounds
 				// /////////////////////////////////////////
-				if (qvalue>1 || qvalue<0){
-					cout << "Using less complex fit instead on event: " << ientry << " -- QFactor = " << qvalue << endl;
-					// first we will save the bad event to get a sample then fix the linear component of the bkg
-					if ( savedN_badEvents < saveN_badEvents ) {
-						allCanvases_badFit->cd();
-        	        			fit->SetLineColor(kRed+2);
-  		        			bkgFit->SetFillColor(kMagenta+2);
-        	        			bkgFit->SetLineColor(kMagenta+2);
-  		        			bkgFit->SetFillStyle(3004);
-  		        			sigFit->SetFillColor(kBlue+2);
-        	        			sigFit->SetLineColor(kBlue+2);
-  		        			sigFit->SetFillStyle(3005);
-		        			discriminatorHist->Draw();
-        	        			fit->Draw("SAME");
-  		        			bkgFit->Draw("SAME FC");
-  		        			sigFit->Draw("SAME FC");
-						discrimVarLine = new TLine(discrimVars[ientry],0,discrimVars[ientry],kDim);
-						discrimVarLine->SetLineColor(kOrange);
-		        			discrimVarLine->Draw("same");
-						discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
-				                {
-				                    R__LOCKGUARD(gGlobalMutex);
-				                    allCanvases_badFit->SaveAs(("histograms/"+fileTag+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
-                                                }
-						++savedN_badEvents;
-					}
-					
-                                        fit->SetParameters(&initParsVaryPercentSig[0]);
-                                        for (auto iPar : parLimits.zeroTheseParsOnFail){
-                                            cout << "Fixing to 0 Par" << iPar << endl;
-                                            fit->SetParameter(iPar,0);
-                                            fit->FixParameter(iPar,0);
-                                        } 
-					discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
-					fit->GetParameters(par);
-					bkgFit->SetParameters(par);
-					sigFit->SetParameters(&par[numDOFbkg]);
+				//if (qvalue>1 || qvalue<0){
+				//	cout << "Using less complex fit instead on event: " << ientry << " -- QFactor = " << qvalue << endl;
+				//	// first we will save the bad event to get a sample then fix the linear component of the bkg
+				//	if ( savedN_badEvents < saveN_badEvents ) {
+				//		allCanvases_badFit->cd();
+        	        	//		fit->SetLineColor(kRed+2);
+  		        	//		bkgFit->SetFillColor(kMagenta+2);
+        	        	//		bkgFit->SetLineColor(kMagenta+2);
+  		        	//		bkgFit->SetFillStyle(3004);
+  		        	//		sigFit->SetFillColor(kBlue+2);
+        	        	//		sigFit->SetLineColor(kBlue+2);
+  		        	//		sigFit->SetFillStyle(3005);
+		        	//		discriminatorHist->Draw();
+        	        	//		fit->Draw("SAME");
+  		        	//		bkgFit->Draw("SAME FC");
+  		        	//		sigFit->Draw("SAME FC");
+				//		discrimVarLine = new TLine(discrimVars[ientry],0,discrimVars[ientry],kDim);
+				//		discrimVarLine->SetLineColor(kOrange);
+		        	//		discrimVarLine->Draw("same");
+				//		discriminatorHist->SetTitle(("q-value: "+to_string(qvalue)).c_str());
+				//                allCanvases_badFit->SaveAs(("histograms/"+fileTag+"/bad-Mass-event"+std::to_string(ientry)+".root").c_str());
+				//		++savedN_badEvents;
+				//	}
+				//	
+                                //        //fit->SetParameters(&initParsVaryPercentSig[0]);
+                                //        //for (auto iPar : parLimits.zeroTheseParsOnFail){
+                                //        //    fit->SetParameter(iPar,0);
+                                //        //    fit->FixParameter(iPar,0);
+                                //        //} 
+                                //        //fit->SetParLimits(0,0,kDim);
+				//	//discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
+				//	fit->GetParameters(par);
+				//	bkgFit->SetParameters(par);
+				//	sigFit->SetParameters(&par[numDOFbkg]);
 
-					qvalue=sigFit->Eval(discrimVars[ientry])/fit->Eval(discrimVars[ientry]);
-					if (qvalue>1 || qvalue<0){
-					    cout << "Not sure why qvalue is still >1 or <0. Need to fix this!" << endl;
-					    cout << "These are the parameters:"<<endl;
-					    for ( double parVal : par ){
-							cout << " " << parVal << endl;
-					    }
-                                            cout << " Is your kDim very small?" << endl;
-					    cout << " **************** BREAKING (q-value out of bounds) ****************** " << endl;
-					    exit(0);
-					}
-			                duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
-			                if(verbose){logFile <<	"\tFinished Flat fit: " << duration2 << "ms" << endl;}
-				}
+				//	qvalue=sigFit->Eval(discrimVars[ientry])/fit->Eval(discrimVars[ientry]);
+				//	if (qvalue>1 || qvalue<0){
+				//	    cout << "Not sure why qvalue is still >1 or <0. Need to fix this!" << endl;
+				//	    cout << "These are the parameters:"<<endl;
+				//	    for ( double parVal : par ){
+				//			cout << " " << parVal << endl;
+				//	    }
+                                //            cout << " Is your kDim very small?" << endl;
+				//	    cout << " **************** BREAKING (q-value out of bounds) ****************** " << endl;
+				//	    exit(0);
+				//	}
+			        //        duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
+			        //        if(verbose){logFile <<	"\tFinished Flat fit: " << duration2 << "ms" << endl;}
+				//}
 
 				// now that the q-value is found we can get the chiSq and save the parameters with the best chiSq
 				chiSq = fit->GetChisquare()/(fit->GetNDF());
@@ -818,52 +815,47 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 
 
-        	          	//allCanvases->cd();
         	          	allCanvases->cd(1);
-		          	discriminatorHist->Draw();
+        	          	discriminatorHist->Draw();
         	          	drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(discrimVars[ientry]),bkgFit->Eval(discrimVars[ientry]),fit->Eval(discrimVars[ientry]));
-		          	discrimVarLine->Draw("same");
+        	          	discrimVarLine->Draw("same");
 
         	          	fit->Draw("SAME");
-  		          	bkgFit->Draw("SAME FC");
-  		          	sigFit->Draw("SAME FC");
-				qBkgLine->Draw("SAME");
-				qSigLine->Draw("SAME");
+        	          	bkgFit->Draw("SAME FC");
+        	          	sigFit->Draw("SAME FC");
+        			qBkgLine->Draw("SAME");
+        			qSigLine->Draw("SAME");
                                 legend_fit->Draw();
-				// INTERESTING, IF I WERE TO SAVE THE CANVAS AS A ROOT FILE I GET AN ERROR IF I PUT THE SAME HISTOGRAM ON TWO DIFFERENT PADS. SEEMS LIKE THE CANVAS
-				// SAVES A TList OF HISTS+TF1'S AND IF THERE ARE MULTIPLE CALLS TO THE SAME HISTOGRAM IT MIGHT DELETE THE HISTOGRAM AFTER SEEING IT FOR THE FIRST TIME AND
-				// THEN IT WOULD NOT BE ABLE TO FIND THE HISTOGRAM AGAIN THE SECOND TIME AROUND. WE HAVE TO CLONE THE HISTOGRAM FIRST AND THEN SAVE THE ROOT FILE SO THE CANVAS
-				// ARE TWO DIFFERENT ELEMENTS.
+        			// INTERESTING, IF I WERE TO SAVE THE CANVAS AS A ROOT FILE I GET AN ERROR IF I PUT THE SAME HISTOGRAM ON TWO DIFFERENT PADS. SEEMS LIKE THE CANVAS
+        			// SAVES A TList OF HISTS+TF1'S AND IF THERE ARE MULTIPLE CALLS TO THE SAME HISTOGRAM IT MIGHT DELETE THE HISTOGRAM AFTER SEEING IT FOR THE FIRST TIME AND
+        			// THEN IT WOULD NOT BE ABLE TO FIND THE HISTOGRAM AGAIN THE SECOND TIME AROUND. WE HAVE TO CLONE THE HISTOGRAM FIRST AND THEN SAVE THE ROOT FILE SO THE CANVAS
+        			// ARE TWO DIFFERENT ELEMENTS.
         	          	allCanvases->cd(2);
-				TH1F* clonedHist = (TH1F*) discriminatorHist->Clone();
+        			TH1F* clonedHist = (TH1F*) discriminatorHist->Clone();
                                 clonedHist->SetTitle("Initializations");
-		          	clonedHist->Draw();
+        	          	clonedHist->Draw();
 
                                 if (redistributeBkgSigFits){
-				    initFits[0]->SetLineColor(kBlue-4);
-				    initFits[0]->Draw("SAME");
-				    initFits[1]->SetLineColor(kRed-3);
-				    initFits[1]->Draw("SAME");
-				    initFits[2]->SetLineColor(kGreen+2);
-				    initFits[2]->Draw("SAME");
+        			    initFits[0]->SetLineColor(kBlue-4);
+        			    initFits[0]->Draw("SAME");
+        			    initFits[1]->SetLineColor(kRed-3);
+        			    initFits[1]->Draw("SAME");
+        			    initFits[2]->SetLineColor(kGreen+2);
+        			    initFits[2]->Draw("SAME");
+                                    legend_init->AddEntry(initFits[0],"100% bkg");
+                                    legend_init->AddEntry(initFits[1],"50/50 bkg/sig");
+                                    legend_init->AddEntry(initFits[2],"100% sig");
                                 }
-				TF1* initFit4 = new TF1(("initFit4"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-				initFit4->SetParameters(initPars[0],initPars[1],initPars[2],initPars[3],initPars[4]);
-				initFit4->SetLineColor(kOrange+1);
-				initFit4->Draw("SAME");
-
-                                legend_init->AddEntry(initFits[0],"100% bkg");
-                                legend_init->AddEntry(initFits[1],"50/50 bkg/sig");
-                                legend_init->AddEntry(initFits[2],"100% sig");
+        			TF1* initFit4 = new TF1(("initFit4"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
+        			initFit4->SetParameters(initPars[0],initPars[1],initPars[2],initPars[3],initPars[4]);
+        			initFit4->SetLineColor(kOrange+1);
+        			initFit4->Draw("SAME");
                                 legend_init->AddEntry(initFit4,"Scaled Full Fit");
                                 legend_init->Draw();
-				// need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one pdf converter
+				// need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one png converter
 				// or whatever and maybe if multiple threads calls it then a blocking effect can happen
 				cout << "Choosing to save event " << ientry << endl;
-                                {
-				    R__LOCKGUARD(gGlobalMutex);
-				    allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
-                                }
+				allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
 				
 
 				if(verbose){
@@ -897,12 +889,12 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 
         // Now that we have the lambda function we can start to spawn threads
-	cout << "Launching " << nProcess << " threads 1 second apart!" << endl;
+	cout << "Launching " << nProcess << " threads 2 second apart!" << endl;
 	vector<thread> threads;
 	for ( int iThread=0; iThread<nProcess; ++iThread){
 		cout << "(Thread " << iThread << ") is starting" << endl;
 		threads.emplace_back( [f, iThread] { f(iThread); } );
-                sleep(1);
+                sleep(2);
 		//threads[iThread] = std::thread(QFactorAnalysis::staticEntryPoint, this, iThread);
 	}
 	for (auto&& t : threads) t.join(); // join waits for completion

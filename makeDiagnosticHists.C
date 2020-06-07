@@ -8,9 +8,9 @@
 
 
 bool verbose = true;
-string fileTag="bcal";
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root";
-string rootTreeName="degALL_bcal_tree_flat";
+string fileTag="fcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root";
+string rootTreeName="degALL_fcal_tree_flat";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_discrimVar="Meta";
@@ -343,6 +343,8 @@ void makeDiagnosticHists(){
 	for (int ientry=0; ientry<c_nentriesResults; ientry++){
 		qvalue = qvalues[ientry];
 		conjugate_qvalue = 1-qvalue;
+                AccWeight=AccWeights[ientry];
+                sbWeight=sbWeights[ientry];
                 if(qvalue != qvalue){
                     //cout << "ientry is nan: " << ientry << endl;
 		    ++numNan;
@@ -354,7 +356,7 @@ void makeDiagnosticHists(){
 		sigWeight = qvalue*weight;
 		totWeight = weight;
 		bkgWeight = conjugate_qvalue*weight;
-                cout << "ientry,qVal,conj_qVal,AccWeight,sbWeight: " << ientry << "," << qvalue << "," << conjugate_qvalue << ", " << AccWeight << ", " << sbWeight << endl;
+                //cout << "ientry,qVal,conj_qVal,AccWeight,sbWeight: " << ientry << "," << qvalue << "," << conjugate_qvalue << ", " << AccWeight << ", " << sbWeight << endl;
                 if ( isUniqueEtaBs[ientry] ) {
 			cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs_meas[ientry], sigWeight);
 			cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs_meas[ientry], totWeight);
