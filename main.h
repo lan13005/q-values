@@ -889,12 +889,12 @@ void QFactorAnalysis::runQFactorThreaded(){
 
 
         // Now that we have the lambda function we can start to spawn threads
-	cout << "Launching " << nProcess << " threads 2 second apart!" << endl;
+	cout << "Launching " << nProcess << " threads 1 second apart!" << endl;
 	vector<thread> threads;
 	for ( int iThread=0; iThread<nProcess; ++iThread){
 		cout << "(Thread " << iThread << ") is starting" << endl;
 		threads.emplace_back( [f, iThread] { f(iThread); } );
-                sleep(2);
+                sleep(1);
 		//threads[iThread] = std::thread(QFactorAnalysis::staticEntryPoint, this, iThread);
 	}
 	for (auto&& t : threads) t.join(); // join waits for completion

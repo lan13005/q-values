@@ -30,8 +30,8 @@ void getInitParams(){
 
     		ofstream logFile_discrimVar1;
     		ofstream logFile_discrimVar2;
-    		logFile_discrimVar1.open(("fitResults/discrimVarFit_toMain_"+fileTag+".txt").c_str());
-    		logFile_discrimVar2.open(("fitResults/pi0Fit_toMain_"+fileTag+".txt").c_str());
+    		logFile_discrimVar1.open(("fitResults/"+fileTag+"/discrimVarFit_toMain_"+fileTag+".txt").c_str());
+    		logFile_discrimVar2.open(("fitResults/"+fileTag+"/pi0Fit_toMain_"+fileTag+".txt").c_str());
 
     		TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
         	bool isUniqueEtaB;
@@ -133,7 +133,7 @@ void getInitParams(){
 		massHistPi0Eta->Draw("HIST");
 		massHistPi0Eta->GetXaxis()->SetTitleSize(0.04);
 		massHistPi0Eta->GetYaxis()->SetTitleSize(0.04);
-		allCanvases->SaveAs(("fitResults/Mpi0eta_fit_"+fileTag+".png").c_str());
+		allCanvases->SaveAs(("fitResults/"+fileTag+"/Mpi0eta_fit_"+fileTag+".png").c_str());
 		allCanvases->Clear();
 		
 		massHistEta->Fit("fit","RQB"); // B will enforce the bounds
@@ -201,7 +201,7 @@ void getInitParams(){
 		massHistEta->GetXaxis()->SetTitleSize(0.04);
 		massHistEta->GetYaxis()->SetTitleSize(0.04);
 		massHistEta->SetTitle(("Peak: "+to_string(par[meanIndex])+"    width: "+to_string(weightedSigma)).c_str());
-		allCanvases->SaveAs(("fitResults/"+s_discrimVar+"_fit_"+fileTag+".png").c_str());
+		allCanvases->SaveAs(("fitResults/"+fileTag+"/"+s_discrimVar+"_fit_"+fileTag+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
         	
 
@@ -287,7 +287,7 @@ void getInitParams(){
 		//line->DrawLine( sbLL, 0, sbLL, massHistPi0->GetMaximum());
 		//line->DrawLine( sbLR, 0, sbLR, massHistPi0->GetMaximum());
 
-		allCanvases->SaveAs(("fitResults/"+s_sideBandVar+"_fit_"+fileTag+".png").c_str());
+		allCanvases->SaveAs(("fitResults/"+fileTag+"/"+s_sideBandVar+"_fit_"+fileTag+".png").c_str());
 		cout << "Saved for a specific fit!" << endl;
 	}
 }

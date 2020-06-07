@@ -82,7 +82,7 @@ rootFileLocs=[
         ("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
         #,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
         ]
-_SET_fitLocationBase="fitResults/discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in _SET_fitLocationBase+"_"+fileTag+".txt"
+_SET_fitLocationBase="discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
 
 
 #############################################################################
@@ -116,8 +116,9 @@ def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     '''
     # First we clean the folders 
     print("Cleaning fitResults folder")
-    os.system("rm -rf fitResults/*"+_SET_fileTag+".txt")
-    os.system("rm -rf fitResults/*"+_SET_fileTag+".png")
+    os.system("rm -rf fitResults/"+_SET_fileTag)
+    os.system("rm -rf fitResults/"+_SET_fileTag)
+    os.system("mkdir -p fitResults/"+_SET_fileTag)
     reconfigureSettings("getInitParams.C", _SET_rootFileLoc, _SET_rootTreeName, Set_fileTag)
     # get the initialization parameters
     proc=subprocess.Popen("root -l -b -q getInitParams.C",shell=True).wait()
@@ -183,7 +184,8 @@ def runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fil
     
     print('./main "$kDim" $varString $standardizationType $fitLocation "$redistributeBkgSigFits" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &')
     print('Number of threads: '+str(_SET_nProcess))
-    _SET_fitLocation = _SET_fitLocationBase+"_"+_SET_fileTag+".txt"
+    _SET_fitLocation = "fitResults/"+_SET_fileTag+"/"+_SET_fitLocationBase+"_"+_SET_fileTag+".txt"
+    print("Looking for initialzation fit in: "+_SET_fitLocation)
     executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
             str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_override_nentries),str(_SET_verbose),"&"]
     print(" ".join(executeMain))
