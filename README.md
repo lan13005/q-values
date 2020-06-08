@@ -1,5 +1,5 @@
 ## Introduction to Q-Factor sideband subtraction at GlueX
-[Original Paper - Multivariate side-band subtraction using probabilistic event weights](https://arxiv.org/pdf/0809.2548.pdf)
+[The Original Paper introducing the Q-Factor method - Multivariate side-band subtraction using probabilistic event weights](https://arxiv.org/pdf/0809.2548.pdf)
 
 
 Calculating Q-factors in the reaction <img src="https://render.githubusercontent.com/render/math?math=\gamma p\rightarrow\pi^0\eta p \rightarrow 4\gamma p"> at GlueX.
