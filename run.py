@@ -7,6 +7,41 @@ from itertools import combinations
 start_time = time.time()
 
 
+
+#############################################################################
+###################  DEFINING ENVIRONMENT VARIABLES #########################
+#############################################################################
+
+_SET_kDim=250 # number of neighbors
+_SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save.
+_SET_seedShift=9121 # in case we dont want the same q-value histogram we can choose another random seed
+_SET_nProcess=36 # how many processes to spawn
+_SET_nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
+_SET_override_nentries=0 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
+_SET_verbose=1 # how much information we want to output to the logs folder
+_SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
+_SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
+_SET_discrimVar="Meta" # discriminating/reference variable
+_SET_sideBandVar="Mpi0" # side band subtract on this variable
+_SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
+_SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
+_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
+_SET_uniquenessTracking="weighted" # "default" or "weighted". Default is the default implementation of the DSelector tracking specific particle combos. "weighted" weights by 1/numCombosPassedInEvent
+_SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
+_SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
+# What file we will analyze and what tree to look for
+# Also need a tag to save the data to so that we dont overwrite other runs
+        
+rootFileBase="/d/grid15/ln16/pi0eta/q-values/"
+#rootFileBase="/home/lawrence/Desktop/gluex/q-values/"
+rootFileLocs=[
+        # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
+        (rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
+        #(rootFileBase+"degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
+        #(rootFileBase+"degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
+        ]
+_SET_fitLocationBase="discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
+
 args=sys.argv
 def showHelp():
     print("\n-help\n")
@@ -51,43 +86,6 @@ def parseCmdArgs():
 
 _SET_runFullFit,_SET_runQFactor,_SET_runMakeHists = parseCmdArgs()
 
-
-
-#############################################################################
-###################  DEFINING ENVIRONMENT VARIABLES #########################
-#############################################################################
-
-_SET_kDim=250 # number of neighbors
-_SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save.
-_SET_seedShift=9121 # in case we dont want the same q-value histogram we can choose another random seed
-_SET_nProcess=8 # how many processes to spawn
-_SET_nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
-_SET_override_nentries=1 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
-_SET_verbose=1 # how much information we want to output to the logs folder
-_SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
-_SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
-_SET_discrimVar="Meta" # discriminating/reference variable
-_SET_sideBandVar="Mpi0" # side band subtract on this variable
-_SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
-_SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
-_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
-_SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
-_SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
-# What file we will analyze and what tree to look for
-# Also need a tag to save the data to so that we dont overwrite other runs
-        
-#rootFileBase="/d/grid15/ln16/pi0eta/q-values/"
-rootFileBase="/home/lawrence/Desktop/gluex/q-values/"
-rootFileLocs=[
-        # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
-        (rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
-        #(rootFileBase+"degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
-        #(rootFileBase+"degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
-        ]
-_SET_fitLocationBase="discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
-
-
-
 #############################################################################
 ###################  FIRST DEFINE SOME FUNCTIONS   #########################
 #############################################################################
@@ -110,6 +108,8 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
     sedArgs=["sed","-i",'s@s_sideBandVar=".*";@s_sideBandVar="'+_SET_sideBandVar+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_accWeight=".*";@s_accWeight="'+_SET_accWeight+'";@g',fileName]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@s_uniquenessTracking=".*";@s_uniquenessTracking="'+_SET_uniquenessTracking+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
 
