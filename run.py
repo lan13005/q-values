@@ -13,7 +13,7 @@ start_time = time.time()
 #############################################################################
 
 _SET_kDim=250 # number of neighbors
-_SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save.
+_SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
 _SET_seedShift=9121 # in case we dont want the same q-value histogram we can choose another random seed
 _SET_nProcess=36 # how many processes to spawn
 _SET_nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors

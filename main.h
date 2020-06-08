@@ -43,7 +43,7 @@ TRandom rgen;
 
 using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
-string rootFileLoc="/home/lawrence/Desktop/gluex/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
 string rootTreeName="degALL_bcal_tree_flat";
 string fileTag="bcal";
 string weightingScheme="as"; // "" or "as*bs"
