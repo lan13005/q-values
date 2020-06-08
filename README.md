@@ -27,7 +27,7 @@ There are a few programs working together:
 
 Things you need to configure:
 1. Most importantly the settings at the top of the run.py file needs to configured properly.
-2. The distribution for the signal and bkg must be given. "main" program uses fitFunc, background, and signal function definitions defined in helperFunc.h. A bernstein polynomial bkg is taken with a Gaussian signal. The parameter limits must be set also be set in helperFunc.h. Bernstein polynoimal is useful since it can be made non-negative for any domain.
+2. The distribution for the signal and bkg must be given. "main" program uses fitFunc, background, and signal function definitions defined in helperFunc.h. A bernstein polynomial bkg is taken with a Gaussian signal. The parameter limits must be set also be set in helperFunc.h. Bernstein polynoimal is useful since it can be made non-negative for postive domain.
 
 
 ## Outputs
