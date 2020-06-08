@@ -60,9 +60,9 @@ _SET_runFullFit,_SET_runQFactor,_SET_runMakeHists = parseCmdArgs()
 _SET_kDim=250 # number of neighbors
 _SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save.
 _SET_seedShift=9121 # in case we dont want the same q-value histogram we can choose another random seed
-_SET_nProcess=36 # how many processes to spawn
+_SET_nProcess=8 # how many processes to spawn
 _SET_nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
-_SET_override_nentries=0 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
+_SET_override_nentries=1 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
 _SET_verbose=1 # how much information we want to output to the logs folder
 _SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
@@ -75,14 +75,17 @@ _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead o
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
+        
+#rootFileBase="/d/grid15/ln16/pi0eta/q-values/"
+rootFileBase="/home/lawrence/Desktop/gluex/q-values/"
 rootFileLocs=[
         # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
-        
-        #("/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector.root", "degALL_bcal_tree_flat", "bcal")
-        ("/d/grid15/ln16/pi0eta/q-values/degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
-        #,("/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
+        (rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
+        #(rootFileBase+"degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
+        #(rootFileBase+"degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
         ]
 _SET_fitLocationBase="discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
+
 
 
 #############################################################################
