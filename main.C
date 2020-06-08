@@ -96,6 +96,7 @@ void QFactorAnalysis::loadData(){
 	bool isUniqueEtaB;
 	bool isUniquePi0B;
 	bool isUniquePi0EtaB;
+        double utWeight;
 
 	// Set branch addresses so we can read in the data
         dataTree->SetBranchAddress(s_discrimVar.c_str(), &discrimVar);
@@ -117,6 +118,7 @@ void QFactorAnalysis::loadData(){
 	dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
 	dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
 	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
+        dataTree->SetBranchAddress("uniqunessTrackingWeights",&utWeight);
 
         double sbWeight;
 	
@@ -130,6 +132,7 @@ void QFactorAnalysis::loadData(){
                 }
                 sideBandVars.push_back(sideBandVar);
 	        AccWeights.push_back(AccWeight);
+                utWeights.push_back(utWeight);
                 getSBWeight(sideBandVar,&sbWeight,weightingScheme);
 		sbWeights.push_back(sbWeight);
 	        spectroscopicComboIDs.push_back(spectroscopicComboID);
@@ -177,11 +180,20 @@ void QFactorAnalysis::loadData(){
 	// where I am tracking the two photon pairs that make up the eta and pi0.         
 	set<Int_t> setUsedSpectroscopicIDs;
 	for (Int_t ientry=0; ientry<nentries; ientry++){ 
-	    if ( setUsedSpectroscopicIDs.find( spectroscopicComboIDs[ientry] ) == setUsedSpectroscopicIDs.end() ) {
-	        setUsedSpectroscopicIDs.insert( spectroscopicComboIDs[ientry] );
+            if (s_uniquenessTracking=="default"){
+	        if ( setUsedSpectroscopicIDs.find( spectroscopicComboIDs[ientry] ) == setUsedSpectroscopicIDs.end() ) {
+	            setUsedSpectroscopicIDs.insert( spectroscopicComboIDs[ientry] );
+	            phasePoint2PotentailNeighbor.push_back(ientry);
+	        }
+            }
+            else if (s_uniquenessTracking=="weighted"){
+                // if we use the weighted setting we will allow any neighbor to be possible
 	        phasePoint2PotentailNeighbor.push_back(ientry);
-	    }
-	    ///phasePoint2PotentailNeighbor.push_back(ientry);
+            }
+            else{ 
+                cout << "uniqueness tracking setting not set up properly!" << endl;
+                exit(0);
+            }
 	}
         cout << "\n\n--------------------------------------" << endl;
 	cout << phasePoint2PotentailNeighbor.size() << "/" << nentries << " are used as potential neighbors" << endl;
@@ -398,6 +410,9 @@ void QFactorAnalysis::runQFactorThreaded(){
                                 if (weightingScheme==""){ weight=1; }
                                 if (weightingScheme=="as"){ weight=AccWeights[newPair.second]; }
                                 if (weightingScheme=="as*bs"){ weight=AccWeights[newPair.second]*sbWeights[newPair.second]; }
+                                if (s_uniquenessTracking=="weighted"){
+                                    weight=weight*utWeights[newPair.second];
+                                }
 			        discriminatorHist->Fill(discrimVars[newPair.second],weight);
 
 			        //stdCalc.insertValue(discrimVars[newPair.second]);

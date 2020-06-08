@@ -50,6 +50,7 @@ string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_discrimVar="Meta";
 string s_sideBandVar="Mpi0";
+string s_uniquenessTracking="weighted"; // "default" or "weighted". Any neighbor is possible in the weighted setting
 
 // OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
 //class rooFitML{
@@ -141,6 +142,7 @@ class QFactorAnalysis{
                 std::vector<std::vector<double>> phaseSpaceVars;
                 std::vector<double> phaseSpaceVars0;
 		std::vector<double> AccWeights; 
+                std::vector<double> utWeights;
 		std::vector<double> sbWeights; 
 		std::vector<ULong64_t> spectroscopicComboIDs; 
                 // Not all combinations will be a valid pairing. Suppose we only care about spectroscopically unique pairs, then we can fill phasePoint2PotentailNeighbor with
