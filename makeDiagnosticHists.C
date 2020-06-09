@@ -155,9 +155,6 @@ void makeDiagnosticHists(){
 
 	// ---------------------------------------------------------------------------
 	// ----------------------------------------------------- Set up branch address of the data file 
-	// But fill it after we load the q-value data so we can write the data to the tree
-	// I have a felling it might be bad to fill the q-values as we calculate it during the main program
-	// since we could have 36+ processes all calculating and writing to the same branch
 	// ---------------------------------------------------------------------------
 	//
 	// setting up some basic root stuff and getting the file and tree
@@ -274,6 +271,14 @@ void makeDiagnosticHists(){
         //else { cout << "The flatEntryNumber set is complete!" << endl; }
 
         //cout << "Finished consistency check on results file and data" << endl;
+
+
+
+
+
+
+
+
 
 	// ---------------------------------------------------------------------------
 	// ----------------------------------------------------- Loading the datafile data

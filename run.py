@@ -7,17 +7,17 @@ from itertools import combinations
 start_time = time.time()
 
 
-
 #############################################################################
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 
 _SET_kDim=250 # number of neighbors
-_SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
+_SET_numberEventsToSavePerProcess=1 # how many histograms (root files) we want to save.
 _SET_seedShift=9121 # in case we dont want the same q-value histogram we can choose another random seed
 _SET_nProcess=36 # how many processes to spawn
-_SET_nentries=5000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
-_SET_override_nentries=0 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
+_SET_nentries=200000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
+_SET_override_nentries=1 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
+_SET_nRndRepSubset=50000 # size of the random subset that is hopefully representative of the overall.
 _SET_verbose=1 # how much information we want to output to the logs folder
 _SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
@@ -28,7 +28,7 @@ _SET_standardizationType="range" # what type of standardization to apply when no
 _SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
 _SET_uniquenessTracking="weighted" # "default" or "weighted". Default is the default implementation of the DSelector tracking specific particle combos. "weighted" weights by 1/numCombosPassedInEvent
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
-_SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
+_SET_emailWhenFinished=""#lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
         
@@ -37,8 +37,8 @@ rootFileBase="/d/grid15/ln16/pi0eta/q-values/"
 rootFileLocs=[
         # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
         (rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
-        #(rootFileBase+"degALL_fcal_treeFlat_DSelector.root", "degALL_fcal_tree_flat", "fcal")
-        #(rootFileBase+"degALL_split_treeFlat_DSelector.root", "degALL_split_tree_flat", "split")
+        #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
+        #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
         ]
 _SET_fitLocationBase="discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
 
@@ -127,7 +127,7 @@ def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     proc=subprocess.Popen("root -l -b -q getInitParams.C",shell=True).wait()
       
 
-def runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
+def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     '''
     This is the main driver section that runs runs the "main" program with appropriate settings. 
     Here we can accept a combo flag that selects the combination of varString variables to use. This
@@ -185,12 +185,12 @@ def runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fil
     
     subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
-    print('./main "$kDim" $varString $standardizationType $fitLocation "$redistributeBkgSigFits" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries" "$override_nentries" "$verbose" &')
+    print('./main "$kDim" $varString $standardizationType $fitLocation "$redistributeBkgSigFits" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries "$_SET_nRndRepSubset" "$override_nentries" "$verbose" &')
     print('Number of threads: '+str(_SET_nProcess))
     _SET_fitLocation = "fitResults/"+_SET_fileTag+"/"+_SET_fitLocationBase+"_"+_SET_fileTag+".txt"
     print("Looking for initialzation fit in: "+_SET_fitLocation)
     executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
-            str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_override_nentries),str(_SET_verbose),"&"]
+            str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_override_nentries),str(_SET_verbose),"&"]
     print(" ".join(executeMain))
     subprocess.Popen(executeMain).wait()
         
@@ -253,7 +253,7 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     if _SET_runFullFit:
         execFullFit(_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     if _SET_runQFactor:
-        runOverCombo(range(numVar),_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
+        runOverCombo(range(numVar),_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     if _SET_runMakeHists:
         runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished)
     if _SET_emailWhenFinished:
@@ -272,7 +272,7 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     #        runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     
 #if _SET_runMakeHists:
-#    combineAllGraphs()
+combineAllGraphs()
 
 print("--- %s seconds ---" % (time.time() - start_time))
 

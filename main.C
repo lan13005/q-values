@@ -179,22 +179,33 @@ void QFactorAnalysis::loadData(){
 	// elements must be spectroscopically distinct, i.e. the 4 photons in consideration are different. Not sure if this is the value I should consider or is it better to do a pair of maps
 	// where I am tracking the two photon pairs that make up the eta and pi0.         
 	set<Int_t> setUsedSpectroscopicIDs;
-	for (Int_t ientry=0; ientry<nentries; ientry++){ 
-            if (s_uniquenessTracking=="default"){
-	        if ( setUsedSpectroscopicIDs.find( spectroscopicComboIDs[ientry] ) == setUsedSpectroscopicIDs.end() ) {
-	            setUsedSpectroscopicIDs.insert( spectroscopicComboIDs[ientry] );
+        
+
+        std::set<int> rndRepSubset;
+        if(nRndRepSubset!=0 && nRndRepSubset<nentries){
+            while(rndRepSubset.size() < nRndRepSubset){
+                rndRepSubset.insert(rand()%nentries);
+            }
+            phasePoint2PotentailNeighbor.assign(rndRepSubset.begin(),rndRepSubset.end());
+        }
+        else {
+	    for (Int_t ientry=0; ientry<nentries; ientry++){ 
+                if (s_uniquenessTracking=="default"){
+	            if ( setUsedSpectroscopicIDs.find( spectroscopicComboIDs[ientry] ) == setUsedSpectroscopicIDs.end() ) {
+	                setUsedSpectroscopicIDs.insert( spectroscopicComboIDs[ientry] );
+	                phasePoint2PotentailNeighbor.push_back(ientry);
+	            }
+                }
+                else if (s_uniquenessTracking=="weighted"){
+                    // if we use the weighted setting we will allow any neighbor to be possible
 	            phasePoint2PotentailNeighbor.push_back(ientry);
-	        }
-            }
-            else if (s_uniquenessTracking=="weighted"){
-                // if we use the weighted setting we will allow any neighbor to be possible
-	        phasePoint2PotentailNeighbor.push_back(ientry);
-            }
-            else{ 
-                cout << "uniqueness tracking setting not set up properly!" << endl;
-                exit(0);
-            }
-	}
+                }
+                else{ 
+                    cout << "uniqueness tracking setting not set up properly!" << endl;
+                    exit(0);
+                }
+	    }
+        }
         cout << "\n\n--------------------------------------" << endl;
 	cout << phasePoint2PotentailNeighbor.size() << "/" << nentries << " are used as potential neighbors" << endl;
 }
@@ -447,13 +458,10 @@ void QFactorAnalysis::runQFactorThreaded(){
 			// Calcuclate q-value
 			// /////////////////////////////////////////
 			// We use a normalized gaussian and a flat function. 
-			{
-				// have to use a mutex here or else we get some weird error
-				//R__LOCKGUARD(gGlobalMutex);
-				fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-				bkgFit = new TF1(("bkgFit"+to_string(iThread)).c_str(),background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
-				sigFit = new TF1(("sigFit"+to_string(iThread)).c_str(),signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
-			}
+			fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
+			bkgFit = new TF1(("bkgFit"+to_string(iThread)).c_str(),background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
+			sigFit = new TF1(("sigFit"+to_string(iThread)).c_str(),signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
+			
                         // saving the initializations to see if they sort of make sense
                         int numFits;
                         if(redistributeBkgSigFits){ 
@@ -490,11 +498,12 @@ void QFactorAnalysis::runQFactorThreaded(){
                                 }
                                 
 
-				{
-					// have to use a mutex here or else we get some weird error
-					R__LOCKGUARD(gGlobalMutex);
-					discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
-				}
+				//{
+				//	// have to use a mutex here or else we get some weird error
+				//	//R__LOCKGUARD(gGlobalMutex);
+				//	discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
+				//}
+				discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
 				fit->GetParameters(par);
 				bkgFit->SetParameters(par);
 				sigFit->SetParameters(&par[numDOFbkg]);
@@ -767,16 +776,17 @@ int main( int argc, char* argv[] ){
 	int nProcess=atoi(argv[8]);
         int seedShift= atoi(argv[9]);
         Long64_t nentries= atoi(argv[10]);
+        int nRndRepSubset=atoi(argv[11]);
         bool override_nentries;
         cout << "Num Vars="<< dim << endl;
-        if ( atoi(argv[11]) ==1 ){ 
+        if ( atoi(argv[12]) ==1 ){ 
             override_nentries=true;
         }
         else{ 
             override_nentries=false;
         }
         bool verbose;
-        if ( atoi(argv[12])==1 ){ verbose=true;}
+        if ( atoi(argv[13])==1 ){ verbose=true;}
         else{ verbose=false;}
         cout << "----------------------------" << endl;
         cout << "kDim: " << kDim << endl;
@@ -784,6 +794,7 @@ int main( int argc, char* argv[] ){
         cout << "numberEventsToSavePerProcess: " << numberEventsToSavePerProcess << endl;
         cout << "seedShift: " << seedShift << endl;
         cout << "nentries: " << nentries << endl; 
+        cout << "nRndRepSubset: " << nRndRepSubset << endl;
         cout << "override_nentries: " << override_nentries << endl;
 	cout << "varString: " << varString << endl; 
         cout << "standardizationType: " << standardizationType << endl;
@@ -796,7 +807,7 @@ int main( int argc, char* argv[] ){
         //sleep(10);
     
 	QFactorAnalysis analysisControl(kDim, varString, standardizationType, redistributeBkgSigFits, doKRandomNeighbors, 
-                numberEventsToSavePerProcess, nProcess, seedShift, nentries, override_nentries, verbose);
+                numberEventsToSavePerProcess, nProcess, seedShift, nentries, nRndRepSubset, override_nentries, verbose);
 	analysisControl.loadTree(rootFileLoc, rootTreeName);
 	analysisControl.loadFitParameters(fitLocation);
 	analysisControl.loadData();

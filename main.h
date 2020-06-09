@@ -120,6 +120,7 @@ class QFactorAnalysis{
 		int nProcess;
 		int seedShift;
 		Long64_t nentries;
+                int nRndRepSubset;
 		bool override_nentries;
 		bool verbose;
 		string varString;
@@ -150,13 +151,15 @@ class QFactorAnalysis{
 		std::vector<int> phasePoint2PotentailNeighbor; 
 	
 	public:
-		QFactorAnalysis(int kDim1, string varString1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1, int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, bool override_nentries1, bool verbose1){ 
+		QFactorAnalysis(int kDim1, string varString1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1, int numberEventsToSavePerProcess1, int nProcess1,
+                                int seedShift1, Long64_t nentries1, int nRndRepSubset1, bool override_nentries1, bool verbose1){ 
 			cout << "Constructed QFactorAnalysis class..." << endl;
 			kDim=kDim1;
 			numberEventsToSavePerProcess=numberEventsToSavePerProcess1;
 			nProcess = nProcess1;
 			seedShift=seedShift1;
 			nentries=nentries1;
+                        nRndRepSubset=nRndRepSubset1;
 			override_nentries=override_nentries1;
 			verbose=verbose1;
 			start2 = std::chrono::high_resolution_clock::now();

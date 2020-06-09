@@ -4,7 +4,7 @@ using namespace std;
 
 void makeStackedHist(TH1F* tot, TH1F* sig, TH1F* bkg, string name,string baseDir){
     	TCanvas *allCanvases = new TCanvas(name.c_str(),"",1440,900);
-	TLegend* leg1 = new TLegend(0.6,0.7,0.9,0.9);
+	TLegend* leg1 = new TLegend(0.35,0.7,0.65,0.9);
 	THStack* stackedHists = new THStack("stackedHists","");
 	bkg->SetFillColorAlpha(kMagenta,0.5);
 	bkg->SetLineColorAlpha(kMagenta,0);
@@ -16,6 +16,10 @@ void makeStackedHist(TH1F* tot, TH1F* sig, TH1F* bkg, string name,string baseDir
 	stackedHists->Add(tot,"HIST");
 	stackedHists->Add(bkg,"HIST");
 	stackedHists->Add(sig,"HIST");
+        //TH1F* summedSigBkg = (TH1F*)sig->Clone("summedSigBkg");
+        //summedSigBkg->Add(bkg);
+        //summedSigBkg->SetLineColorAlpha(kRed,0.5);
+        //stackedHists->Add(summedSigBkg,"HIST");
 	stackedHists->Draw("nostack");
 	leg1->Draw();
 	stackedHists->GetXaxis()->SetTitle(tot->GetXaxis()->GetTitle());

@@ -69,9 +69,19 @@ void addUTWeightsBranch(string rootFileLoc, string rootFileName, string treeName
 
 
 void getUniquenessWeights(){
-    //string rootFileLoc = "/d/grid15/ln16/pi0eta/q-values/";
-    string rootFileLoc="/home/lawrence/Desktop/gluex/q-values/";
+    string rootFileLoc = "/d/grid15/ln16/pi0eta/q-values/";
+    //string rootFileLoc="/home/lawrence/Desktop/gluex/q-values/";
+    
+    
     string rootFileName = "degALL_bcal_treeFlat_DSelector";
     string treeName = "degALL_bcal_tree_flat";
+    addUTWeightsBranch(rootFileLoc, rootFileName, treeName);
+
+    rootFileName = "degALL_fcal_treeFlat_DSelector";
+    treeName = "degALL_fcal_tree_flat";
+    addUTWeightsBranch(rootFileLoc, rootFileName, treeName);
+
+    rootFileName = "degALL_split_treeFlat_DSelector";
+    treeName = "degALL_split_tree_flat";
     addUTWeightsBranch(rootFileLoc, rootFileName, treeName);
 }

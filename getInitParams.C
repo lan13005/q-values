@@ -6,9 +6,9 @@
 #include "helperFuncs.h"
 
 
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_bcal_tree_flat";
-string fileTag="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_split_treeFlat_DSelector_UTweights.root";
+string rootTreeName="degALL_split_tree_flat";
+string fileTag="split";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_discrimVar="Meta";
