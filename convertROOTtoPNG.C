@@ -24,24 +24,29 @@ void subdetector_convertROOTtoPNG(string inDir){
 	for (Int_t i = 0; i < n; i++){
 	  	Printf("Opening file -> %s", filename[i]);
 		histFile = TFile::Open(filename[i]);
-		TIter keyList(histFile->GetListOfKeys());
-		TKey *key;
-   		while ((key = (TKey*)keyList())) {
-   		   	TClass *cl = gROOT->GetClass(key->GetClassName());
-   		   	if (cl->InheritsFrom("TCanvas")){
-   		   		TCanvas *h = (TCanvas*)key->ReadObj();
-				Printf("Drawing canvas: %s", h->GetName());
-				string fileString = (string)filename[i];
-				h->Draw();
-				h->SaveAs((fileString.substr(0,fileString.size()-4)+"png").c_str());
-			}
-		}
-		histFile->Close();	
+                if(histFile){ // make sure the file loaded, sometimes the root file can be corrupted if you exited the program improperly
+		    TIter keyList(histFile->GetListOfKeys());
+		    TKey *key;
+   		    while ((key = (TKey*)keyList())) {
+   		       	TClass *cl = gROOT->GetClass(key->GetClassName());
+                        string keyName = (string)key->GetName();
+                        if (keyName.find("BS") == std::string::npos) {
+   		       	    if (cl->InheritsFrom("TCanvas")){
+   		       	    	TCanvas *h = (TCanvas*)key->ReadObj();
+		    	    	Printf("Drawing canvas: %s", h->GetName());
+		    	    	string fileString = (string)filename[i];
+		    	    	h->Draw();
+		    	    	h->SaveAs((inDir+"/"+key->GetName()+".png").c_str());
+		    	    }
+                        }
+		    }
+		    histFile->Close();	
+                }
 	}
 
 	cout << "\n\n" << endl;
-	cout << "rm " << inDir << "/*.root" << endl;
-	gSystem->Exec(("rm "+inDir+"/*.root").c_str());
+	//cout << "rm " << inDir << "/*.root" << endl;
+	//gSystem->Exec(("rm "+inDir+"/*.root").c_str());
 }
 
 void convertROOTtoPNG(){

@@ -5,6 +5,7 @@
 #include <TPaveText.h>
 #include <iostream>
 #include <queue>
+#include <chrono>
 
 using namespace std;
 // We need to define a maximum value for the bernstein polynomial. The domain is [0,1] so we have to scale the discriminating variable to be between 0,1. 
@@ -39,16 +40,12 @@ struct parameterLimits{
     double eventRatioSigToBkg;
     std::vector<double> lowerParLimits;
     std::vector<double> upperParLimits;
-    // The Q-Factor code would do 2 fits. The first would use the scaled initalization parameters with the parLimits defined by lowerParLimits upperParLimits
-    // If the q-value return is out of bounds, i.e >1 or <0 then we can make the model less complex by zeroing some parameters. i.e. instead of using a linear 1st order poly fit we can use 0th order.
-    std::vector<int> zeroTheseParsOnFail = {1}; 
 
     void setupParLimits(){
         // We allow each parameter to vary based on the magnitude of the parameter times some scaleFactor.
         // Hopefully this is generic enough for different analyses but you can always set them directly here
 
-
-        double scaleFactor = 5; // allow the parameters some flexibility
+        double scaleFactor = 3; // allow the parameters some flexibility
         double scaleSig = (1+1/eventRatioSigToBkg); // scale factor for the signal distribution to contain 100% of events
         double scaleBkg = (1+eventRatioSigToBkg); // scale factor for the bkg distribution to contain 100% of events
         // Since we do 3 different initializations, with 100%bkg, 50/50, 100% sig the parameters for the bkg all go to zero in the 100% signal case. 
@@ -68,8 +65,8 @@ struct parameterLimits{
         // since the mean and the width of gaussian is always + we can just multiply by a percentage
         lowerParLimits.push_back(initPars[3]*0.9);
         upperParLimits.push_back(initPars[3]*1.1);
-        lowerParLimits.push_back(initPars[4]*0.25);
-        upperParLimits.push_back(initPars[4]*1.75);
+        lowerParLimits.push_back(initPars[4]*0.70);
+        upperParLimits.push_back(initPars[4]*1.30);
     }
     void printParLimits(){
         for (size_t i=0; i<numDOF; ++i){
@@ -131,14 +128,14 @@ void drawText(Double_t *par, int dof, std::string tag, double qSigValue, double 
     //    parText.DrawLatex(0.4,20,("par"+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
     //}
     //
-    TPaveText *pt = new TPaveText(0.675,0.7,0.875,0.9);
+    TPaveText *pt = new TPaveText(0.5,0.7,0.7,0.9,"NDC");
     for (int iPar=0; iPar<dof; ++iPar){
         pt->AddText((tag+std::to_string(iPar)+":"+std::to_string(par[iPar])).c_str());
     }
     pt->AddText(("qSigVal: "+std::to_string(qSigValue)).c_str());
     pt->AddText(("qBkgVal: "+std::to_string(qBkgValue)).c_str());
     pt->AddText(("qFitVal: "+std::to_string(qTotValue)).c_str());
-    pt->Paint("NDC");
+    //pt->Paint("NDC");
     pt->Draw();
 }
 
@@ -323,7 +320,21 @@ class cumulativeStd{
 };
 
 
-
+double calculateStd(int nentries, double* input){
+    double mean=0;
+    for(int ientry=0; ientry<nentries; ++ientry){ 
+        mean += input[ientry];
+    }
+    mean /= nentries;
+    double diff;
+    double std=0;
+    for(int ientry=0; ientry<nentries; ++ientry){ 
+        diff = input[ientry]-mean;
+        std += diff*diff;
+    }
+    std /= nentries-1;
+    return sqrt(std);
+}
 
 
 

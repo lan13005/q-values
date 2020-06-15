@@ -121,6 +121,8 @@ class QFactorAnalysis{
 		int seedShift;
 		Long64_t nentries;
                 int nRndRepSubset;
+                bool saveBShistsAlso;
+                int nBS;
 		bool override_nentries;
 		bool verbose;
 		string varString;
@@ -146,13 +148,13 @@ class QFactorAnalysis{
                 std::vector<double> utWeights;
 		std::vector<double> sbWeights; 
 		std::vector<ULong64_t> spectroscopicComboIDs; 
-                // Not all combinations will be a valid pairing. Suppose we only care about spectroscopically unique pairs, then we can fill phasePoint2PotentailNeighbor with
+                // Not all combinations will be a valid pairing. Suppose we only care about spectroscopically unique pairs, then we can fill phasePoint2PotentialNeighbor with
                 // only unique combos.
-		std::vector<int> phasePoint2PotentailNeighbor; 
+		std::vector<int> phasePoint2PotentialNeighbor; 
 	
 	public:
 		QFactorAnalysis(int kDim1, string varString1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1, int numberEventsToSavePerProcess1, int nProcess1,
-                                int seedShift1, Long64_t nentries1, int nRndRepSubset1, bool override_nentries1, bool verbose1){ 
+                                int seedShift1, Long64_t nentries1, int nRndRepSubset1, int nBS1, bool saveBShistsAlso1, bool override_nentries1, bool verbose1){ 
 			cout << "Constructed QFactorAnalysis class..." << endl;
 			kDim=kDim1;
 			numberEventsToSavePerProcess=numberEventsToSavePerProcess1;
@@ -160,6 +162,8 @@ class QFactorAnalysis{
 			seedShift=seedShift1;
 			nentries=nentries1;
                         nRndRepSubset=nRndRepSubset1;
+                        nBS=nBS1;
+                        saveBShistsAlso=saveBShistsAlso1;
 			override_nentries=override_nentries1;
 			verbose=verbose1;
 			start2 = std::chrono::high_resolution_clock::now();
@@ -183,7 +187,7 @@ class QFactorAnalysis{
 			spectroscopicComboIDs.reserve(nentries);
 
 			// will hold all the ids of the unique combos
-			phasePoint2PotentailNeighbor.reserve(nentries);
+			phasePoint2PotentialNeighbor.reserve(nentries);
 		}
 		void loadTree(string rootFileLoc, string rootTreeName);
 		void loadFitParameters(string fitLocation);

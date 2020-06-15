@@ -11,13 +11,16 @@ start_time = time.time()
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 
-_SET_kDim=250 # number of neighbors
-_SET_numberEventsToSavePerProcess=1 # how many histograms (root files) we want to save.
-_SET_seedShift=9121 # in case we dont want the same q-value histogram we can choose another random seed
-_SET_nProcess=36 # how many processes to spawn
-_SET_nentries=200000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
+_SET_kDim=200 # number of neighbors
+# 452199
+_SET_numberEventsToSavePerProcess=10000 # how many histograms (root files) we want to save.
+_SET_seedShift=91211 # in case we dont want the same q-value histogram we can choose another random seed
+_SET_nProcess=2 # how many processes to spawn
+_SET_nentries=100000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
 _SET_override_nentries=1 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
-_SET_nRndRepSubset=50000 # size of the random subset that is hopefully representative of the overall.
+_SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
+_SET_nBS=200 # number of times we should bootstrap the set of neighbors to calculate q-factors with. Used to extract an error on the q-factors
+_SET_saveBShistsAlso=1 # should we save every bootstrapped histogram also?
 _SET_verbose=1 # how much information we want to output to the logs folder
 _SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
@@ -185,12 +188,12 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     
     subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
-    print('./main "$kDim" $varString $standardizationType $fitLocation "$redistributeBkgSigFits" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries "$_SET_nRndRepSubset" "$override_nentries" "$verbose" &')
+    print('./main "$kDim" $varString $standardizationType $fitLocation "$redistributeBkgSigFits" "$numberEventsToSavePerProcess" "$nProcess" "$seedShift" "$nentries "$_SET_nRndRepSubset" "$_SET_nBS" "$_SET_saveBShistsAlso" "$override_nentries" "$verbose" &')
     print('Number of threads: '+str(_SET_nProcess))
     _SET_fitLocation = "fitResults/"+_SET_fileTag+"/"+_SET_fitLocationBase+"_"+_SET_fileTag+".txt"
     print("Looking for initialzation fit in: "+_SET_fitLocation)
     executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
-            str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_override_nentries),str(_SET_verbose),"&"]
+            str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),"&"]
     print(" ".join(executeMain))
     subprocess.Popen(executeMain).wait()
         
@@ -271,8 +274,8 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     #        print combo
     #        runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     
-#if _SET_runMakeHists:
-combineAllGraphs()
+if _SET_runMakeHists:
+    combineAllGraphs()
 
 print("--- %s seconds ---" % (time.time() - start_time))
 
