@@ -13,18 +13,22 @@ void addUTWeightsBranch(string rootFileLoc, string rootFileName, string treeName
 
     Long64_t nentries = (Long64_t)dataTree->GetEntries();
     ULong64_t event;
+    // We will basically count the number of combos that have the same eventNumber.
     dataTree->SetBranchAddress("event",&event);
 
     TFile *ut_dataFile = TFile::Open((rootFileLoc+rootFileName+"_UTweights.root").c_str(),"RECREATE"); 
     TTree *ut_dataTree = dataTree->CloneTree(-1,"fast"); 
-    double uniquenessTrackingWeight;
-    TBranch* uniquenessTrackingWeights =ut_dataTree->Branch("uniqunessTrackingWeights",&uniquenessTrackingWeight,"uniquenessTrackingWeights/D");
+    double UT_equalWeight;
+    TBranch* UT_equalWeights =ut_dataTree->Branch("UT_equalWeights",&UT_equalWeight,"UT_equalWeights/D");
     
     vector<int> countEvents;
 
+    // -------------------------------------
+    // Count the number of combos in an event
+    // -------------------------------------
     int count=1;
-    //nentries=20;
     ULong64_t previousEvent=-1;
+    //nentries=20;
     for(Long64_t ientry=0; ientry<nentries; ientry++)
     {
     	dataTree->GetEntry(ientry);
@@ -47,6 +51,9 @@ void addUTWeightsBranch(string rootFileLoc, string rootFileName, string treeName
     }
     countEvents.push_back(count); // need to fill it one more time or we dont get all the events
 
+    // -------------------------------------
+    // Fill the branch with with the weighting factor
+    // -------------------------------------
     int totalCounts=0;
     for (auto numCount : countEvents){
         totalCounts += numCount;
@@ -54,8 +61,8 @@ void addUTWeightsBranch(string rootFileLoc, string rootFileName, string treeName
             cout << numCount << " ";
         }
         for(int iCount=0; iCount<numCount; ++iCount){
-            uniquenessTrackingWeight=1.0/numCount;
-            uniquenessTrackingWeights->Fill();
+            UT_equalWeight=1.0/numCount;
+            UT_equalWeights->Fill();
         }
     }
     if (verbose){
@@ -71,7 +78,6 @@ void addUTWeightsBranch(string rootFileLoc, string rootFileName, string treeName
 void getUniquenessWeights(){
     string rootFileLoc = "/d/grid15/ln16/pi0eta/q-values/";
     //string rootFileLoc="/home/lawrence/Desktop/gluex/q-values/";
-    
     
     string rootFileName = "degALL_bcal_treeFlat_DSelector";
     string treeName = "degALL_bcal_tree_flat";
