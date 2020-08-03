@@ -8,7 +8,14 @@
 #include <chrono>
 
 using namespace std;
-// We need to define a maximum value for the bernstein polynomial. The domain is [0,1] so we have to scale the discriminating variable to be between 0,1. 
+
+
+///// **************************************************************
+///// STEP1: DEFINE SIGNAL/BKG DISTRIBUTIONS
+///// **************************************************************
+
+
+// We need to define a maximum value for the bernstein polynomial bkg. The domain is [0,1] so we have to scale the discriminating variable to be between 0,1. 
 // Since we know the maximum value for Meta is < 1 then everything is fine. For larger masses we can divide by a larger value or just dividing by Ebeam_max = 12 is fine. 
 // Without much calculation we know GlueX cannot produce anything with mass > 12 GeV. If you use other variables like then choose the appropriate maximum value
 #define MAXVALUE 1
@@ -27,7 +34,7 @@ double signal(double *x, double *par){
 }
 // Bernstein polynomial of degree 1
 double background(double *x, double *par){
-	return par[0]*x[0]+par[1]*(1-x[0]/MAXVALUE);
+	return par[0]*x[0]/MAXVALUE+par[1]*(1-x[0]/MAXVALUE);
 }
 double fitFunc(double *x, double *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
@@ -75,9 +82,17 @@ struct parameterLimits{
     }
 };
 
-
 std::vector<double> _SET_ParLimPercent = {300, 300, 300, 10, 75}; // These will be the percent deviations allowed for the parameters relative to initialization
 std::vector<int> fixParToZero = {1}; // If the q-value return is not [0,1] then we will rerun ONE more time zeroing out some parameters. 
+
+
+///// **************************************************************
+///// CLOSE STEP 1
+///// **************************************************************
+
+
+
+
 
 // Code for a breit Wigner
 //double signalBW(double* x, double* par) {
@@ -90,6 +105,7 @@ std::vector<int> fixParToZero = {1}; // If the q-value return is not [0,1] then 
 //}
 
 // ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS
+// DOuble gaus
 //int numDOFsig = 5;
 //double signal(double *x, double *par){
 //	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
@@ -283,6 +299,7 @@ class distSort_kNN
 };
 
 
+// Not used anymore. I thought it would interseting to check the stdev of the k nearest neighbors. 
 // Used to calculate the current std as we stream/insert more data
 class cumulativeStd{
     public:
@@ -318,6 +335,7 @@ class cumulativeStd{
         UInt_t _kDim;
 
 };
+
 
 
 double calculateStd(int nentries, double* input){

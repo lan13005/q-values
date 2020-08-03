@@ -7,6 +7,9 @@
 #include "helperFuncs.h"
 
 
+// !!!!!!
+// NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
+// !!!!!!
 bool verbose = true;
 string fileTag="bcal";
 string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
@@ -64,7 +67,7 @@ void makeDiagnosticHists(){
         cout << "Total number of events in Q-factor results: " << c_nentriesResults << endl;
 
 
-	// make a vector of 0s such that we can fill the q-values in order to unscramble to multiprocessing effects
+	// make a vector of 0s such that we can fill the q-values in order to unscramble them. From multiprocessing effects
 	std::vector< double > qvalues(c_nentriesResults,0);
 	std::vector< double > bestChiSqs(c_nentriesResults,0);
 	std::vector< double > worstChiSqs(c_nentriesResults,0);
@@ -102,6 +105,7 @@ void makeDiagnosticHists(){
 	// ---------------------------------------------------------------------------
 	// ------------------------------------------------MANUALLY DEFINE HISTOGRAMS
 	// ---------------------------------------------------------------------------
+        // The array holds {kin,measured} values. We plot them both even though phase space for the kNN is dependent on only one of them. Might be insightful
 	TH1F* Meta_tot[2];
 	TH1F* Meta_sig[2];
 	TH1F* Meta_bkg[2];
@@ -271,10 +275,6 @@ void makeDiagnosticHists(){
         //else { cout << "The flatEntryNumber set is complete!" << endl; }
 
         //cout << "Finished consistency check on results file and data" << endl;
-
-
-
-
 
 
 

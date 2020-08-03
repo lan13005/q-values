@@ -15,7 +15,6 @@ void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
 void QFactorAnalysis::loadFitParameters(string fitLocation){
 	cout << "Loading the fit parameters" << endl;
 	double eventRatioSigToBkg = 1;
-
 	// -----------------------------------------------------
 	// -----------------------------------------------------
 	//                         LOAD IN THE FITTED PARAMETERS TO THE FULL DISTRIBUTION
@@ -29,7 +28,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
         std::vector<string> initParNames;
         cout << "RootFile(treeName)(fileTag): " << rootFileLoc << "(" << rootTreeName << ")(" << fileTag << ")" << endl;
 	while (inFile >> varName >> varVal){
-            if (varName.at(0) != '#'){ 
+            if (varName.at(0) != '#'){ //not all output from getInitParams is useful. They start with a # 
                 initPars.push_back(varVal);
                 initParNames.push_back(varName);
                 cout << varName << ": " << varVal << endl;
