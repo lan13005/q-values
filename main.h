@@ -42,17 +42,6 @@ bool verbose_outputDistCalc=false;
 TRandom rgen;
 
 using namespace std;
-// !!!!!!
-// NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
-// !!!!!!
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_bcal_tree_flat";
-string fileTag="bcal";
-string weightingScheme="as"; // "" or "as*bs"
-string s_accWeight="AccWeight";
-string s_discrimVar="Meta";
-string s_sideBandVar="Mpi0";
-string s_uniquenessTracking="weighted"; // "default" or "weighted". Any neighbor is possible in the weighted setting
 
 // OUT OF DATED CODE THAT USES ROOFIT TO DO UNBINNED MAX LIKELIHOOD FIT. WILL PROBABLY NEED TO REIMPLEMENT THIS
 //class rooFitML{

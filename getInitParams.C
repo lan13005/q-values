@@ -6,21 +6,6 @@
 #include "helperFuncs.h"
 
 
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_bcal_tree_flat";
-string fileTag="bcal";
-string weightingScheme="as"; // "" or "as*bs"
-string s_accWeight="AccWeight";
-string s_discrimVar="Meta";
-string s_sideBandVar="Mpi0";
-string s_uniquenessTracking="weighted"; // "default" or "weighted". Any neighbor is possible in the weighted setting
-
-
-// Define some global things we need for just this program
-string namePar[numDOFbkg+numDOFsig] = {"bern01","bern11","amp","mass","sigma"};//,"ampRatio","sigmaRatio";
-int meanIndex=3;
-int widthIndex=4;
-
 // This takes in a bunch of arguments and outputs the things we need to a file which can then be read into the "main" program 
 void fitAndOutput(TH1F* inputHist1, TF1* fit1, TF1* bkgFit1, TF1* sigFit1, double lowerFitRange1, double upperFitRange1, double binWidth1, 
                     int nentries1, double* par1, ofstream* outputFile1, TCanvas* allCanvases1, string varTag1){ 
@@ -114,10 +99,12 @@ void getInitParams(){
 		double sideBandVar;
 		double Mpi0eta;
 		double AccWeight;
+                double sbWeight;
 		dataTree->SetBranchAddress(s_discrimVar.c_str(),&discrimVar);
 		dataTree->SetBranchAddress(s_sideBandVar.c_str(),&sideBandVar);
 		dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
 		dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
+                dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
 
                 // Uniqueness tracking, the default way or using weighted by number of combos in an event 
         	bool isUniqueEtaB;
@@ -148,31 +135,30 @@ void getInitParams(){
 		TH1F* massHistPi0Eta = new TH1F("","", 350, 0, 3.5);
 		cout << "Initialized for a specific mass (eta/pi0) fit" << endl;
 		
-		double sbWeight;
 		for (int ientry=0; ientry<nentries; ientry++)
 		{
 			dataTree->GetEntry(ientry);
-                        getSBWeight(sideBandVar,&sbWeight,weightingScheme);
+                        //getSBWeight(sideBandVar,&sbWeight,weightingScheme);
                         double weight;
                         if (weightingScheme==""){ weight=1; }
                         if (weightingScheme=="as"){ weight=AccWeight; }
                         if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight; }
                         if (s_uniquenessTracking=="default"){
                 	    if ( isUniqueEtaB ) {
-		            	massHistEta->Fill(discrimVar,weight);//*sbWeight);
+		            	massHistEta->Fill(discrimVar,weight);
 			    }
                 	    if ( isUniquePi0B ) {
 		            	massHistPi0->Fill(sideBandVar,weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
 			    }
                 	    if ( isUniquePi0EtaB ) {
-			    	massHistPi0Eta->Fill(Mpi0eta,weight);//*sbWeight);
+			    	massHistPi0Eta->Fill(Mpi0eta,weight);//
 			    }
                         }
                         else if (s_uniquenessTracking=="weighted"){
                                 weight=weight*utWeight;
-		            	massHistEta->Fill(discrimVar,weight);//*sbWeight);
+		            	massHistEta->Fill(discrimVar,weight);//
 		            	massHistPi0->Fill(sideBandVar,weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
-			    	massHistPi0Eta->Fill(Mpi0eta,weight);//*sbWeight);
+			    	massHistPi0Eta->Fill(Mpi0eta,weight);//
                         }
                         else {
                             cout << "uniqueness tracking setting not valid!" << endl;

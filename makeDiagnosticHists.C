@@ -1,24 +1,11 @@
 // "main" outputs results files that contain the q-values. The goal of tihs program is to read in all the q-value results and organizes them to be used when creating any histogram
 
-
 #include <ctime>
 #include <math.h> 
 #include "makeDiagnosticHists.h"
 #include "helperFuncs.h"
 
 
-// !!!!!!
-// NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
-// !!!!!!
-bool verbose = true;
-string fileTag="bcal";
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_bcal_tree_flat";
-string weightingScheme="as"; // "" or "as*bs"
-string s_accWeight="AccWeight";
-string s_discrimVar="Meta";
-string s_sideBandVar="Mpi0";
-string s_uniquenessTracking="weighted"; // "default" or "weighted". Any neighbor is possible in the weighted setting
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -186,7 +173,8 @@ void makeDiagnosticHists(){
 	double phi_eta_gj_meas;
         double utWeight;
 
-        dataTree->SetBranchAddress("AccWeight",&AccWeight);
+        dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
+        dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
 	dataTree->SetBranchAddress("Meta_meas",&Meta_meas);
 	dataTree->SetBranchAddress("Mpi0_meas",&Mpi0_meas);
 	dataTree->SetBranchAddress("Meta",&Meta);
@@ -252,7 +240,6 @@ void makeDiagnosticHists(){
 	std::vector<double> phi_eta_gjs; phi_eta_gjs.reserve(c_nentriesResults);
 
 	std::vector< double > sbWeights; sbWeights.reserve(c_nentriesResults);
-	double sbWeight;
 
         // ***************** CHECK 1 ********************
         for (int iEntry=0; iEntry<c_nentriesResults; ++iEntry){
@@ -303,7 +290,7 @@ void makeDiagnosticHists(){
 		outputTree->GetEntry(ientry);
                 AccWeights.push_back(AccWeight);
 
-                getSBWeight(Mpi0,&sbWeight,weightingScheme);
+                //getSBWeight(Mpi0,&sbWeight,weightingScheme);
 		sbWeights.push_back(sbWeight);
 
 		Metas_meas.push_back(Meta_meas);
@@ -344,7 +331,6 @@ void makeDiagnosticHists(){
 	qd_dataFile->cd();
 	outputTree->Write(); 
 
-    
         // We can now fill the histograms, properly weighted
 	double sigWeight;
 	double totWeight;

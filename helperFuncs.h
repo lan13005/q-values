@@ -11,21 +11,31 @@ using namespace std;
 
 
 ///// **************************************************************
+///// STEP0: DONT NEED TO MODIFY. RUN.PY WILL USE SED TO REPLACE THESE
+///// **************************************************************
+// !!!!!!
+// NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
+// !!!!!!
+bool verbose = true;
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
+string rootTreeName="degALL_bcal_tree_flat";
+string fileTag="bcal";
+string weightingScheme="as"; // "" or "as*bs"
+string s_accWeight="AccWeight";
+string s_sbWeight="weightSB";
+string s_discrimVar="Meta";
+string s_sideBandVar="Mpi0";
+string s_uniquenessTracking="weighted"; // "default" or "weighted". Any neighbor is possible in the weighted setting
+
+///// **************************************************************
 ///// STEP1: DEFINE SIGNAL/BKG DISTRIBUTIONS
 ///// **************************************************************
-
 
 // We need to define a maximum value for the bernstein polynomial bkg. The domain is [0,1] so we have to scale the discriminating variable to be between 0,1. 
 // Since we know the maximum value for Meta is < 1 then everything is fine. For larger masses we can divide by a larger value or just dividing by Ebeam_max = 12 is fine. 
 // Without much calculation we know GlueX cannot produce anything with mass > 12 GeV. If you use other variables like then choose the appropriate maximum value
 #define MAXVALUE 1
 
-// -----------------------------
-static const int numDOFsig = 3; // degrees of freedom for the signal distribution
-static const int numDOFbkg = 2; //
-// we need to tell "main" which variables need scaling when using the full reference distribution to the k nearest neighbors
-std::vector<int> sigVarsNeedScaling = {2}; // these parameter indices are relative to fitFunc
-std::vector<int> bkgVarsNeedScaling = {0,1};
 // -----------------------------
 // Code for a single gaussian
 double signal(double *x, double *par){
@@ -36,9 +46,39 @@ double signal(double *x, double *par){
 double background(double *x, double *par){
 	return par[0]*x[0]/MAXVALUE+par[1]*(1-x[0]/MAXVALUE);
 }
+string namePar[numDOFbkg+numDOFsig] = {"bern01","bern11","amp","mass","sigma"};//,"ampRatio","sigmaRatio";
 double fitFunc(double *x, double *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
+int meanIndex=3; // used in getInitParams 
+int widthIndex=4; // used in getInitParams
+// -----------------------------
+static const int numDOFsig = 3; // degrees of freedom for the signal distribution
+static const int numDOFbkg = 2; //
+// we need to tell "main" which variables need scaling when using the full reference distribution to the k nearest neighbors
+std::vector<int> sigVarsNeedScaling = {2}; // these parameter indices are relative to fitFunc
+std::vector<int> bkgVarsNeedScaling = {0,1};
+
+
+// Code for a breit Wigner
+//double signalBW(double* x, double* par) {
+//    double arg1 = 14.0/22.0; // 2 over pi
+//    double arg2 = par[2]*par[2]*par[1]*par[1]; //Gamma=par[1]  M=par[2]
+//    double arg3 = ((x[0]*x[0]) - (par[1]*par[1]))*((x[0]*x[0]) - (par[1]*par[1]));
+//    double arg4 = x[0]*x[0]*x[0]*x[0]*((par[2]*par[2])/(par[1]*par[1]));
+//    
+//    return par[0]*arg1*arg2/(arg3 + arg4);
+//}
+
+// ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS
+// DOuble gaus
+//int numDOFsig = 5;
+//double signal(double *x, double *par){
+//	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
+//	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
+//
+//}
+
 struct parameterLimits{
     // this vector will contain the initialization parameters (variable initPar in main.h) from which we can use to set par limits if we want
     // These parameters would be a scaled version of the parameters taken from getInitParams.C, scaled down to kDim
@@ -64,7 +104,6 @@ struct parameterLimits{
         lowerParLimits.push_back(0);
         upperParLimits.push_back(scaleBkg*initPars[1]+scaleFactor*abs_par);
 
-        // There is a strict limit on the amplitude of the Gaussian which is kDim. 
         abs_par = abs(scaleSig*initPars[2]);
         lowerParLimits.push_back(0);
         upperParLimits.push_back(scaleSig*initPars[2]+scaleFactor*abs_par);
@@ -83,35 +122,11 @@ struct parameterLimits{
 };
 
 std::vector<double> _SET_ParLimPercent = {300, 300, 300, 10, 75}; // These will be the percent deviations allowed for the parameters relative to initialization
-std::vector<int> fixParToZero = {1}; // If the q-value return is not [0,1] then we will rerun ONE more time zeroing out some parameters. 
 
 
 ///// **************************************************************
 ///// CLOSE STEP 1
 ///// **************************************************************
-
-
-
-
-
-// Code for a breit Wigner
-//double signalBW(double* x, double* par) {
-//    double arg1 = 14.0/22.0; // 2 over pi
-//    double arg2 = par[2]*par[2]*par[1]*par[1]; //Gamma=par[1]  M=par[2]
-//    double arg3 = ((x[0]*x[0]) - (par[1]*par[1]))*((x[0]*x[0]) - (par[1]*par[1]));
-//    double arg4 = x[0]*x[0]*x[0]*x[0]*((par[2]*par[2])/(par[1]*par[1]));
-//    
-//    return par[0]*arg1*arg2/(arg3 + arg4);
-//}
-
-// ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS
-// DOuble gaus
-//int numDOFsig = 5;
-//double signal(double *x, double *par){
-//	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
-//	     + par[3]*par[0]/(par[4]*par[2])/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/(par[4]*par[2]))*((x[0]-par[1])/(par[4]*par[2])));
-//
-//}
 
 
 void getSBWeight(double discrimVar, double *sbWeight, std::string weightingScheme){
@@ -134,6 +149,28 @@ void getSBWeight(double discrimVar, double *sbWeight, std::string weightingSchem
         *sbWeight=1;
     }
 }
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+
+// DO NOT HAVE TO MODIFY ANYTHING BELOW THIS BLOCK
+// DO NOT HAVE TO MODIFY ANYTHING BELOW THIS BLOCK
+
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
 
 // draws a textbox to output the fitted parameter values per Q-factor histogram
 void drawText(Double_t *par, int dof, std::string tag, double qSigValue, double qBkgValue, double qTotValue){

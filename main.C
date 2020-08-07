@@ -14,7 +14,7 @@ void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
 
 void QFactorAnalysis::loadFitParameters(string fitLocation){
 	cout << "Loading the fit parameters" << endl;
-	double eventRatioSigToBkg = 1;
+	double eventRatioSigToBkg = 1; // We try 3 different initializations: {100bkg, 100%sig, 50/50 bkg/sig}. We will use eventRatioSigToBkg to scale the amplitude parameters
 	// -----------------------------------------------------
 	// -----------------------------------------------------
 	//                         LOAD IN THE FITTED PARAMETERS TO THE FULL DISTRIBUTION
@@ -45,6 +45,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 	// ----------------------------------------
         // We need to have a global scale factor since in the fit to the full distribution of the discriminating variable there are just more events
         // If we use a normalized Gaussian then the amplitude is simply scaled by the kDim/total
+        // The amplitudes for the bkg bernstein polynomial is also scaled similarly. 
 	double scaleFactor = (double)kDim/total_nentries;
 	cout << "scaleFactor: " << scaleFactor << endl;
 	
@@ -61,7 +62,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
             cout << initParNames[iVar] << ": " << initPars[iVar] << endl; 
         }
 
-        // We will 3 iterations. Not sure if I am doing this correctly
+        // We will do 3 iterations. Not sure if I am doing this correctly
         // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
 	cout << "------------- SETTING UP | 100% | 50%/50% | 100% | parameter initialization -----------------" << endl;
         redistributeFactorSig = { 0, (1+1/eventRatioSigToBkg)/2, (1+1/eventRatioSigToBkg) };
@@ -87,6 +88,7 @@ void QFactorAnalysis::loadData(){
         double phaseSpaceVar[dim];
         double sideBandVar;
 	double AccWeight;
+        double sbWeight;
 	ULong64_t spectroscopicComboID;
 
         // vars we will use to fill but not use directly
@@ -109,6 +111,7 @@ void QFactorAnalysis::loadData(){
 	dataTree->SetBranchAddress(s_discrimVar.c_str(), &discrimVar);
 	dataTree->SetBranchAddress(s_sideBandVar.c_str(), &sideBandVar);
 	dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
+        dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
 	dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
         
         // vars we will use to fill but not use directly
@@ -119,7 +122,6 @@ void QFactorAnalysis::loadData(){
 	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
         dataTree->SetBranchAddress("uniqunessTrackingWeights",&utWeight);
 
-        double sbWeight;
 	
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
 	for (Long64_t ientry=0; ientry<nentries; ientry++)
@@ -132,7 +134,7 @@ void QFactorAnalysis::loadData(){
                 sideBandVars.push_back(sideBandVar);
 	        AccWeights.push_back(AccWeight);
                 utWeights.push_back(utWeight);
-                getSBWeight(sideBandVar,&sbWeight,weightingScheme);
+                //getSBWeight(sideBandVar,&sbWeight,weightingScheme);
 		sbWeights.push_back(sbWeight);
 	        spectroscopicComboIDs.push_back(spectroscopicComboID);
 	}

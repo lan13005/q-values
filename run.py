@@ -125,7 +125,6 @@ def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     os.system("rm -rf fitResults/"+_SET_fileTag)
     os.system("rm -rf fitResults/"+_SET_fileTag)
     os.system("mkdir -p fitResults/"+_SET_fileTag)
-    reconfigureSettings("getInitParams.C", _SET_rootFileLoc, _SET_rootTreeName, Set_fileTag)
     # get the initialization parameters
     proc=subprocess.Popen("root -l -b -q getInitParams.C",shell=True).wait()
       
@@ -176,7 +175,6 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     print(" ".join(compileMain))
     
     # reconfiguring the appropriate files to the current settings
-    reconfigureSettings("main.h",_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     #sedArgs=["sed","-i",'s@standardizationType=".*";@standardizationType="'+_SET_standardizationType+'";@g',"main.h"]
     #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
@@ -212,7 +210,6 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     # ------------------------------------
     # run the makeDiagnosticHists program
     # ------------------------------------
-    reconfigureSettings("makeDiagnosticHists.C",_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     subprocess.Popen("cat logs/"+_SET_fileTag+"/process* > logs/"+_SET_fileTag+"/diagnostic_logs.txt",shell=True).wait()
     subprocess.Popen("hadd diagnosticPlots/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root logs/"+_SET_fileTag+"/results*",shell=True).wait()
     subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
@@ -253,6 +250,7 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
 
     numVar=len(varVec)
     # We are going pass as arugment a list of lists known as combo. This combo list contains all the lists of combos with numVar elements from the list varVec. If we use the command comboinations(range(3),2) we would get something like [ [1,2], [2,3], [1,3] ]. We can use these as indicies to index a a string of 0's to fill in whether a variable will be in use. i.e. if [1,3] is chosen then the string would be 101 with the second var turnedo off. This is useful when we are doing a scan of which variables we should use. Bruteforce style. 
+    reconfigureSettings("helperFuncs.h",_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     if _SET_runFullFit:
         execFullFit(_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     if _SET_runQFactor:
