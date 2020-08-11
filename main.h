@@ -162,23 +162,6 @@ class QFactorAnalysis{
                         standardizationType=standardizationType1;
                         redistributeBkgSigFits=redistributeBkgSigFits1;
                         doKRandomNeighbors=doKRandomNeighbors1;
-	
-		        // Use these vectors to import all the data to RAM instead of reading from root file
-                        // First we should reserve the space so there is no resizing of the vectors
-			discrimVars.reserve(nentries);
-                        std::vector<double> emptyVec;
-                        for (auto it=0; it<dim; ++it){
-                            // copy over emptyVec and then expand
-                            phaseSpaceVars.push_back(emptyVec);
-                            phaseSpaceVars[it].reserve(nentries);
-                        }
-			sideBandVars.reserve(nentries);
-			AccWeights.reserve(nentries);
-			sbWeights.reserve(nentries);
-			spectroscopicComboIDs.reserve(nentries);
-
-			// will hold all the ids of the unique combos
-			phasePoint2PotentialNeighbor.reserve(nentries);
 		}
 		void loadTree(string rootFileLoc, string rootTreeName);
 		void loadFitParameters(string fitLocation);

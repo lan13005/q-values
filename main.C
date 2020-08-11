@@ -10,6 +10,24 @@ void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
 		nentries=dataTree->GetEntries();
 	}
 	cout << "Chosen Total Entries: " << nentries << endl;
+        
+
+        cout << "Reserving space in vectors..." << endl;
+	// Use these vectors to import all the data to RAM instead of reading from root file
+        // First we should reserve the space so there is no resizing of the vectors
+	discrimVars.reserve(nentries);
+        std::vector<double> emptyVec;
+        for (auto it=0; it<dim; ++it){
+            // copy over emptyVec and then expand
+            phaseSpaceVars.push_back(emptyVec);
+            phaseSpaceVars[it].reserve(nentries);
+        }
+	sideBandVars.reserve(nentries);
+	AccWeights.reserve(nentries);
+	sbWeights.reserve(nentries);
+	spectroscopicComboIDs.reserve(nentries);
+	// will hold all the ids of the unique combos
+	phasePoint2PotentialNeighbor.reserve(nentries);
 }
 
 void QFactorAnalysis::loadFitParameters(string fitLocation){
@@ -120,7 +138,7 @@ void QFactorAnalysis::loadData(){
 	dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
 	dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
 	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-        dataTree->SetBranchAddress("uniqunessTrackingWeights",&utWeight);
+        dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
 
 	
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
@@ -190,20 +208,20 @@ void QFactorAnalysis::loadData(){
         else {
 	    set<Int_t> setUsedSpectroscopicIDs;
 	    for (Int_t ientry=0; ientry<nentries; ientry++){ 
-                if (s_uniquenessTracking=="default"){
+                if (s_utBranch=="default"){
 	            if ( setUsedSpectroscopicIDs.find( spectroscopicComboIDs[ientry] ) == setUsedSpectroscopicIDs.end() ) {
 	                setUsedSpectroscopicIDs.insert( spectroscopicComboIDs[ientry] );
 	                phasePoint2PotentialNeighbor.push_back(ientry);
 	            }
                 }
-                else if (s_uniquenessTracking=="weighted"){
-                    // if we use the weighted setting we will allow any neighbor to be possible
+                else{
+                    // if we use a weights branch we will allow any neighbor to be possible
 	            phasePoint2PotentialNeighbor.push_back(ientry);
                 }
-                else{ 
-                    cout << "uniqueness tracking setting not set up properly!" << endl;
-                    exit(0);
-                }
+                //else{ 
+                //    cout << "uniqueness tracking setting not set up properly!" << endl;
+                //    exit(0);
+                //}
 	    }
         }
         cout << "\n\n--------------------------------------" << endl;
@@ -388,7 +406,7 @@ void QFactorAnalysis::runQFactorThreaded(){
                         vector<int> phasePoint2PotentailNeighbor_BS;
                         phasePoint2PotentailNeighbor_BS.reserve(nPotentialNeighbors);
                         unsigned seed = std::chrono::system_clock::now().time_since_epoch().count(); 
-                        // RNG using generators and distributions are really cheap. Is threadsafe also whereas rand() is not
+                        // RNG using generators and distributions are really cheap. It is also threadsafe also whereas rand() is not. You will see all the threads are not operating at max potential if you use rand
                         // https://stackoverflow.com/questions/21237905/how-do-i-generate-thread-safe-uniform-random-numbers
                         // Mersenne twistor requires large state storage but has the highest quality + period. 
                         // Lagged Fibonoci Generator liek ranlux24 has a much smaller period but should be much faster
@@ -455,9 +473,8 @@ void QFactorAnalysis::runQFactorThreaded(){
                                     if (weightingScheme==""){ weight=1; }
                                     if (weightingScheme=="as"){ weight=AccWeights[newPair.second]; }
                                     if (weightingScheme=="as*bs"){ weight=AccWeights[newPair.second]*sbWeights[newPair.second]; }
-                                    if (s_uniquenessTracking=="weighted"){
-                                        weight=weight*utWeights[newPair.second];
-                                    }
+                                    weight=weight*utWeights[newPair.second];
+
 			            discriminatorHist->Fill(discrimVars[newPair.second],weight);
 
                                     if(verbose_outputDistCalc){
@@ -756,6 +773,7 @@ int main( int argc, char* argv[] ){
         cout << "redistributeBkgSigFits: " << redistributeBkgSigFits << endl;
         cout << "doKRandomNeighbors: " << doKRandomNeighbors << endl;
         cout << "----------------------------" << endl;
+
         //cout << "Sleeping for 10 seconds so you can look at these settings" << endl;
         //sleep(10);
     

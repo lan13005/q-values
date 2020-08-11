@@ -5,7 +5,6 @@
 #include <string>
 #include "helperFuncs.h"
 
-
 // This takes in a bunch of arguments and outputs the things we need to a file which can then be read into the "main" program 
 void fitAndOutput(TH1F* inputHist1, TF1* fit1, TF1* bkgFit1, TF1* sigFit1, double lowerFitRange1, double upperFitRange1, double binWidth1, 
                     int nentries1, double* par1, ofstream* outputFile1, TCanvas* allCanvases1, string varTag1){ 
@@ -36,6 +35,7 @@ void fitAndOutput(TH1F* inputHist1, TF1* fit1, TF1* bkgFit1, TF1* sigFit1, doubl
     cout << "IntegralBKG after scaling: " << integralBKG << endl;
     cout << "IntegralSIG after scaling: " << integralSIG << endl;
     cout << "nentries: " << nentries1 << endl;
+    cout << "ChiSqPerDOF: " << fit1->GetChisquare()/(fit1->GetNDF()) << endl;
     *outputFile1 << "#integralBKG " << integralBKG << endl;
     *outputFile1 << "#integralSIG " << integralSIG << endl;
 
@@ -114,7 +114,7 @@ void getInitParams(){
         	dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
         	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
                 double utWeight;
-                dataTree->SetBranchAddress("uniqunessTrackingWeights",&utWeight);
+                dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
 
 		long long nentries=dataTree->GetEntries();
 
@@ -143,7 +143,7 @@ void getInitParams(){
                         if (weightingScheme==""){ weight=1; }
                         if (weightingScheme=="as"){ weight=AccWeight; }
                         if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight; }
-                        if (s_uniquenessTracking=="default"){
+                        if (s_utBranch=="default"){
                 	    if ( isUniqueEtaB ) {
 		            	massHistEta->Fill(discrimVar,weight);
 			    }
@@ -154,15 +154,11 @@ void getInitParams(){
 			    	massHistPi0Eta->Fill(Mpi0eta,weight);//
 			    }
                         }
-                        else if (s_uniquenessTracking=="weighted"){
+                        else {
                                 weight=weight*utWeight;
 		            	massHistEta->Fill(discrimVar,weight);//
 		            	massHistPi0->Fill(sideBandVar,weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
 			    	massHistPi0Eta->Fill(Mpi0eta,weight);//
-                        }
-                        else {
-                            cout << "uniqueness tracking setting not valid!" << endl;
-                            exit(0);
                         }
 		}
 		cout << "Filled all entries into histogram for a specific fit" << endl;
@@ -181,7 +177,6 @@ void getInitParams(){
 		
 
 
-
 		// ///////////////////////////////////////////////////
 		// FIT YOUR HISTOGRAMS. fitAndOutput WILL OUTPUT THE NEEDED STUFF
 		// ///////////////////////////////////////////////////
@@ -195,7 +190,7 @@ void getInitParams(){
 		bkgFit = new TF1("bkgFit",background,fitRange[0],fitRange[1],numDOFbkg);
 		sigFit = new TF1("sigFit",signal,fitRange[0],fitRange[1],numDOFsig);
 
-		fit->SetParameters(3000,2000,15000,0.547,0.003);//,3,5);
+		fit->SetParameters(3000,2000,15000,0.547,0.05);//,3,5);
                 fit->SetParLimits(0,0,4000);
                 fit->SetParLimits(1,0,3000);
                 fit->SetParLimits(2,0,20000);

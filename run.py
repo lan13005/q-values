@@ -11,37 +11,41 @@ start_time = time.time()
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 
+_SET_nProcess=24 # how many processes to spawn
 _SET_kDim=200 # number of neighbors
-# 452199
-_SET_numberEventsToSavePerProcess=10000 # how many histograms (root files) we want to save.
+_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much larger than kDim or we might get errors .
+_SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
 _SET_seedShift=91211 # in case we dont want the same q-value histogram we can choose another random seed
-_SET_nProcess=2 # how many processes to spawn
-_SET_nentries=100000 # how many combos we want to run over. This should be much larger than kDim or we might get errors
-_SET_override_nentries=1 # A direct modification for nentries. If = 0 then nentries will not be used. if = 1 then nentries is the number of combos to run over
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
-_SET_nBS=200 # number of times we should bootstrap the set of neighbors to calculate q-factors with. Used to extract an error on the q-factors
+_SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
+_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
+_SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
+_SET_nBS=0 # number of times we should bootstrap the set of neighbors to calculate q-factors with. Used to extract an error on the q-factors. Set to 0 if you dont want to do BS
 _SET_saveBShistsAlso=1 # should we save every bootstrapped histogram also?
-_SET_verbose=1 # how much information we want to output to the logs folder
-_SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights are passed in through the root trees, sideband weights calculated within
+_SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights and sideband weights are taken from the input tree
+_SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
+_SET_sbWeight="weightBS" # the branch to look at to get the sideband weight
+_SET_uniquenessTracking="UT_noTrackingWeights" # "default" or give a branch name. Default is the default implementation of the DSelector tracking specific particle combos. 
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
 _SET_discrimVar="Meta" # discriminating/reference variable
 _SET_sideBandVar="Mpi0" # side band subtract on this variable
-_SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
-_SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
-_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
-_SET_uniquenessTracking="weighted" # "default" or "weighted". Default is the default implementation of the DSelector tracking specific particle combos. "weighted" weights by 1/numCombosPassedInEvent
-_SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_emailWhenFinished=""#lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
+_SET_verbose=1 # how much information we want to output to the logs folder
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
+
+
         
 rootFileBase="/d/grid15/ln16/pi0eta/q-values/"
 #rootFileBase="/home/lawrence/Desktop/gluex/q-values/"
 rootFileLocs=[
         # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
-        (rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
+        #(rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
         #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
         #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
+        (rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
+        ,(rootFileBase+"degALL_FCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_FCAL_a0a2_tree_flat", "fcal")
+        ,(rootFileBase+"degALL_SPLIT_a0a2_treeFlat_DSelector_UTweights.root", "degALL_SPLIT_a0a2_tree_flat", "split")
         ]
 _SET_fitLocationBase="discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
 
@@ -111,6 +115,8 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
     sedArgs=["sed","-i",'s@s_sideBandVar=".*";@s_sideBandVar="'+_SET_sideBandVar+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_accWeight=".*";@s_accWeight="'+_SET_accWeight+'";@g',fileName]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@s_sbWeight".*";@s_sbWeight="'+_SET_sbWeight+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_uniquenessTracking=".*";@s_uniquenessTracking="'+_SET_uniquenessTracking+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
@@ -190,6 +196,12 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     print('Number of threads: '+str(_SET_nProcess))
     _SET_fitLocation = "fitResults/"+_SET_fileTag+"/"+_SET_fitLocationBase+"_"+_SET_fileTag+".txt"
     print("Looking for initialzation fit in: "+_SET_fitLocation)
+
+
+    if _SET_nentries == -1:
+        _SET_override_nentries=0
+    else:
+        _SET_override_nentries=1
     executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
             str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),"&"]
     print(" ".join(executeMain))
@@ -204,6 +216,7 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     # clean up the files that are created by makeDiagnosticHists before we rerun it
     print("Cleaning diagnosticPlots folder")
     os.system("rm -rf diagnosticPlots/"+_SET_fileTag)
+    #os.system("rm -rf diagnosticPlots/"+_SET_fileTag)
     os.system("mkdir -p diagnosticPlots/"+_SET_fileTag)
     #subprocess.Popen("rm -f diagnosticPlots/"+_SET_fileTag+"/postQ_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     #subprocess.Popen("rm -f diagnosticPlots/"+_SET_fileTag+"/postQValHists_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
@@ -221,10 +234,11 @@ def combineAllGraphs():
     '''
     tags = [rootFileLoc[2] for rootFileLoc in rootFileLocs]
     haddHistCmd="hadd diagnosticPlots/postQVal.root"
-    haddTreeCmd="hadd diagnosticPlots/postQVal_flatTree"
+    haddTreeCmd="hadd diagnosticPlots/postQVal_flatTree.root"
     for tag in tags:
         haddHistCmd = haddHistCmd+" diagnosticPlots/"+tag+"/postQValHists_"+tag+".root"
-        haddTreeCmd = haddTreeCmd+" diagnosticPlots/"+tag+"/postQValTrees_"+tag+".root"
+        #haddTreeCmd = haddTreeCmd+" diagnosticPlots/"+tag+"/postQValTrees_"+tag+".root"
+        haddTreeCmd = haddTreeCmd+" diagnosticPlots/"+tag+"/postQ_"+tag+"_flatTree.root"
     print("\n\n")
     print(haddHistCmd)
     print(haddTreeCmd)

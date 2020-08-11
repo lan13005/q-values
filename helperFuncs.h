@@ -17,15 +17,15 @@ using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
 bool verbose = true;
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_bcal_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_bcal_tree_flat";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root";
+string rootTreeName="degALL_BCAL_a0a2_tree_flat";
 string fileTag="bcal";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
-string s_sbWeight="weightSB";
+string s_sbWeight="weightBS";
 string s_discrimVar="Meta";
 string s_sideBandVar="Mpi0";
-string s_uniquenessTracking="weighted"; // "default" or "weighted". Any neighbor is possible in the weighted setting
+string s_utBranch="UT_noTrackingWeights"; // "default" uses bool branchs from DSelector. Alternatively we can give it a branch name to get weights from
 
 ///// **************************************************************
 ///// STEP1: DEFINE SIGNAL/BKG DISTRIBUTIONS
@@ -38,6 +38,11 @@ string s_uniquenessTracking="weighted"; // "default" or "weighted". Any neighbor
 
 // -----------------------------
 // Code for a single gaussian
+static const int numDOFsig = 3; // degrees of freedom for the signal distribution
+static const int numDOFbkg = 2; //
+string namePar[numDOFbkg+numDOFsig] = {"bern01","bern11","amp","mass","sigma"};//,"ampRatio","sigmaRatio";
+int meanIndex=3; // used in getInitParams 
+int widthIndex=4; // used in getInitParams
 double signal(double *x, double *par){
 	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
 
@@ -46,15 +51,10 @@ double signal(double *x, double *par){
 double background(double *x, double *par){
 	return par[0]*x[0]/MAXVALUE+par[1]*(1-x[0]/MAXVALUE);
 }
-string namePar[numDOFbkg+numDOFsig] = {"bern01","bern11","amp","mass","sigma"};//,"ampRatio","sigmaRatio";
 double fitFunc(double *x, double *par){
 	return background(x,par)+signal(x,&par[numDOFbkg]);
 }
-int meanIndex=3; // used in getInitParams 
-int widthIndex=4; // used in getInitParams
 // -----------------------------
-static const int numDOFsig = 3; // degrees of freedom for the signal distribution
-static const int numDOFbkg = 2; //
 // we need to tell "main" which variables need scaling when using the full reference distribution to the k nearest neighbors
 std::vector<int> sigVarsNeedScaling = {2}; // these parameter indices are relative to fitFunc
 std::vector<int> bkgVarsNeedScaling = {0,1};

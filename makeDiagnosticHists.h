@@ -5,7 +5,7 @@ using namespace std;
 // This will stack our histograms and make them pretty. 
 void makeStackedHist(TH1F* tot, TH1F* sig, TH1F* bkg, string name,string baseDir){
     	TCanvas *allCanvases = new TCanvas(name.c_str(),"",1440,900);
-	TLegend* leg1 = new TLegend(0.35,0.7,0.65,0.9);
+	TLegend* leg1 = new TLegend(0.8,0.8,1.0,1.0);
 	THStack* stackedHists = new THStack("stackedHists","");
 	bkg->SetFillColorAlpha(kMagenta,0.5);
 	bkg->SetLineColorAlpha(kMagenta,0);

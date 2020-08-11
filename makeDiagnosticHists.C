@@ -157,6 +157,7 @@ void makeDiagnosticHists(){
 	
         TLine* etaLine;
         double AccWeight;
+        double sbWeight;
 	double Meta;
 	double Mpi0;
 	double Mpi0g1;
@@ -202,7 +203,7 @@ void makeDiagnosticHists(){
         dataTree->SetBranchAddress("isNotRepeated_pi0g1",&isUniquePi0g1B);
         dataTree->SetBranchAddress("isNotRepeated_pi0g2",&isUniquePi0g2B);
         dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-        dataTree->SetBranchAddress("uniqunessTrackingWeights",&utWeight);
+        dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
 
         cout << "Finished setting up the tree" << endl;
 	
@@ -353,7 +354,7 @@ void makeDiagnosticHists(){
 		totWeight = weight;
 		bkgWeight = conjugate_qvalue*weight;
                 //cout << "ientry,qVal,conj_qVal,AccWeight,sbWeight: " << ientry << "," << qvalue << "," << conjugate_qvalue << ", " << AccWeight << ", " << sbWeight << endl;
-                if (s_uniquenessTracking=="default"){
+                if (s_utBranch=="default"){
                     if ( isUniqueEtaBs[ientry] ) {
 		    	cosThetaEta_GJ_sig[0]->Fill(cosTheta_eta_gjs_meas[ientry], sigWeight);
 		    	cosThetaEta_GJ_tot[0]->Fill(cosTheta_eta_gjs_meas[ientry], totWeight);
@@ -410,7 +411,7 @@ void makeDiagnosticHists(){
 		    	Mpi0eta_bkg[1]->Fill(Mpi0etas[ientry], bkgWeight);
                     }
 	        }
-                else if (s_uniquenessTracking=="weighted"){
+                else {
 		        sigWeight = sigWeight*utWeights[ientry];
 		        totWeight = totWeight*utWeights[ientry]; 
 		        bkgWeight = bkgWeight*utWeights[ientry];
@@ -463,10 +464,6 @@ void makeDiagnosticHists(){
 		    	Mpi0eta_sig[1]->Fill(Mpi0etas[ientry],sigWeight);
 		    	Mpi0eta_tot[1]->Fill(Mpi0etas[ientry],totWeight);
 		    	Mpi0eta_bkg[1]->Fill(Mpi0etas[ientry], bkgWeight);
-                }
-                else {
-                    cout << "uniqueness tracking setting not valid!" << endl;
-                    exit(0);
                 }
         }
         cout << "Made the histograms" << endl;
