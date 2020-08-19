@@ -23,9 +23,19 @@ string fileTag="bcal";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_sbWeight="weightBS";
-string s_discrimVar="Meta";
-string s_sideBandVar="Mpi0";
+string s_var1="Mpi0";
+string s_var2="Meta";
 string s_utBranch="UT_noTrackingWeights"; // "default" uses bool branchs from DSelector. Alternatively we can give it a branch name to get weights from
+bool do2Dfit=1;
+
+///// **************************************************************
+///// STEP0.5: DEFINE HISTOGRAM BIN PARAMETERS SO THERE IS CONSISTENCY
+///// **************************************************************
+std::vector<double> binRangeEta={200,0.25,0.85};
+std::vector<double> binRangePi0={200,0.005,0.25};
+double binWidthEta=(binRangeEta[2]-binRangeEta[1])/binRangeEta[0];
+double binWidthPi0=(binRangePi0[2]-binRangePi0[1])/binRangePi0[0];
+
 
 ///// **************************************************************
 ///// STEP1: DEFINE SIGNAL/BKG DISTRIBUTIONS
@@ -41,8 +51,9 @@ string s_utBranch="UT_noTrackingWeights"; // "default" uses bool branchs from DS
 static const int numDOFsig = 3; // degrees of freedom for the signal distribution
 static const int numDOFbkg = 2; //
 string namePar[numDOFbkg+numDOFsig] = {"bern01","bern11","amp","mass","sigma"};//,"ampRatio","sigmaRatio";
-int meanIndex=3; // used in getInitParams 
-int widthIndex=4; // used in getInitParams
+int meanIndices[1]={3}; // used in getInitParams 
+int widthIndices[1]={4}; // used in getInitParams
+std::vector<double> fitRangeEta={0.3,0.8};
 double signal(double *x, double *par){
 	return par[0]*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]));// + par[3]*exp(-0.5*((x[0]-par[4])/par[5])*((x[0]-par[4])/par[5]));
 
@@ -58,6 +69,84 @@ double fitFunc(double *x, double *par){
 // we need to tell "main" which variables need scaling when using the full reference distribution to the k nearest neighbors
 std::vector<int> sigVarsNeedScaling = {2}; // these parameter indices are relative to fitFunc
 std::vector<int> bkgVarsNeedScaling = {0,1};
+////////////////////////////////////////////
+
+// -----------------------------
+// Code for a 2d gaussian
+static const int numDOFsig2=5;
+static const int numDOFbkg2=4;
+string namePar2[numDOFbkg2+numDOFsig2] = {"bernx01","bernx11","berny01","berny11","amp","massx","sigmax","massy","sigmay"};//,"ampRatio","sigmaRatio";
+int meanIndices2[2]={5,7}; // used in getInitParams 
+int widthIndices2[2]={6,8}; // used in getInitParams
+std::vector<double> fitRangeEta2={0.25,0.85};//{0.4,0.7};
+std::vector<double> fitRangePi02={0.005,0.25};//{0.09,0.18};
+Double_t signal2(Double_t *x, Double_t *par) {
+	Double_t r1 = Double_t((x[0]-par[1])/par[2]);
+	Double_t r2 = Double_t((x[1]-par[3])/par[4]);
+	return par[0]/2/TMath::Pi()/par[2]/par[4]*TMath::Exp(-0.5*(r1*r1+r2*r2));
+}
+
+Double_t background2(Double_t *x, Double_t *par) {
+	return par[0]*x[0]/MAXVALUE+par[1]*(1-x[0]/MAXVALUE)+par[2]*x[1]/MAXVALUE+par[3]*(1-x[1]/MAXVALUE);
+}
+Double_t fitFunc2(Double_t *x, Double_t *par) {
+	return background2(x,par)+signal2(x,&par[numDOFbkg2]);
+}
+Double_t fitFunc2_projectVar2(Double_t *x, Double_t *par){
+        // integrates along var1 so it is a function of var2
+        // 0-3=bernstein coeffs, 4=2D gauss amp, {5,6} = {var1 mean,std}, {7,8} = {var2 mean,std}
+        // WE ALSO HAVE ONLY 1 VARIABLE SO THERE IS ONLY X[0] AND NO X[1]. WHEN PROJECTING 2D DISTRIBUTION TO 1D WE WILL ONLY HAVE X[0] FOR BOTH X,Y
+	Double_t r2 = Double_t((x[0]-par[7])/par[8]);
+        Double_t binWidth=binWidthPi0;
+        Double_t min=binRangePi0[1];
+        Double_t max=binRangePi0[2];
+        Double_t integratedBernstein = 0.5*(par[0]-par[1])*(max*max-min*min)+(par[1]+par[3]+(par[2]-par[3]))*(max-min);
+        Double_t gaus = par[4]/sqrt(2*TMath::Pi())/par[8]*TMath::Exp(-0.5*(r2*r2));
+	return (integratedBernstein+gaus)/binWidth; // need to scale by binWidth of the integrated dimension
+} 
+Double_t fitFunc2_projectVar1(Double_t *x, Double_t *par){
+        // integrates along var2 so it is a function of var1
+        // 0-3=bernstein coeffs, 4=2D gauss amp, {5,6} = {var1 mean,std}, {7,8} = {var2 mean,std}
+	Double_t r1 = Double_t((x[0]-par[5])/par[6]);
+        Double_t binWidth=binWidthEta;
+        Double_t min=binRangeEta[1];
+        Double_t max=binRangeEta[2];
+        Double_t integratedBernstein = 0.5*(par[2]-par[3])*(max*max-min*min)+(par[3]+par[1]+(par[0]-par[1]))*(max-min);
+        Double_t gaus = par[4]/sqrt(2*TMath::Pi())/par[6]*TMath::Exp(-0.5*(r1*r1));
+	return (integratedBernstein+gaus)/binWidth;
+} 
+Double_t background2_projectVar1(Double_t *x, Double_t *par){
+        Double_t min=binRangeEta[1];
+        Double_t max=binRangeEta[2];
+        Double_t binWidth=binWidthEta;
+        Double_t integratedBernstein = 0.5*(par[2]-par[3])*(max*max-min*min)+(par[3]+par[1]+(par[0]-par[1])*x[0])*(max-min);
+        return integratedBernstein/binWidth;
+} 
+Double_t background2_projectVar2(Double_t *x, Double_t *par){
+        Double_t min=binRangePi0[1];
+        Double_t max=binRangePi0[2];
+        Double_t binWidth=binWidthPi0;
+        Double_t integratedBernstein = 0.5*(par[0]-par[1])*(max*max-min*min)+(par[1]+par[3]+(par[2]-par[3])*x[0])*(max-min);
+        return integratedBernstein/binWidth;
+} 
+Double_t signal2_projectVar1(Double_t *x, Double_t *par){
+        Double_t binWidth=binWidthEta;
+	Double_t r1 = Double_t((x[0]-par[5])/par[6]);
+        Double_t gaus = par[4]/sqrt(2*TMath::Pi())/par[6]*TMath::Exp(-0.5*(r1*r1));
+        return gaus/binWidth;
+} 
+Double_t signal2_projectVar2(Double_t *x, Double_t *par){
+        Double_t binWidth=binWidthPi0;
+	Double_t r2 = Double_t((x[0]-par[7])/par[8]);
+        Double_t gaus = par[4]/sqrt(2*TMath::Pi())/par[8]*TMath::Exp(-0.5*(r2*r2));
+        return gaus/binWidth;
+} 
+
+// we need to tell "main" which variables need scaling when using the full reference distribution to the k nearest neighbors
+std::vector<int> sigVarsNeedScaling2 = {4}; // these parameter indices are relative to fitFunc
+std::vector<int> bkgVarsNeedScaling2 = {0,1,2,3};
+////////////////////////////////////////////
+// -----------------------------
 
 
 // Code for a breit Wigner
@@ -71,7 +160,7 @@ std::vector<int> bkgVarsNeedScaling = {0,1};
 //}
 
 // ******* THIS FUNCTION ALREADY ACCOUNTS FOR THE USE OF AMP/WIDTH RATIOS
-// DOuble gaus
+// double gaussian
 //int numDOFsig = 5;
 //double signal(double *x, double *par){
 //	return par[0]/par[2]/TMath::Sqrt( 2*TMath::Pi() )*exp(-0.5*((x[0]-par[1])/par[2])*((x[0]-par[1])/par[2]))
@@ -121,7 +210,67 @@ struct parameterLimits{
     }
 };
 
-std::vector<double> _SET_ParLimPercent = {300, 300, 300, 10, 75}; // These will be the percent deviations allowed for the parameters relative to initialization
+struct parameterLimits2{
+    // this vector will contain the initialization parameters (variable initPar in main.h) from which we can use to set par limits if we want
+    // These parameters would be a scaled version of the parameters taken from getInitParams.C, scaled down to kDim
+    std::vector<double> initPars; 
+    int numDOF = numDOFsig2+numDOFbkg2;
+    double eventRatioSigToBkg;
+    std::vector<double> lowerParLimits;
+    std::vector<double> upperParLimits;
+
+    void setupParLimits(){
+        // We allow each parameter to vary based on the magnitude of the parameter times some scaleFactor.
+        // Hopefully this is generic enough for different analyses but you can always set them directly here
+
+        double scaleFactor = 3; // allow the parameters some flexibility
+        double scaleSig = (1+1/eventRatioSigToBkg); // scale factor for the signal distribution to contain 100% of events
+        double scaleBkg = (1+eventRatioSigToBkg); // scale factor for the bkg distribution to contain 100% of events
+        cout << "sigScale: " << scaleSig << " bkgScale: " << scaleBkg << endl;
+        // Since we do 3 different initializations, with 100%bkg, 50/50, 100% sig the parameters for the bkg all go to zero in the 100% signal case. 
+        double abs_par = abs(initPars[0]*scaleBkg)+DBL_MIN;
+        lowerParLimits.push_back(0); // bernx01
+        //upperParLimits.push_back(scaleBkg*initPars[0]+scaleFactor*abs_par);
+        upperParLimits.push_back(1);
+
+        abs_par = abs(scaleBkg*initPars[1])+DBL_MIN;
+        lowerParLimits.push_back(0); // bernx11
+        //upperParLimits.push_back(scaleBkg*initPars[1]+scaleFactor*abs_par);
+        upperParLimits.push_back(1);
+
+        abs_par = abs(scaleBkg*initPars[2])+DBL_MIN;
+        lowerParLimits.push_back(0); // berny01
+        //upperParLimits.push_back(scaleSig*initPars[2]+scaleFactor*abs_par);
+        upperParLimits.push_back(1);
+
+        abs_par = abs(scaleBkg*initPars[3])+DBL_MIN;
+        lowerParLimits.push_back(0); // berny11
+        //upperParLimits.push_back(scaleSig*initPars[3]+scaleFactor*abs_par);
+        upperParLimits.push_back(1);
+        cout << "Finished setting bkg par limits" << endl;
+
+        abs_par = abs(scaleSig*initPars[4])+DBL_MIN;
+        lowerParLimits.push_back(0); // 2D gaus amp
+        upperParLimits.push_back(scaleSig*initPars[4]+scaleFactor*abs_par);
+        // since the mean and the width of gaussian is always + we can just multiply by a percentage
+        lowerParLimits.push_back(initPars[5]*0.9); // 2D gaus x mean
+        upperParLimits.push_back(initPars[5]*1.1);
+        lowerParLimits.push_back(initPars[6]*0.70); // 2D gaus x std
+        upperParLimits.push_back(initPars[6]*1.30);
+        lowerParLimits.push_back(initPars[7]*0.9); // 2D gaus y std
+        upperParLimits.push_back(initPars[7]*1.1);
+        lowerParLimits.push_back(initPars[8]*0.70); // 2D gaus y std
+        upperParLimits.push_back(initPars[8]*1.30);
+        cout << "Finished setting sig par limits" << endl;
+    }
+    void printParLimits(){
+        cout << "Printing all par limits\n-----------------------" << endl;
+        for (size_t i=0; i<numDOF; ++i){
+            cout << "Par" << i << " has lower,upper limits: " << lowerParLimits[i] << ", " << upperParLimits[i] << endl;
+        }
+    }
+};
+//std::vector<double> _SET_ParLimPercent = {300, 300, 300, 10, 75}; // These will be the percent deviations allowed for the parameters relative to initialization
 
 
 ///// **************************************************************
@@ -149,10 +298,6 @@ void getSBWeight(double discrimVar, double *sbWeight, std::string weightingSchem
         *sbWeight=1;
     }
 }
-
-
-
-
 
 
 //////////////////////////////////////////////////////////////
@@ -390,6 +535,7 @@ double calculateStd(int nentries, double* input){
     std /= nentries-1;
     return sqrt(std);
 }
+
 
 
 

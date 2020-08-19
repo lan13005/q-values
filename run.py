@@ -12,9 +12,9 @@ start_time = time.time()
 #############################################################################
 
 _SET_nProcess=24 # how many processes to spawn
-_SET_kDim=200 # number of neighbors
-_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much larger than kDim or we might get errors .
-_SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
+_SET_kDim=300 # number of neighbors
+_SET_nentries=10000 # how many combos we want to run over. Set to -1 to run over all. This should be much larger than kDim or we might get errors .
+_SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save.
 _SET_seedShift=91211 # in case we dont want the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
@@ -26,16 +26,15 @@ _SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental
 _SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
 _SET_sbWeight="weightBS" # the branch to look at to get the sideband weight
 _SET_uniquenessTracking="UT_noTrackingWeights" # "default" or give a branch name. Default is the default implementation of the DSelector tracking specific particle combos. 
-_SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj" # what is the phase space variables to calculate distance in 
+_SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj;Mpi0g1;Mpi0g2" # what is the phase space variables to calculate distance in 
 _SET_discrimVar="Meta" # discriminating/reference variable
 _SET_sideBandVar="Mpi0" # side band subtract on this variable
 _SET_emailWhenFinished=""#lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 _SET_verbose=1 # how much information we want to output to the logs folder
+_SET_do2Dfit=1 # whether I should do a 2D fit or a 1D fit. In the pi0eta case the bkg is actually 2D. We wanted to simplify the problem and do a 1D q-value on just Meta since it has greater background
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
 
-
-        
 rootFileBase="/d/grid15/ln16/pi0eta/q-values/"
 #rootFileBase="/home/lawrence/Desktop/gluex/q-values/"
 rootFileLocs=[
@@ -43,12 +42,17 @@ rootFileLocs=[
         #(rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
         #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
         #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
-        (rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
-        ,(rootFileBase+"degALL_FCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_FCAL_a0a2_tree_flat", "fcal")
-        ,(rootFileBase+"degALL_SPLIT_a0a2_treeFlat_DSelector_UTweights.root", "degALL_SPLIT_a0a2_tree_flat", "split")
-        ]
-_SET_fitLocationBase="discrimVarFit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
 
+        (rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
+        #,(rootFileBase+"degALL_FCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_FCAL_a0a2_tree_flat", "fcal")
+        #,(rootFileBase+"degALL_SPLIT_a0a2_treeFlat_DSelector_UTweights.root", "degALL_SPLIT_a0a2_tree_flat", "split")
+        ]
+#_SET_fitLocationBase="var1Fit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
+_SET_fitLocationBase="var1Vsvar2Fit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
+
+#############################################################################
+###################  DEALING WITH CMDLINE ARGS   #########################
+#############################################################################
 args=sys.argv
 def showHelp():
     print("\n-help\n")
@@ -119,6 +123,8 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
     sedArgs=["sed","-i",'s@s_sbWeight".*";@s_sbWeight="'+_SET_sbWeight+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_uniquenessTracking=".*";@s_uniquenessTracking="'+_SET_uniquenessTracking+'";@g',fileName]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@do2Dfit=.*;@do2Dfit='+str(_SET_do2Dfit)+';@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
 
@@ -253,9 +259,6 @@ def combineAllGraphs():
 #############################################################################
 ###################    BEGIN RUNNING THE PROGRAM    #########################
 #############################################################################
-
-
-
 for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     print("\n\n-------------------------------------")
     print("Starting running of {0}".format(_SET_rootFileLoc))

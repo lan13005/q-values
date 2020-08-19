@@ -13,7 +13,9 @@
 #include <TTree.h>
 #include <TFile.h>
 #include <TF1.h>
+#include <TF2.h>
 #include <TH1F.h>
+#include <TH2F.h>
 #include <TLine.h>
 #include <TROOT.h>
 #include <TStyle.h>
@@ -37,7 +39,7 @@
 //using namespace RooFit;
 
 
-const int dim=3; // will get replaced by run.py
+const int dim=5; // will get replaced by run.py
 bool verbose_outputDistCalc=false;
 TRandom rgen;
 
@@ -129,10 +131,12 @@ class QFactorAnalysis{
                 std::vector<double> redistributeFactorBkg;
                 std::vector<double> redistributeFactorSig;
                 parameterLimits parLimits;
+                parameterLimits2 parLimits2;
 
                 // initialize vectors to hold the discriminating and phase space variables
-		std::vector<double> discrimVars; 
-		std::vector<double> sideBandVars; 
+		std::vector<double> var1s; 
+		std::vector<double> var2s; 
+                std::vector<double> rfTimes;
                 std::vector<std::vector<double>> phaseSpaceVars;
                 std::vector<double> phaseSpaceVars0;
 		std::vector<double> AccWeights; 

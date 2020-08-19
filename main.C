@@ -15,14 +15,15 @@ void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
         cout << "Reserving space in vectors..." << endl;
 	// Use these vectors to import all the data to RAM instead of reading from root file
         // First we should reserve the space so there is no resizing of the vectors
-	discrimVars.reserve(nentries);
         std::vector<double> emptyVec;
         for (auto it=0; it<dim; ++it){
             // copy over emptyVec and then expand
             phaseSpaceVars.push_back(emptyVec);
             phaseSpaceVars[it].reserve(nentries);
         }
-	sideBandVars.reserve(nentries);
+	var1s.reserve(nentries);
+	var2s.reserve(nentries);
+        rfTimes.reserve(nentries);
 	AccWeights.reserve(nentries);
 	sbWeights.reserve(nentries);
 	spectroscopicComboIDs.reserve(nentries);
@@ -57,6 +58,13 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 	}
 	cout << "eventRatioSigToBkg: " << eventRatioSigToBkg << endl;
 	inFile.close();
+        cout << "Size of initPars: " << initPars.size() << endl;
+
+        // We will do 3 iterations. Not sure if I am doing this correctly
+        // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
+	cout << "------------- SETTING UP | 100% | 50%/50% | 100% | parameter initialization -----------------" << endl;
+        redistributeFactorSig = { 0, (1+1/eventRatioSigToBkg)/2, (1+1/eventRatioSigToBkg) };
+        redistributeFactorBkg = { (1+eventRatioSigToBkg), (1+eventRatioSigToBkg)/2, 0 };
 
 	// ----------------------------------------
 	// Set the fit constants for eta or pi0 full fits
@@ -66,31 +74,45 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
         // The amplitudes for the bkg bernstein polynomial is also scaled similarly. 
 	double scaleFactor = (double)kDim/total_nentries;
 	cout << "scaleFactor: " << scaleFactor << endl;
-	
-        // scaling signal distribution
-        for ( auto iVar : sigVarsNeedScaling) {
+
+        // Determine indicies to scale and set parameter limits
+        std::vector<int> scaleSigValuesAtIndices;
+        std::vector<int> scaleBkgValuesAtIndices;
+        int totalDOFs;
+        if(!do2Dfit){
+            scaleSigValuesAtIndices=sigVarsNeedScaling;
+            scaleBkgValuesAtIndices=bkgVarsNeedScaling;
+            totalDOFs=numDOFbkg+numDOFsig;
+
+            parLimits.initPars = initPars;
+            parLimits.eventRatioSigToBkg = eventRatioSigToBkg;
+            parLimits.setupParLimits();
+            parLimits.printParLimits();
+        }
+        else{
+            scaleSigValuesAtIndices=sigVarsNeedScaling2;
+            scaleBkgValuesAtIndices=bkgVarsNeedScaling2;
+            totalDOFs=numDOFbkg2+numDOFsig2;
+
+            parLimits2.initPars = initPars;
+            parLimits2.eventRatioSigToBkg = eventRatioSigToBkg;
+            parLimits2.setupParLimits();
+            parLimits2.printParLimits();
+        }
+        // scaling sig distribution
+        for ( auto iVar : scaleSigValuesAtIndices) {
             initPars[iVar] = scaleFactor*initPars[iVar];
         }
         // scaling bkg distribution
-        for ( auto iVar : bkgVarsNeedScaling) {
+        for ( auto iVar : scaleBkgValuesAtIndices) {
             initPars[iVar] = scaleFactor*initPars[iVar];
         }
         cout << "Scaled initialization parameters, scaled down to kDim" << endl;
-        for ( int iVar=0; iVar<numDOFbkg+numDOFsig; ++iVar ){
+        
+        for ( int iVar=0; iVar<totalDOFs; ++iVar ){
             cout << initParNames[iVar] << ": " << initPars[iVar] << endl; 
         }
 
-        // We will do 3 iterations. Not sure if I am doing this correctly
-        // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
-	cout << "------------- SETTING UP | 100% | 50%/50% | 100% | parameter initialization -----------------" << endl;
-        redistributeFactorSig = { 0, (1+1/eventRatioSigToBkg)/2, (1+1/eventRatioSigToBkg) };
-        redistributeFactorBkg = { (1+eventRatioSigToBkg), (1+eventRatioSigToBkg)/2, 0 };
-
-        // we can set up the parameter limits now
-        parLimits.initPars = initPars;
-        parLimits.eventRatioSigToBkg = eventRatioSigToBkg;
-        parLimits.setupParLimits();
-        parLimits.printParLimits();
 }
 
 
@@ -102,10 +124,11 @@ void QFactorAnalysis::loadData(){
 	// -----------------------------------------------------
 	// -----------------------------------------------------
 	// Create variables to hold the data as we read in the data from the tree
-	double discrimVar;
+	double var1;
+        double var2;
         double phaseSpaceVar[dim];
-        double sideBandVar;
 	double AccWeight;
+        double rfTime;
         double sbWeight;
 	ULong64_t spectroscopicComboID;
 
@@ -118,7 +141,6 @@ void QFactorAnalysis::loadData(){
         double utWeight;
 
 	// Set branch addresses so we can read in the data
-        dataTree->SetBranchAddress(s_discrimVar.c_str(), &discrimVar);
 	parseVarString parse(varString);
 	parse.parseString();
         if ( parse.varStringSet.size() != dim ) { cout << "Uh-oh something went wrong. varString size not the same as dim" << endl; }
@@ -126,10 +148,11 @@ void QFactorAnalysis::loadData(){
             cout << "Setting " << parse.varStringSet[iVar] << " to phaseSpaceVar index " << iVar << endl; 
             dataTree->SetBranchAddress(parse.varStringSet[iVar].c_str(),&phaseSpaceVar[iVar]);
         }
-	dataTree->SetBranchAddress(s_discrimVar.c_str(), &discrimVar);
-	dataTree->SetBranchAddress(s_sideBandVar.c_str(), &sideBandVar);
+	dataTree->SetBranchAddress(s_var1.c_str(), &var1);
+	dataTree->SetBranchAddress(s_var2.c_str(), &var2);
 	dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
         dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
+        dataTree->SetBranchAddress("rfTime",&rfTime);
 	dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
         
         // vars we will use to fill but not use directly
@@ -145,14 +168,16 @@ void QFactorAnalysis::loadData(){
 	for (Long64_t ientry=0; ientry<nentries; ientry++)
 	{
 		dataTree->GetEntry(ientry);
-		discrimVars.push_back(discrimVar);
+		var1s.push_back(var1);
+		var2s.push_back(var2);
+                rfTimes.push_back(rfTime);
+
 	        for (int iVar=0; iVar<dim; ++iVar){
                     phaseSpaceVars[iVar].push_back(phaseSpaceVar[iVar]);
                 }
-                sideBandVars.push_back(sideBandVar);
+
 	        AccWeights.push_back(AccWeight);
                 utWeights.push_back(utWeight);
-                //getSBWeight(sideBandVar,&sbWeight,weightingScheme);
 		sbWeights.push_back(sbWeight);
 	        spectroscopicComboIDs.push_back(spectroscopicComboID);
 	}
@@ -161,7 +186,6 @@ void QFactorAnalysis::loadData(){
 	    cout << "Before standarization the first nentries of phaseSpaceVar[0]" << endl;
 	    for ( int ientry=0 ; ientry < nentries; ientry++){
 	        cout << phaseSpaceVars[0][ientry] << endl;
-	        //cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
 	    }
 	}
 
@@ -189,7 +213,6 @@ void QFactorAnalysis::loadData(){
 	    cout << "After standarization the first nentries of phaseSpaceVar[0]" << endl;
 	    for ( int ientry=0 ; ientry < nentries; ientry++){
 	        cout << phaseSpaceVars[0][ientry] << endl;
-	        //cout << cosTheta_X_cms[ientry] << endl;//"," << phi_X_cms[ientry] << endl;
 	    }
 	}
 
@@ -218,6 +241,7 @@ void QFactorAnalysis::loadData(){
                     // if we use a weights branch we will allow any neighbor to be possible
 	            phasePoint2PotentialNeighbor.push_back(ientry);
                 }
+                
                 //else{ 
                 //    cout << "uniqueness tracking setting not set up properly!" << endl;
                 //    exit(0);
@@ -226,7 +250,7 @@ void QFactorAnalysis::loadData(){
         }
         cout << "\n\n--------------------------------------" << endl;
 	cout << phasePoint2PotentialNeighbor.size() << "/" << nentries << " are used as potential neighbors" << endl;
-        cout << "Some indicies that will be used as potential neighbros: " << endl;
+        cout << "Some indicies that will be used as potential neighbors: " << endl;
         //for (auto iPhasePoint2=0; iPhasePoint2 < phasePoint2PotentialNeighbor.size(); ++iPhasePoint2){
         for (auto iPhasePoint2=0; iPhasePoint2 < 20; ++iPhasePoint2){
             cout << phasePoint2PotentialNeighbor[iPhasePoint2] << " ";
@@ -286,12 +310,14 @@ void QFactorAnalysis::runQFactorThreaded(){
     		TCanvas *allCanvases = new TCanvas(("anyHists"+to_string(iThread)).c_str(),"",1440,900);
     		TCanvas *allCanvases_badFit = new TCanvas(("anyHists_badFit"+to_string(iThread)).c_str(),"",1440,900);
 		cout << "Creating canvas " << iThread << endl;
-        	TLine* discrimVarLine;
+        	TLine* var1Line;
 		TLine* qSigLine;
 		TLine* qBkgLine;
                 TLine* qValLine;
 		TH1F* discriminatorHist;
-		//TH1F* discriminatorHist2;
+		TH2F* discriminatorHist2;
+                TH1F* dHist_rfTime;
+                TH1F* dHist_qvaluesBS = new TH1F(("qvaluesBS"+to_string(iThread)).c_str(),"Bootstrapped Q-Factors",100,0,1);
 
 		// defining some variables we will use in the main loop to get the distances and then the q-values
 		map<double, int> mapDistToEntry;
@@ -333,19 +359,22 @@ void QFactorAnalysis::runQFactorThreaded(){
         	cout << "randomly selected some events to save" << endl;
 
 
-		std::vector<double> binRangeEta;
-        	std::vector<double> fitRangeEta;
+                // Define the TFs here. Will define both TF1s and TF2s and depending on if we are doing a 1D or 2D fit we will initialize them accordingly 
+                std::vector<TF1*> initFits;
+                std::vector<TF2*> initFits2;
+		TF1* fit;
+		TF1* bkgFit;
+		TF1* sigFit; 
+		TF2* fit2;
+		TF2* bkgFit2;
+		TF2* sigFit2; 
+		TF1* bkgFit_projVar1;
+		TF1* bkgFit_projVar2;
+		TF1* sigFit_projVar1;
+		TF1* sigFit_projVar2;
 
-		binRangeEta={200,0.25,0.85};
-		fitRangeEta={0.3,0.8};
-
-        	// Getting the scaling of the flat bkg is a bit tricky. Have to count how much bins we have in our fit range. kDim divided by the bins in fit range is the height of the flat function.
-        	double numBinsInFit = (fitRangeEta[1]-fitRangeEta[0])/((binRangeEta[2]-binRangeEta[1])/binRangeEta[0]);
-        	double binSize=((binRangeEta[2]-binRangeEta[1])/binRangeEta[0]);
-
-        	if (verbose) {cout << "Eta hist range: " << binRangeEta[0] << ", " << binRangeEta[1] << ", " << binRangeEta[2] << endl;}
-        	if (verbose) {cout << "Eta fit range: " << fitRangeEta[0] << ", " << fitRangeEta[1] << endl;}
         	
+                // Determining how many fits we do, depending on if we want to redistribute signal and bkg ratios
                 int numFits;
                 if(redistributeBkgSigFits){ 
                     numFits=3;
@@ -353,17 +382,42 @@ void QFactorAnalysis::runQFactorThreaded(){
                 else{
                     numFits=1;
                 }
-		TF1* fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-		TF1* bkgFit = new TF1(("bkgFit"+to_string(iThread)).c_str(),background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
-		TF1* sigFit = new TF1(("sigFit"+to_string(iThread)).c_str(),signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
-		discriminatorHist = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
-                TH1F* dHist_qvaluesBS = new TH1F(("qvaluesBS"+to_string(iThread)).c_str(),"Bootstrapped Q-Factors",100,0,1);
-                std::vector<TF1*> initFits;
-                TF1* initFit;
-		for ( int iFit = 0; iFit < numFits; ++iFit){
-                    initFit = new TF1(("initFit"+to_string(iFit)+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-                    initFits.push_back(initFit);
+		dHist_rfTime = new TH1F(("dHist_rfTime"+to_string(iThread)).c_str(),"Entries / 0.02 ns",200,-20,20);
+                if (!do2Dfit){
+                    if (verbose) {
+        	        cout << "Eta hist range: " << binRangeEta[0] << ", " << binRangeEta[1] << ", " << binRangeEta[2] << endl;
+        	        cout << "Eta fit range: " << fitRangeEta[0] << ", " << fitRangeEta[1] << endl;
+                    }
+                    fit = new TF1(("fit"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
+                    bkgFit = new TF1(("bkgFit"+to_string(iThread)).c_str(),background,fitRangeEta[0],fitRangeEta[1],numDOFbkg);
+                    sigFit = new TF1(("sigFit"+to_string(iThread)).c_str(),signal,fitRangeEta[0],fitRangeEta[1],numDOFsig);
+		    discriminatorHist = new TH1F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
+                    TF1* initFit;
+		    for ( int iFit = 0; iFit < numFits; ++iFit){
+                        initFit = new TF1(("initFit"+to_string(iFit)+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
+                        initFits.push_back(initFit);
+                    }
                 }
+                else {
+        	    cout << "Eta hist range: " << binRangeEta[0] << ", " << binRangeEta[1] << ", " << binRangeEta[2] << endl;
+        	    cout << "Eta fit range: " << fitRangeEta2[0] << ", " << fitRangeEta2[1] << endl;
+        	    cout << "Pi0 hist range: " << binRangePi0[0] << ", " << binRangePi0[1] << ", " << binRangePi0[2] << endl;
+        	    cout << "Pi0 fit range: " << fitRangePi02[0] << ", " << fitRangePi02[1] << endl;
+		    fit2 = new TF2(("fit"+to_string(iThread)).c_str(),fitFunc2,fitRangePi02[0],fitRangePi02[1],fitRangeEta2[0],fitRangeEta2[1],numDOFbkg2+numDOFsig2);
+                    bkgFit2 = new TF2(("bkgFit"+to_string(iThread)).c_str(),background2,fitRangePi02[0],fitRangePi02[1],fitRangeEta2[0],fitRangeEta2[1],numDOFbkg2+numDOFsig2);
+                    sigFit2 = new TF2(("sigFit"+to_string(iThread)).c_str(),signal2,fitRangePi02[0],fitRangePi02[1],fitRangeEta2[0],fitRangeEta2[1],numDOFbkg2+numDOFsig2);
+		    bkgFit_projVar1 = new TF1(("bkgFit_projVar1"+to_string(iThread)).c_str(),background2_projectVar1,fitRangePi02[0],fitRangePi02[1],numDOFbkg2+numDOFsig2);
+		    bkgFit_projVar2 = new TF1(("bkgFit_projVar2"+to_string(iThread)).c_str(),background2_projectVar2,fitRangeEta2[0],fitRangeEta2[1],numDOFbkg2+numDOFsig2);
+		    sigFit_projVar1 = new TF1(("sigFit_projVar1"+to_string(iThread)).c_str(),signal2_projectVar1,fitRangePi02[0],fitRangePi02[1],numDOFbkg2+numDOFsig2);
+		    sigFit_projVar2 = new TF1(("sigFit_projVar2"+to_string(iThread)).c_str(),signal2_projectVar2,fitRangeEta2[0],fitRangeEta2[1],numDOFbkg2+numDOFsig2);
+		    discriminatorHist2 = new TH2F(("discriminatorHist"+to_string(iThread)).c_str(),"",binRangePi0[0],binRangePi0[1],binRangePi0[2],binRangeEta[0],binRangeEta[1],binRangeEta[2]);
+                    TF2* initFit2;
+		    for ( int iFit = 0; iFit < numFits; ++iFit){
+                        initFit2 = new TF2(("initFit"+to_string(iFit)+to_string(iThread)).c_str(),fitFunc2,fitRangePi02[0],fitRangePi02[1],fitRangeEta2[0],fitRangeEta2[1],numDOFbkg2+numDOFsig2);
+                        initFits2.push_back(initFit2);
+                    }
+                }
+
 		// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
 		// Then we can plot the k nearest neighbors in the discriminating distribution which happens to be a double gaussian and flat bkg. Calculate Q-Value from event
 		// i's discriminating variable's value. This value will be plugged into the signal PDF and the total PDF. The ratio of these two values are taken which is the Q-Value.
@@ -379,6 +433,8 @@ void QFactorAnalysis::runQFactorThreaded(){
                         dHist_qvaluesBS->Reset();
 		        Double_t par[numDOFbkg+numDOFsig]; 
 		        Double_t parBest[numDOFbkg+numDOFsig]; // saving the best parameters to plot them later
+		        Double_t par2[numDOFbkg2+numDOFsig2]; 
+		        Double_t parBest2[numDOFbkg2+numDOFsig2]; // saving the best parameters to plot them later
 
                         // Outputting the progress of each thread
 			double unshiftedEntry = (double)(ientry-lowest_nentry);
@@ -421,7 +477,13 @@ void QFactorAnalysis::runQFactorThreaded(){
                         // ---------------------
                         for (int iBS=0; iBS<nBS+1; ++iBS){ 
                             // resetting some variables
-                            discriminatorHist->Reset();
+                            if (!do2Dfit){
+                                discriminatorHist->Reset();
+                            }
+                            else { 
+                                discriminatorHist2->Reset();
+                            }
+                            dHist_rfTime->Reset();
 			    bestChiSq=DBL_MAX;
 			    worstChiSq=DBL_MIN;
 			    duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
@@ -475,10 +537,16 @@ void QFactorAnalysis::runQFactorThreaded(){
                                     if (weightingScheme=="as*bs"){ weight=AccWeights[newPair.second]*sbWeights[newPair.second]; }
                                     weight=weight*utWeights[newPair.second];
 
-			            discriminatorHist->Fill(discrimVars[newPair.second],weight);
+                                    if (!do2Dfit){
+			                discriminatorHist->Fill(var2s[newPair.second],weight);
+                                    }
+                                    else{
+			                discriminatorHist2->Fill(var1s[newPair.second],var2s[newPair.second],weight);
+                                    }
+                                    dHist_rfTime->Fill(rfTimes[newPair.second]);
 
                                     if(verbose_outputDistCalc){
-			                cout << "(" << newPair.first << ", " << newPair.second << ", " << discrimVars[newPair.second] << ")" << endl; 
+			                cout << "(" << newPair.first << ", " << newPair.second << ", " << var2s[newPair.second] << ")" << endl; 
                                     }
 			    }
 			    
@@ -490,47 +558,75 @@ void QFactorAnalysis::runQFactorThreaded(){
 			    // /////////////////////////////////////////
 			    //// We use a normalized gaussian and a flat function. 
 			    
-                            // saving the initializations to see if they sort of make sense
 			    for ( int iFit = 0; iFit < numFits; ++iFit){
-                                std::vector<double> initParsVaryPercentSig = initPars;
-                                if(redistributeBkgSigFits){
-                                    for ( auto sigVar : sigVarsNeedScaling ){ 
-                                        initParsVaryPercentSig[sigVar] = initParsVaryPercentSig[sigVar]*redistributeFactorSig[iFit];
+                                // Initialize, fit the fits and extract useful output
+                                if ( !do2Dfit ) {
+                                    std::vector<double> initParsVaryPercentSig = parLimits.initPars;
+                                    if(redistributeBkgSigFits){
+                                        for ( auto sigVar : sigVarsNeedScaling ){ 
+                                            initParsVaryPercentSig[sigVar] = initParsVaryPercentSig[sigVar]*redistributeFactorSig[iFit];
+                                        }
+                                        for ( auto bkgVar : bkgVarsNeedScaling ){ 
+                                            initParsVaryPercentSig[bkgVar] = initParsVaryPercentSig[bkgVar]*redistributeFactorBkg[iFit];
+                                        }
                                     }
-                                    for ( auto bkgVar : bkgVarsNeedScaling ){ 
-                                        initParsVaryPercentSig[bkgVar] = initParsVaryPercentSig[bkgVar]*redistributeFactorBkg[iFit];
+                                    // saving the initialization to plot it later, just checking if the initializations look reasonable
+			    	    initFits[iFit]->SetParameters(&initParsVaryPercentSig[0]);
+                                    fit->SetParameters(&initParsVaryPercentSig[0]);
+                                    for (int iPar=0; iPar<parLimits.numDOF; ++iPar){
+                                        fit->SetParLimits(iPar,parLimits.lowerParLimits[iPar], parLimits.upperParLimits[iPar]);
                                     }
+			    	    discriminatorHist->Fit(fit,"RQNL"); // B will enforce the bounds, N will be no draw
+			            duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
+			            if(verbose){logFile <<	"\tFitted fits: " << duration2 << "ms" << endl;}
+
+                                    // setting parameters for bkg/sig and extracting q-value
+			    	    fit->GetParameters(par);
+			    	    bkgFit->SetParameters(par);
+			    	    sigFit->SetParameters(&par[numDOFbkg]);
+			    	    qvalue=sigFit->Eval(var2s[ientry])/fit->Eval(var2s[ientry]);
+			    	    
+			    	    // now that the q-value is found we can get the chiSq and save the parameters with the best chiSq
+			    	    chiSq = fit->GetChisquare()/(fit->GetNDF());
                                 }
-                                // saving the initialization to plot it later, just checking if the initializations look reasonable
-			    	initFits[iFit]->SetParameters(&initParsVaryPercentSig[0]);
-                                fit->SetParameters(&initParsVaryPercentSig[0]);
-                                for (int iPar=0; iPar<parLimits.numDOF; ++iPar){
-                                    fit->SetParLimits(iPar,parLimits.lowerParLimits[iPar], parLimits.upperParLimits[iPar]);
+                                else {
+                                    std::vector<double> initParsVaryPercentSig2 = parLimits2.initPars;
+                                    if(redistributeBkgSigFits){
+                                        for ( auto sigVar : sigVarsNeedScaling2 ){ 
+                                            initParsVaryPercentSig2[sigVar] = initParsVaryPercentSig2[sigVar]*redistributeFactorSig[iFit];
+                                        }
+                                        for ( auto bkgVar : bkgVarsNeedScaling2 ){ 
+                                            initParsVaryPercentSig2[bkgVar] = initParsVaryPercentSig2[bkgVar]*redistributeFactorBkg[iFit];
+                                        }
+                                    }
+                                    // saving the initialization to plot it later, just checking if the initializations look reasonable
+			    	    initFits2[iFit]->SetParameters(&initParsVaryPercentSig2[0]);
+                                    fit2->SetParameters(&initParsVaryPercentSig2[0]);
+                                    for (int iPar=0; iPar<parLimits2.numDOF; ++iPar){
+                                        fit2->SetParLimits(iPar,parLimits2.lowerParLimits[iPar], parLimits2.upperParLimits[iPar]);
+                                    }
+			            if(verbose){logFile <<	"\tPrepping 2D fits: " << duration2 << "ms" << endl;}
+			    	    discriminatorHist2->Fit(fit2,"RQNL"); // B will enforce the bounds, N will be no draw
+			            duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
+			            if(verbose){logFile <<	"\tFitted fits: " << duration2 << "ms" << endl;}
+
+                                    // setting parameters for bkg/sig and extracting q-value
+			    	    fit2->GetParameters(par2);
+			    	    bkgFit2->SetParameters(par2);
+			    	    sigFit2->SetParameters(&par2[numDOFbkg2]);
+			    	    qvalue=sigFit2->Eval(var1s[ientry],var2s[ientry])/fit2->Eval(var1s[ientry],var2s[ientry]);
+			            if(verbose){logFile <<	"\tExtracted q-value: " << duration2 << "ms" << endl;}
+                                    
+			    	    // now that the q-value is found we can get the chiSq and save the parameters with the best chiSq
+			    	    chiSq = fit2->GetChisquare()/(fit2->GetNDF());
                                 }
-			        duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
-			        if(verbose){logFile <<	"\tinitialized init fits: " << duration2 << "ms" << endl;}
-			    	//{
-			    	//	// have to use a mutex here or else we get some weird error
-			    	//	//R__LOCKGUARD(gGlobalMutex);
-			    	//	discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
-			    	//}
-			    	discriminatorHist->Fit(fit,"RQNL"); // B will enforce the bounds, N will be no draw
-			    	//discriminatorHist->Fit(("fit"+to_string(iThread)).c_str(),"RQBNL"); // B will enforce the bounds, N will be no draw
-			        duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
-			        if(verbose){logFile <<	"\tFitted fits: " << duration2 << "ms" << endl;}
-			    	fit->GetParameters(par);
-			    	bkgFit->SetParameters(par);
-			    	sigFit->SetParameters(&par[numDOFbkg]);
-			    	qvalue=sigFit->Eval(discrimVars[ientry])/fit->Eval(discrimVars[ientry]);
-			    	
-			    	// now that the q-value is found we can get the chiSq and save the parameters with the best chiSq
-			    	chiSq = fit->GetChisquare()/(fit->GetNDF());
-			    	//if (verbose) { logFile << "\tcurrent ChiSq, best ChiSq: " << chiSq << ", " << bestChiSq << endl; }
+
+
 			    	if (chiSq < bestChiSq){
 			    		best_qvalue = qvalue;
 			    		bestChiSq=chiSq;
-			    		for (int i=0; i < sizeof(par)/sizeof(Double_t); ++i){
-			    			parBest[i]=par[i];
+			    		for (int i=0; i < sizeof(par2)/sizeof(Double_t); ++i){
+			    			parBest2[i]=par2[i];
 			    		}
 			    	} 
 			    	if (chiSq > worstChiSq){
@@ -543,7 +639,11 @@ void QFactorAnalysis::runQFactorThreaded(){
                                 qvalues.push_back(best_qvalue);
                                 dHist_qvaluesBS->Fill(best_qvalue);
                             }
-                            if (iBS==nBS || saveBShistsAlso){ //show all histograms or only the true q-factor
+
+
+                            // EITHER WE POTENTIALLY SAVE THE HISTOGRAM AFTER ALL BS IS DONE OR WE SAVE IT EVERY ITERATION DURING THE BS. ALLOWS US TO SEE HOW THINGS DEVELOP
+                            // THERE IS STILL AN INNER CONDITION THAT ONLY SELECTS A SUBSET OF THESE. SINCE WE DONT WANT 100K+ HISTOGRAMS
+                            if (iBS==nBS || saveBShistsAlso){
         		        // /////////////////////////////////////////
         		        // Drawing histogram 
         		        // /////////////////////////////////////////
@@ -553,109 +653,223 @@ void QFactorAnalysis::runQFactorThreaded(){
         		                legend_init->Clear();
         		                legend_fit->Clear();
                                         legend_qVal->Clear();
-                                        TPad *pad1 = new TPad("pad1", "",0.0,0,0.5,1.0);
-                                        TPad *pad2 = new TPad("pad2", "",0.5,0.5,1.0,1);
-                                        TPad *pad3 = new TPad("pad3", "",0.5,0,1.0,0.5);
-                                        pad1->Draw();
-                                        pad2->Draw();
-                                        pad3->Draw();
-        
-                                        pad1->cd();
-        		        	discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq="+to_string(bestChiSq)).c_str() );
-        		        	discrimVarLine = new TLine(discrimVars[ientry],0,discrimVars[ientry],kDim);
-        		        	discrimVarLine->SetLineColor(kOrange);
-        		        	
-                	          	fit->SetParameters(parBest);
-        		          	bkgFit->SetParameters(parBest);
-        		          	sigFit->SetParameters(&parBest[numDOFbkg]);
-                	          	fit->SetLineColor(kRed);
-          		          	bkgFit->SetFillColor(kMagenta);
-                	          	bkgFit->SetLineColor(kMagenta);
-          		          	bkgFit->SetFillStyle(3004);
-          		          	sigFit->SetFillColor(kBlue);
-                	          	sigFit->SetLineColor(kBlue);
-          		          	sigFit->SetFillStyle(3005);
-        
-        		        	qSigLine = new TLine(0,sigFit->Eval(discrimVars[ientry]),binRangeEta[2],sigFit->Eval(discrimVars[ientry]));
-        		        	qBkgLine = new TLine(0,bkgFit->Eval(discrimVars[ientry]),binRangeEta[2],bkgFit->Eval(discrimVars[ientry]));
-        		        	
-                	          	qSigLine->SetLineColor(kBlue);
-        		        	qSigLine->SetLineStyle(9);
-                	          	qBkgLine->SetLineColor(kMagenta);
-        		        	qBkgLine->SetLineStyle(9);
-        
-        
-                                        legend_fit->AddEntry(fit,"Tot");
-                                        legend_fit->AddEntry(bkgFit,"Bkg");
-                                        legend_fit->AddEntry(sigFit,"Sig");
-                                        legend_fit->AddEntry(discrimVarLine,"DiscrimVarVal");
-                                        legend_fit->AddEntry(qSigLine,"SigVal @ DiscrimVarVal");
-                                        legend_fit->AddEntry(qBkgLine,"BkgVal @ DiscrimVarVal");
-        
-                	          	discriminatorHist->Draw();
-                	          	discrimVarLine->Draw("same");
-        
-                	          	fit->Draw("SAME");
-                	          	bkgFit->Draw("SAME FC");
-                	          	sigFit->Draw("SAME FC");
-                	        	qBkgLine->Draw("SAME");
-                	        	qSigLine->Draw("SAME");
-                                        legend_fit->Draw();
-                	          	drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(discrimVars[ientry]),bkgFit->Eval(discrimVars[ientry]),fit->Eval(discrimVars[ientry]));
-                	        	// INTERESTING, IF I WERE TO SAVE THE CANVAS AS A ROOT FILE I GET AN ERROR IF I PUT THE SAME HISTOGRAM ON TWO DIFFERENT PADS. SEEMS LIKE THE CANVAS
-                	        	// SAVES A TList OF HISTS+TF1'S AND IF THERE ARE MULTIPLE CALLS TO THE SAME HISTOGRAM IT MIGHT DELETE THE HISTOGRAM AFTER SEEING IT FOR THE FIRST TIME AND
-                	        	// THEN IT WOULD NOT BE ABLE TO FIND THE HISTOGRAM AGAIN THE SECOND TIME AROUND. WE HAVE TO CLONE THE HISTOGRAM FIRST AND THEN SAVE THE ROOT FILE SO THE CANVAS
-                	        	// ARE TWO DIFFERENT ELEMENTS.
-                                        pad2->cd();
-                	        	TH1F* clonedHist = (TH1F*) discriminatorHist->Clone();
-                                        clonedHist->SetTitle("Initializations");
-                	          	clonedHist->Draw();
-        
-                                        if (redistributeBkgSigFits){
-                	        	    initFits[0]->SetLineColor(kBlue-4);
-                	        	    initFits[0]->Draw("SAME");
-                	        	    initFits[1]->SetLineColor(kRed-3);
-                	        	    initFits[1]->Draw("SAME");
-                	        	    initFits[2]->SetLineColor(kGreen+2);
-                	        	    initFits[2]->Draw("SAME");
-                                            legend_init->AddEntry(initFits[0],"100% bkg");
-                                            legend_init->AddEntry(initFits[1],"50/50 bkg/sig");
-                                            legend_init->AddEntry(initFits[2],"100% sig");
-                                        }
-                	        	TF1* initFit4 = new TF1(("initFit4"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
-                	        	initFit4->SetParameters(initPars[0],initPars[1],initPars[2],initPars[3],initPars[4]);
-                	        	initFit4->SetLineColor(kOrange+1);
-                	        	initFit4->Draw("SAME");
-                                        legend_init->AddEntry(initFit4,"Scaled Full Fit");
-                                        legend_init->Draw();
-        
-                                        pad3->cd();
-                                        if (iBS==nBS){
-                                            qvalueBS_std=calculateStd(nBS,&qvalues[0]);
-                                            dHist_qvaluesBS->SetTitle(("STD: "+to_string(qvalueBS_std)).c_str());
-                                        }
-                                        else{
-                                            dHist_qvaluesBS->SetTitle("Bootstrapped Q-Factors");
 
-                                        }
-                                        dHist_qvaluesBS->Draw();
-        		                qValLine = new TLine(best_qvalue,0,best_qvalue,nBS);
-        		                qValLine->SetLineColor(kOrange);
-                                        legend_qVal->AddEntry(qValLine,"True Q Value");
-                                        qValLine->Draw("SAME");
-                                        legend_qVal->AddEntry(dHist_qvaluesBS,"Bootstrapped Q Values");
-                                        legend_qVal->Draw();
-        		        	// need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one png converter
-        		        	// or whatever and maybe if multiple threads calls it then a blocking effect can happen
-                                        qHistsFile->cd();
-                                        if(iBS==nBS){
-        		                    //allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
-                                            allCanvases->Write(("Mass-event"+std::to_string(ientry)).c_str());
-                                            qHistsFile->Close();
+                                        TLine* varLine;
+        		        	varLine = new TLine(var2s[ientry],0,var2s[ientry],kDim); // we dont actually use these values to draw
+        		        	varLine->SetLineColor(kOrange);
+                                        varLine->SetLineWidth(5);
+
+                                        if (!do2Dfit){
+                                            allCanvases->Divide(2,2);
+                                            //TPad *pad1 = new TPad("pad1", "",0.0,0,0.5,1.0);
+                                            //TPad *pad2 = new TPad("pad2", "",0.5,0.5,1.0,1);
+                                            //TPad *pad3 = new TPad("pad3", "",0.5,0,1.0,0.5);
+                                            //pad1->Draw();
+                                            //pad2->Draw();
+                                            //pad3->Draw();
+        
+                                            //pad1->cd();
+                                            allCanvases->cd(1);
+        		        	    discriminatorHist->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq/DOF="+to_string(bestChiSq)).c_str() );
+        		        	    
+                	          	    fit->SetParameters(parBest);
+        		          	    bkgFit->SetParameters(parBest);
+        		          	    sigFit->SetParameters(&parBest[numDOFbkg]);
+                	          	    fit->SetLineColor(kRed);
+          		          	    bkgFit->SetFillColor(kMagenta);
+                	          	    bkgFit->SetLineColor(kMagenta);
+          		          	    bkgFit->SetFillStyle(3004);
+          		          	    sigFit->SetFillColor(kBlue);
+                	          	    sigFit->SetLineColor(kBlue);
+          		          	    sigFit->SetFillStyle(3005);
+        
+        		        	    qSigLine = new TLine(0,sigFit->Eval(var2s[ientry]),binRangeEta[2],sigFit->Eval(var2s[ientry]));
+        		        	    qBkgLine = new TLine(0,bkgFit->Eval(var2s[ientry]),binRangeEta[2],bkgFit->Eval(var2s[ientry]));
+        		        	    
+                	          	    qSigLine->SetLineColor(kBlue);
+        		        	    qSigLine->SetLineStyle(9);
+                	          	    qBkgLine->SetLineColor(kMagenta);
+        		        	    qBkgLine->SetLineStyle(9);
+        
+        
+                                            legend_fit->AddEntry(fit,"Tot");
+                                            legend_fit->AddEntry(bkgFit,"Bkg");
+                                            legend_fit->AddEntry(sigFit,"Sig");
+                                            legend_fit->AddEntry(varLine,"DiscrimVarVal");
+                                            legend_fit->AddEntry(qSigLine,"SigVal @ DiscrimVarVal");
+                                            legend_fit->AddEntry(qBkgLine,"BkgVal @ DiscrimVarVal");
+        
+                	          	    discriminatorHist->Draw();
+                	          	    varLine->Draw("same");
+        
+                	          	    fit->Draw("SAME");
+                	          	    bkgFit->Draw("SAME FC");
+                	          	    sigFit->Draw("SAME FC");
+                	        	    qBkgLine->Draw("SAME");
+                	        	    qSigLine->Draw("SAME");
+                                            legend_fit->Draw();
+                	          	    drawText(parBest,numDOFbkg+numDOFsig,"par",sigFit->Eval(var2s[ientry]),bkgFit->Eval(var2s[ientry]),fit->Eval(var2s[ientry]));
+                	        	    // INTERESTING, IF I WERE TO SAVE THE CANVAS AS A ROOT FILE I GET AN ERROR IF I PUT THE SAME HISTOGRAM ON TWO DIFFERENT PADS. SEEMS LIKE THE CANVAS
+                	        	    // SAVES A TList OF HISTS+TF1'S AND IF THERE ARE MULTIPLE CALLS TO THE SAME HISTOGRAM IT MIGHT DELETE THE HISTOGRAM AFTER SEEING IT FOR THE FIRST TIME AND
+                	        	    // THEN IT WOULD NOT BE ABLE TO FIND THE HISTOGRAM AGAIN THE SECOND TIME AROUND. WE HAVE TO CLONE THE HISTOGRAM FIRST AND THEN SAVE THE ROOT FILE SO THE CANVAS
+                	        	    // ARE TWO DIFFERENT ELEMENTS.
+                                            //pad2->cd();
+                                            allCanvases->cd(2);
+                	        	    TH1F* clonedHist = (TH1F*) discriminatorHist->Clone();
+                                            clonedHist->SetTitle("Initializations");
+                	          	    clonedHist->Draw();
+        
+                                            if (redistributeBkgSigFits){
+                	        	        initFits[0]->SetLineColor(kBlue-4);
+                	        	        initFits[0]->Draw("SAME");
+                	        	        initFits[1]->SetLineColor(kRed-3);
+                	        	        initFits[1]->Draw("SAME");
+                	        	        initFits[2]->SetLineColor(kGreen+2);
+                	        	        initFits[2]->Draw("SAME");
+                                                legend_init->AddEntry(initFits[0],"100% bkg");
+                                                legend_init->AddEntry(initFits[1],"50/50 bkg/sig");
+                                                legend_init->AddEntry(initFits[2],"100% sig");
+                                            }
+                	        	    TF1* initFit4 = new TF1(("initFit4"+to_string(iThread)).c_str(),fitFunc,fitRangeEta[0],fitRangeEta[1],numDOFbkg+numDOFsig);
+                	        	    initFit4->SetParameters(initPars[0],initPars[1],initPars[2],initPars[3],initPars[4]);
+                	        	    initFit4->SetLineColor(kOrange+1);
+                	        	    initFit4->Draw("SAME");
+                                            legend_init->AddEntry(initFit4,"Scaled Full Fit");
+                                            legend_init->Draw();
+        
+                                            //pad3->cd();
+                                            allCanvases->cd(3);
+                                            if (iBS==nBS){
+                                                qvalueBS_std=calculateStd(nBS,&qvalues[0]);
+                                                dHist_qvaluesBS->SetTitle(("STD: "+to_string(qvalueBS_std)).c_str());
+                                            }
+                                            else{
+                                                dHist_qvaluesBS->SetTitle("Bootstrapped Q-Factors");
+
+                                            }
+                                            dHist_qvaluesBS->Draw();
+        		                    qValLine = new TLine(best_qvalue,0,best_qvalue,nBS);
+        		                    qValLine->SetLineColor(kOrange);
+                                            legend_qVal->AddEntry(qValLine,"True Q Value");
+                                            qValLine->Draw("SAME");
+                                            legend_qVal->AddEntry(dHist_qvaluesBS,"Bootstrapped Q Values");
+                                            legend_qVal->Draw();
+
+                                            allCanvases->cd(4);
+                                            dHist_rfTime->Draw();
+
+
+        		        	    // need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one png converter
+        		        	    // or whatever and maybe if multiple threads calls it then a blocking effect can happen
+                                            qHistsFile->cd();
+                                            if(iBS==nBS){
+        		                        //allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
+                                                allCanvases->Write(("Mass-event"+std::to_string(ientry)).c_str());
+                                                qHistsFile->Close();
+                                            }
+                                            else {
+        		        	            //allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+"BS"+to_string(iBS)+".root").c_str());
+                                                    allCanvases->Write(("Mass-event"+std::to_string(ientry)+"BS"+to_string(iBS)).c_str());
+                                            }
                                         }
                                         else {
-        		        	        //allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+"BS"+to_string(iBS)+".root").c_str());
-                                                allCanvases->Write(("Mass-event"+std::to_string(ientry)+"BS"+to_string(iBS)).c_str());
+			                    if(verbose){logFile <<	"\tSaving 2D histogram: " << duration2 << "ms" << endl;}
+                                            allCanvases->Divide(3,2);
+        
+        		        	    discriminatorHist2->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)+"  ChiSq/DOF="+to_string(bestChiSq)).c_str() );
+        		        	    varLine = new TLine(var2s[ientry],binRangePi0[1],var2s[ientry],binRangePi0[2]);
+        		        	    varLine->SetLineColor(kOrange);
+        		        	    
+                	          	    fit2->SetParameters(parBest2);
+			    	            bkgFit_projVar1->SetParameters(parBest2);
+			    	            bkgFit_projVar2->SetParameters(parBest2);
+			    	            sigFit_projVar1->SetParameters(parBest2);
+			    	            sigFit_projVar2->SetParameters(parBest2);
+
+                	          	    fit2->SetLineColor(kRed);
+
+          		          	    bkgFit_projVar1->SetFillColor(kMagenta);
+                	          	    bkgFit_projVar1->SetLineColor(kMagenta);
+          		          	    bkgFit_projVar1->SetFillStyle(3004);
+          		          	    bkgFit_projVar2->SetFillColor(kMagenta);
+                	          	    bkgFit_projVar2->SetLineColor(kMagenta);
+          		          	    bkgFit_projVar2->SetFillStyle(3004);
+
+          		          	    sigFit_projVar1->SetFillColor(kBlue);
+                	          	    sigFit_projVar1->SetLineColor(kBlue);
+          		          	    sigFit_projVar1->SetFillColor(kBlue);
+                	          	    sigFit_projVar2->SetLineColor(kBlue);
+          		          	    sigFit_projVar2->SetFillStyle(3005);
+          		          	    sigFit_projVar2->SetFillStyle(3005);
+
+                                            legend_fit->AddEntry(fit2,"Tot");
+                                            legend_fit->AddEntry(bkgFit_projVar1,"Bkg");
+                                            legend_fit->AddEntry(sigFit_projVar2,"Sig");
+                                            legend_fit->AddEntry(varLine,"DiscrimVarVal");
+
+                                            allCanvases->cd(1);
+                	          	    discriminatorHist2->Draw("COLZ");
+                	          	    varLine->DrawLine(binRangePi0[1],var2s[ientry],binRangePi0[2],var2s[ientry]);
+                	          	    varLine->DrawLine(var1s[ientry],binRangeEta[1],var1s[ientry],binRangeEta[2]);
+                	          	    fit2->Draw("SAME");
+                                            legend_fit->Draw();
+                	          	    drawText(parBest2,numDOFbkg2+numDOFsig2,"par",sigFit2->Eval(var1s[ientry],var2s[ientry]),bkgFit2->Eval(var1s[ientry],var2s[ientry]),fit2->Eval(var1s[ientry],var2s[ientry]));
+			                    if(verbose){logFile <<	"\tCompleted drawing on pad 1: " << duration2 << "ms" << endl;}
+
+                                            allCanvases->cd(2);
+                                            TH1F *dHist_var1 = (TH1F *)discriminatorHist2->ProjectionX("proj_pi0", 0, -1);
+                                            dHist_var1->SetTitle("Projection into Pi0");
+                	          	    dHist_var1->Draw();
+                	          	    varLine->DrawLine(var1s[ientry],0,var1s[ientry],dHist_var1->GetMaximum());
+                                            bkgFit_projVar1->Draw("SAME");
+                                            sigFit_projVar1->Draw("SAME");
+			                    if(verbose){logFile <<	"\tCompleted drawing on pad 2: " << duration2 << "ms" << endl;}
+        
+                                            allCanvases->cd(3);
+                                            TH1F *dHist_var2 = (TH1F *)discriminatorHist2->ProjectionY("proj_eta", 0, -1);
+                                            dHist_var2->SetTitle("Projection into Eta");
+                	          	    dHist_var2->Draw();
+                	          	    varLine->DrawLine(var2s[ientry],0,var2s[ientry],dHist_var1->GetMaximum());
+                                            bkgFit_projVar2->Draw("SAME");
+                                            sigFit_projVar2->Draw("SAME");
+			                    if(verbose){logFile <<	"\tCompleted drawing on pad 3: " << duration2 << "ms" << endl;}
+
+                                            allCanvases->cd(4);
+                                            if (iBS==nBS){
+                                                qvalueBS_std=calculateStd(nBS,&qvalues[0]);
+                                                dHist_qvaluesBS->SetTitle(("STD: "+to_string(qvalueBS_std)).c_str());
+                                            }
+                                            else{
+                                                dHist_qvaluesBS->SetTitle("Bootstrapped Q-Factors");
+
+                                            }
+                                            dHist_qvaluesBS->Draw();
+        		                    qValLine = new TLine(best_qvalue,0,best_qvalue,nBS);
+        		                    qValLine->SetLineColor(kOrange);
+                                            legend_qVal->AddEntry(qValLine,"True Q Value");
+                                            qValLine->Draw("SAME");
+                                            legend_qVal->AddEntry(dHist_qvaluesBS,"Bootstrapped Q Values");
+                                            legend_qVal->Draw();
+			                    if(verbose){logFile <<	"\tCompleted drawing on pad 4: " << duration2 << "ms" << endl;}
+
+
+                                            allCanvases->cd(5);
+                                            dHist_rfTime->Draw();
+			                    if(verbose){logFile <<	"\tCompleted drawing on pad 5: " << duration2 << "ms" << endl;}
+
+
+        		        	    // need to save as a root file first then convert to pngs or whatever. Seems like saveas doesnt like threaded since the processes might make only one png converter
+        		        	    // or whatever and maybe if multiple threads calls it then a blocking effect can happen
+                                            qHistsFile->cd();
+                                            if(iBS==nBS){
+        		                        //allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
+                                                allCanvases->Write(("Mass-event"+std::to_string(ientry)).c_str());
+                                                qHistsFile->Close();
+                                            }
+                                            else {
+        		        	            //allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+"BS"+to_string(iBS)+".root").c_str());
+                                                    allCanvases->Write(("Mass-event"+std::to_string(ientry)+"BS"+to_string(iBS)).c_str());
+                                            }
                                         }
         		        	    
         		        	if(verbose){
@@ -671,13 +885,19 @@ void QFactorAnalysis::runQFactorThreaded(){
                         else{
 			    if(verbose){logFile << "\tBest chiSq = " << to_string(bestChiSq) << ": " << duration2 << "ms" << endl; }
                         }
-			double sbWeight = sbWeights[ientry];
 			resultsTree->Fill();
 			
 		}
 		delete fit;
 		delete bkgFit;
 		delete sigFit;
+		delete fit2;
+		delete bkgFit2;
+		delete sigFit2;
+		delete bkgFit_projVar1;
+		delete bkgFit_projVar2;
+		delete sigFit_projVar1;
+		delete sigFit_projVar2;
         	resultsFile->cd();
         	resultsTree->Write();
         	cout << "nentries: " << nentries << endl;
