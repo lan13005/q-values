@@ -21,6 +21,7 @@ void subdetector_convertROOTtoPNG(string inDir){
 	
 	TFile* histFile;
 	TH1F* hist;
+        int counter=0;
 	for (Int_t i = 0; i < n; i++){
 	  	Printf("Opening file -> %s", filename[i]);
 		histFile = TFile::Open(filename[i]);
@@ -35,8 +36,20 @@ void subdetector_convertROOTtoPNG(string inDir){
    		       	    	TCanvas *h = (TCanvas*)key->ReadObj();
 		    	    	Printf("Drawing canvas: %s", h->GetName());
 		    	    	string fileString = (string)filename[i];
+                                h->SetTitle(key->GetName());
 		    	    	h->Draw();
-		    	    	h->SaveAs((inDir+"/"+key->GetName()+".png").c_str());
+		    	    	//h->Print((inDir+"/"+key->GetName()+".png").c_str());
+                                if ( counter==0 ){
+		    	    	    h->Print((inDir+"/massHists.pdf(").c_str(),"pdf");
+                                }
+                                // This only works if there is only one key inside each root file. The counter wont match properly otherwise
+                                else if ( counter == n-1 ){
+		    	    	    h->Print((inDir+"/massHists.pdf)").c_str(),"pdf");
+                                }
+                                else{
+		    	    	    h->Print((inDir+"/massHists.pdf").c_str(),"pdf");
+                                }
+                                ++counter;
 		    	    }
                         }
 		    }
@@ -53,4 +66,5 @@ void convertROOTtoPNG(){
 	subdetector_convertROOTtoPNG("histograms/fcal");
 	subdetector_convertROOTtoPNG("histograms/bcal");
 	subdetector_convertROOTtoPNG("histograms/split");
+	subdetector_convertROOTtoPNG("histograms/all");
 }

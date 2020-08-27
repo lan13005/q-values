@@ -17,9 +17,9 @@ using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
 bool verbose = true;
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_BCAL_a0a2_tree_flat";
-string fileTag="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root";
+string rootTreeName="degALL_ALL_a0a2_tree_flat";
+string fileTag="all";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_sbWeight="weightBS";
@@ -231,22 +231,22 @@ struct parameterLimits2{
         double abs_par = abs(initPars[0]*scaleBkg)+DBL_MIN;
         lowerParLimits.push_back(0); // bernx01
         //upperParLimits.push_back(scaleBkg*initPars[0]+scaleFactor*abs_par);
-        upperParLimits.push_back(1);
+        upperParLimits.push_back(1000);
 
         abs_par = abs(scaleBkg*initPars[1])+DBL_MIN;
         lowerParLimits.push_back(0); // bernx11
         //upperParLimits.push_back(scaleBkg*initPars[1]+scaleFactor*abs_par);
-        upperParLimits.push_back(1);
+        upperParLimits.push_back(1000);
 
         abs_par = abs(scaleBkg*initPars[2])+DBL_MIN;
         lowerParLimits.push_back(0); // berny01
         //upperParLimits.push_back(scaleSig*initPars[2]+scaleFactor*abs_par);
-        upperParLimits.push_back(1);
+        upperParLimits.push_back(1000);
 
         abs_par = abs(scaleBkg*initPars[3])+DBL_MIN;
         lowerParLimits.push_back(0); // berny11
         //upperParLimits.push_back(scaleSig*initPars[3]+scaleFactor*abs_par);
-        upperParLimits.push_back(1);
+        upperParLimits.push_back(1000);
         cout << "Finished setting bkg par limits" << endl;
 
         abs_par = abs(scaleSig*initPars[4])+DBL_MIN;
@@ -255,12 +255,12 @@ struct parameterLimits2{
         // since the mean and the width of gaussian is always + we can just multiply by a percentage
         lowerParLimits.push_back(initPars[5]*0.9); // 2D gaus x mean
         upperParLimits.push_back(initPars[5]*1.1);
-        lowerParLimits.push_back(initPars[6]*0.70); // 2D gaus x std
-        upperParLimits.push_back(initPars[6]*1.30);
+        lowerParLimits.push_back(initPars[6]*0.90); // 2D gaus x std
+        upperParLimits.push_back(initPars[6]*1.10);
         lowerParLimits.push_back(initPars[7]*0.9); // 2D gaus y std
         upperParLimits.push_back(initPars[7]*1.1);
-        lowerParLimits.push_back(initPars[8]*0.70); // 2D gaus y std
-        upperParLimits.push_back(initPars[8]*1.30);
+        lowerParLimits.push_back(initPars[8]*0.90); // 2D gaus y std
+        upperParLimits.push_back(initPars[8]*1.10);
         cout << "Finished setting sig par limits" << endl;
     }
     void printParLimits(){

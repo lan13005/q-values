@@ -11,10 +11,10 @@ start_time = time.time()
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 
-_SET_nProcess=24 # how many processes to spawn
+_SET_nProcess=30 # how many processes to spawn
 _SET_kDim=300 # number of neighbors
-_SET_nentries=10000 # how many combos we want to run over. Set to -1 to run over all. This should be much larger than kDim or we might get errors .
-_SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save.
+_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much larger than kDim or we might get errors .
+_SET_numberEventsToSavePerProcess=5 # how many histograms (root files) we want to save.
 _SET_seedShift=91211 # in case we dont want the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
@@ -43,7 +43,8 @@ rootFileLocs=[
         #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
         #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
 
-        (rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
+        (rootFileBase+"degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_ALL_a0a2_tree_flat", "all")
+        #(rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
         #,(rootFileBase+"degALL_FCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_FCAL_a0a2_tree_flat", "fcal")
         #,(rootFileBase+"degALL_SPLIT_a0a2_treeFlat_DSelector_UTweights.root", "degALL_SPLIT_a0a2_tree_flat", "split")
         ]
