@@ -3,8 +3,8 @@
 #include "makeDiagnosticHists.h"
 bool verbose = true;
 
-string haddHistCmd="hadd diagnosticPlots/postQVal.root diagnosticPlots/all/postQValHists_all.root";
-string haddTreeCmd="hadd diagnosticPlots/postQVal_flatTree.root diagnosticPlots/all/postQ_all_flatTree.root";
+string haddHistCmd="hadd diagnosticPlots/postQVal.root diagnosticPlots/bcal/postQValHists_bcal.root";
+string haddTreeCmd="hadd diagnosticPlots/postQVal_flatTree.root diagnosticPlots/bcal/postQ_bcal_flatTree.root";
 
 void makeDiagnosticHists_drawSum(){
         cout <<  "hadding histograms together" << endl;

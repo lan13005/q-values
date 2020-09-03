@@ -4,6 +4,7 @@
 
 #include <string>
 #include "getInitParams.h"
+bool do2Dfit=true;
 
 // ------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------
@@ -235,8 +236,20 @@ void getInitParams(){
 		dataFile->GetObject(rootTreeName.c_str(),dataTree);
 
                 allCanvases = new TCanvas("anyHists","",1440,900);
-		dataTree->SetBranchAddress(s_var1.c_str(),&var1);
-		dataTree->SetBranchAddress(s_var2.c_str(),&var2);
+                
+                parseVarString parseDiscrimVars;
+                parseDiscrimVars.updateString(s_discrimVar); 
+	        parseDiscrimVars.parseString();
+                std::vector<double> discrimVar;
+                // we have to push_back first for w.e. reason
+	        for (int iVar=0; iVar<parseDiscrimVars.varStringSet.size(); ++iVar){
+                    discrimVar.push_back(0);
+                    discrimVar.push_back(0);
+                }
+	        for (int iVar=0; iVar<parseDiscrimVars.varStringSet.size(); ++iVar){
+                    cout << "Loading discrimVar: " << parseDiscrimVars.varStringSet[iVar] << endl;
+	            dataTree->SetBranchAddress(parseDiscrimVars.varStringSet[iVar].c_str(), &discrimVar[iVar]);
+                }
 		dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
                 dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
 		dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
@@ -266,7 +279,7 @@ void getInitParams(){
 		for (int ientry=0; ientry<nentries; ientry++)
 		{
 			dataTree->GetEntry(ientry);
-                        //getSBWeight(var2,&sbWeight,weightingScheme);
+                        //getSBWeight(discrimVar[1],&sbWeight,weightingScheme);
                         if (weightingScheme==""){ weight=1; }
                         if (weightingScheme=="as"){ weight=AccWeight; }
                         if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight; }
@@ -276,25 +289,25 @@ void getInitParams(){
 			    }
                             // If doing 1D fits
                 	    if ( isUniqueEtaB*(!do2Dfit)) {
-		            	massHistEta->Fill(var2,weight);
+		            	massHistEta->Fill(discrimVar[1],weight);
 			    }
                 	    if ( isUniquePi0B*(!do2Dfit) ) {
-		            	massHistPi0->Fill(var1,weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
+		            	massHistPi0->Fill(discrimVar[0],weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
 			    }
                             // If doing 2D fits
                             if ( isUniquePi0EtaB*do2Dfit ){
-                                massHistPi0VsEta->Fill(var1,var2,weight);
+                                massHistPi0VsEta->Fill(discrimVar[0],discrimVar[1],weight);
                             }
                         }
                         else {
                                 weight=weight*utWeight;
 			    	massHistPi0Eta->Fill(Mpi0eta,weight);//
                                 if (!do2Dfit){
-		            	    massHistEta->Fill(var2,weight);//
-		            	    massHistPi0->Fill(var1,weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
+		            	    massHistEta->Fill(discrimVar[1],weight);//
+		            	    massHistPi0->Fill(discrimVar[0],weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
                                 }
                                 else {
-                                    massHistPi0VsEta->Fill(var1,var2,weight);
+                                    massHistPi0VsEta->Fill(discrimVar[0],discrimVar[1],weight);
                                 }
                         }
 		}

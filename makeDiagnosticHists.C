@@ -65,6 +65,9 @@ void makeDiagnosticHists(){
         	//cout << "ientry, flatEntryNumber: " << ientry << "," << flatEntryNumber << endl;            
         	
         	qvalues[flatEntryNumber]=qvalue;
+                if (qvalue>1 || qvalue<0) { 
+                    cout << "Qvalue out of bounds! - " << qvalue << endl;
+                }
         	bestChiSqs[flatEntryNumber]=bestChiSq;
         	worstChiSqs[flatEntryNumber]=worstChiSq;
         	flatEntryNumbers[flatEntryNumber] = flatEntryNumber;

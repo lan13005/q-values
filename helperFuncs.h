@@ -17,16 +17,14 @@ using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
 bool verbose = true;
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_ALL_a0a2_tree_flat";
-string fileTag="all";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root";
+string rootTreeName="degALL_BCAL_a0a2_tree_flat";
+string fileTag="bcal";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_sbWeight="weightBS";
-string s_var1="Mpi0";
-string s_var2="Meta";
+string s_discrimVar="Mpi0;Meta";
 string s_utBranch="UT_noTrackingWeights"; // "default" uses bool branchs from DSelector. Alternatively we can give it a branch name to get weights from
-bool do2Dfit=1;
 
 ///// **************************************************************
 ///// STEP0.5: DEFINE HISTOGRAM BIN PARAMETERS SO THERE IS CONSISTENCY
@@ -417,7 +415,8 @@ class parseVarString{
     public:
         std::vector<std::string> varStringSet;
         std::string varString;
-        parseVarString (std::string inputString){
+        parseVarString(){}; 
+        void updateString(std::string inputString){
            varString =  inputString;
         }
         void parseString(){

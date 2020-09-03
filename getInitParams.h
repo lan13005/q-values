@@ -5,8 +5,6 @@
 
 // Variables to load the data from your input tree
 TTree *dataTree;
-double var1;
-double var2;
 double Mpi0eta;
 double AccWeight;
 double sbWeight;
@@ -40,6 +38,10 @@ double par2D_proj1[numDOFbkg2+numDOFsig2+3];
 double par2D_proj2[numDOFbkg2+numDOFsig2+3];
 std::vector<double> fitRange1;
 std::vector<double> fitRange2;
+
+
+
+
 		
 // Define things to draw
 TCanvas *allCanvases;

@@ -24,31 +24,36 @@ void subdetector_convertROOTtoPNG(string inDir){
         int counter=0;
 	for (Int_t i = 0; i < n; i++){
 	  	Printf("Opening file -> %s", filename[i]);
+	        string fileString = (string)filename[i];
 		histFile = TFile::Open(filename[i]);
                 if(histFile){ // make sure the file loaded, sometimes the root file can be corrupted if you exited the program improperly
 		    TIter keyList(histFile->GetListOfKeys());
 		    TKey *key;
+   		    TCanvas *h;
    		    while ((key = (TKey*)keyList())) {
    		       	TClass *cl = gROOT->GetClass(key->GetClassName());
                         string keyName = (string)key->GetName();
                         if (keyName.find("BS") == std::string::npos) {
    		       	    if (cl->InheritsFrom("TCanvas")){
-   		       	    	TCanvas *h = (TCanvas*)key->ReadObj();
-		    	    	Printf("Drawing canvas: %s", h->GetName());
-		    	    	string fileString = (string)filename[i];
+                                h = (TCanvas*)key->ReadObj();
                                 h->SetTitle(key->GetName());
-		    	    	h->Draw();
-		    	    	//h->Print((inDir+"/"+key->GetName()+".png").c_str());
-                                if ( counter==0 ){
-		    	    	    h->Print((inDir+"/massHists.pdf(").c_str(),"pdf");
-                                }
-                                // This only works if there is only one key inside each root file. The counter wont match properly otherwise
-                                else if ( counter == n-1 ){
-		    	    	    h->Print((inDir+"/massHists.pdf)").c_str(),"pdf");
-                                }
-                                else{
-		    	    	    h->Print((inDir+"/massHists.pdf").c_str(),"pdf");
-                                }
+		    	    	Printf("Drawing canvas: %s", h->GetName());
+                                // --- FOR SOME REASON I NEED TO DRAW CLONE OR DO SOME COUT STATEMENTS TO FULLY COMPLETE THE LOOP. AN ERROR STILL OCCURS SAYING THE LIST IS TRYING TO ACCESS A DELETED VARIABLE
+                                // --- BUT IT ALLOWS ME TO COMPLETE THE PROGRAM.
+		    	    	h->DrawClone();
+		    	    	h->SaveAs((inDir+"/"+key->GetName()+".png").c_str());
+
+
+                                //if ( counter==0 ){
+		    	    	//    h->Print((inDir+"/massHists.pdf(").c_str(),"pdf");
+                                //}
+                                //// This only works if there is only one key inside each root file. The counter wont match properly otherwise
+                                //else if ( counter == n-1 ){
+		    	    	//    h->Print((inDir+"/massHists.pdf)").c_str(),"pdf");
+                                //}
+                                //else{
+		    	    	//    h->Print((inDir+"/massHists.pdf").c_str(),"pdf");
+                                //}
                                 ++counter;
 		    	    }
                         }

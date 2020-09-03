@@ -3,6 +3,7 @@
 
 #include "helperFuncs.h"
 #include <thread>
+#include "TThread.h"
 #include "Math/MinimizerOptions.h"
 #include <iostream>
 #include <fstream>
@@ -22,21 +23,24 @@
 #include <TMath.h>
 #include <TLatex.h>
 #include <TLegend.h>
-//#include <RooRealVar.h>
-//#include <RooDataSet.h>
-//#include <RooGenericPdf.h>
-//#include <RooConstVar.h>
-//#include <RooArgList.h>
-//#include <RooPlot.h>
-//#include <RooMinuit.h>
-//#include <RooAddPdf.h>
-//#include <RooFitResult.h>
-//#include <RooChi2Var.h>
+#include <TPolyLine3D.h>
+#include <RooRealVar.h>
+#include <RooDataSet.h>
+#include <RooGenericPdf.h>
+#include <RooGaussian.h>
+#include <RooAddPdf.h>
+#include <RooProdPdf.h>
+#include <RooConstVar.h>
+#include <RooArgList.h>
+#include <RooPlot.h>
+#include <RooMinuit.h>
+#include <RooFitResult.h>
+#include <RooChi2Var.h>
+#include <RooWorkspace.h>
 //#include "RooAddPdf.h"
 //#include "RooFormulaVar.h"
-
+//
 //#include "Math/MinimizerOptions.h"
-//using namespace RooFit;
 
 
 const int dim=5; // will get replaced by run.py
@@ -127,21 +131,22 @@ class QFactorAnalysis{
                 // These block of variables will be used to hold the initialization parameters. In the Q-factor paper they use 3 different initializations which
                 // correspond to 100% bkg, 50/50, and 100% sig. If we want to do this here, the yields in the bkg and signal need to be modified. These vectors
                 // will hold that information
-		std::vector<double> initPars;
+                map<string, double> initializationParMap;
                 std::vector<double> redistributeFactorBkg;
                 std::vector<double> redistributeFactorSig;
                 parameterLimits parLimits;
                 parameterLimits2 parLimits2;
+                std::vector<double> sigFracs;
 
                 // initialize vectors to hold the discriminating and phase space variables
-		std::vector<double> var1s; 
-		std::vector<double> var2s; 
-                std::vector<double> rfTimes;
+                parseVarString parseDiscrimVars;
+	        parseVarString parsePhaseSpace;
+                std::vector<std::vector<double>> discrimVars; 
+                std::vector<double> discrimVar; // will contain the discriminating variables for just one entry whereas the above will hold all the data
+
                 std::vector<std::vector<double>> phaseSpaceVars;
-                std::vector<double> phaseSpaceVars0;
 		std::vector<double> AccWeights; 
                 std::vector<double> utWeights;
-		std::vector<double> sbWeights; 
 		std::vector<ULong64_t> spectroscopicComboIDs; 
                 // Not all combinations will be a valid pairing. Suppose we only care about spectroscopically unique pairs, then we can fill phasePoint2PotentialNeighbor with
                 // only unique combos.
