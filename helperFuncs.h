@@ -17,9 +17,9 @@ using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
 bool verbose = true;
-string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_BCAL_a0a2_tree_flat";
-string fileTag="bcal";
+string rootFileLoc="/d/grid15/ln16/pi0eta/q-values/degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root";
+string rootTreeName="degALL_ALL_a0a2_tree_flat";
+string fileTag="all";
 string weightingScheme="as"; // "" or "as*bs"
 string s_accWeight="AccWeight";
 string s_sbWeight="weightBS";

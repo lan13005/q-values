@@ -169,7 +169,7 @@ void fitAndOutput2D(TH2F* inputHist1, TF2* fit1, TF2* bkgFit1, TF2* sigFit1, dou
     	*outputFile1 << "#--There is agreement within 5%" << endl;
     }
     else {
-    	*outputFile1 << "#--Percent off " << abs(1-inputHist1->Integral(binx1,binx2)/(integralBKG_nsig+integralSIG_nsig)) << endl;
+    	*outputFile1 << "#--Percent off " << abs(1-inputHist1->Integral(binx1,binx2,biny1,biny2)/(integralBKG_nsig+integralSIG_nsig)) << endl;
     }
     double purity = integralSIG_nsig/(integralBKG_nsig+integralSIG_nsig);
     *outputFile1 << "#purity " << purity << endl;

@@ -175,7 +175,7 @@ class QFactorAnalysis{
 		void loadTree(string rootFileLoc, string rootTreeName);
 		void loadFitParameters(string fitLocation);
 		void loadData();
-		void runQFactorThreaded();
+		void runQFactorThreaded(int iProcess);
 
 };
 

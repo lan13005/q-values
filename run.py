@@ -11,10 +11,10 @@ start_time = time.time()
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 
-_SET_nProcess=1 # how many processes to spawn
+_SET_nProcess=36 # how many processes to spawn
 _SET_kDim=300 # number of neighbors
 _SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much larger than kDim or we might get errors .
-_SET_numberEventsToSavePerProcess=300 # how many histograms (root files) we want to save.
+_SET_numberEventsToSavePerProcess=5 # how many histograms (root files) we want to save.
 _SET_seedShift=134131 # in case we dont want the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
@@ -41,8 +41,8 @@ rootFileLocs=[
         #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
         #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
 
-        #(rootFileBase+"degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_ALL_a0a2_tree_flat", "all")
-        (rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
+        (rootFileBase+"degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_ALL_a0a2_tree_flat", "all")
+        #(rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
         #(rootFileBase+"degALL_FCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_FCAL_a0a2_tree_flat", "fcal")
         #,(rootFileBase+"degALL_SPLIT_a0a2_treeFlat_DSelector_UTweights.root", "degALL_SPLIT_a0a2_tree_flat", "split")
         ]
@@ -202,10 +202,22 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
         _SET_override_nentries=0
     else:
         _SET_override_nentries=1
-    executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
-            str(_SET_numberEventsToSavePerProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),"&"]
-    print(" ".join(executeMain))
-    subprocess.Popen(executeMain).wait()
+    _SET_iProcess=0;
+    print("Launching processes one second apart...")
+    time.sleep(3)
+    outLogs=[]
+    openProcesses=[]
+    for _SET_iProcess in range(_SET_nProcess):
+        print("Launching process "+str(_SET_iProcess))
+        outLog = open("logs/"+_SET_fileTag+"/output"+str(_SET_iProcess)+".txt","w")
+        outLogs.append(outLog)
+        executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
+                str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),"&"]
+        print(" ".join(executeMain))
+        openProcess = subprocess.Popen(executeMain,stdout=outLog)
+        openProcesses.append(openProcess)
+    exit_codes = [proc.wait() for proc in openProcesses]
+
         
        
 def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
