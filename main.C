@@ -85,16 +85,12 @@ void QFactorAnalysis::loadData(){
 	// Create variables to hold the data as we read in the data from the tree
         double phaseSpaceVar[dim];
 	double AccWeight;
-        double rfTime;
-	ULong64_t spectroscopicComboID;
+	//ULong64_t spectroscopicComboID;
 
         // vars we will use to fill but not use directly
 	ULong64_t eventNumber;
-	double uniqueComboID;
-	bool isUniqueEtaB;
-	bool isUniquePi0B;
-	bool isUniquePi0EtaB;
         double utWeight;
+        double sbWeight;
 
 	// Set branch addresses so we can read in the data
         parsePhaseSpace.updateString(varString);
@@ -108,17 +104,25 @@ void QFactorAnalysis::loadData(){
 	for (int iVar=0; iVar<parseDiscrimVars.varStringSet.size(); ++iVar){
 	    dataTree->SetBranchAddress(parseDiscrimVars.varStringSet[iVar].c_str(), &discrimVar[iVar]);
         }
-	dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
-        dataTree->SetBranchAddress("rfTime",&rfTime);
-	dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
+	//dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
         
         // vars we will use to fill but not use directly
 	dataTree->SetBranchAddress("event",&eventNumber);
-	dataTree->SetBranchAddress("uniqueComboID",&uniqueComboID);
-	dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
-	dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
-	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-        dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
+
+        // Setting up tracking of weight branches
+	dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
+        if(!s_sbWeight){
+            dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
+        }
+        else{
+            sbWeight=1;
+        }
+        if (!s_utBranch.empty()){ // if string is not empty we will set the branch address
+            dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
+        }
+        else{
+            utWeight=1;
+        }
 
 	
 	// We will use a ientry to keep track of which entries we will get from the tree. We will simply use ientry when filling the arrays.  
@@ -134,7 +138,7 @@ void QFactorAnalysis::loadData(){
 
 	        AccWeights.push_back(AccWeight);
                 utWeights.push_back(utWeight);
-	        spectroscopicComboIDs.push_back(spectroscopicComboID);
+	        //spectroscopicComboIDs.push_back(spectroscopicComboID);
 	}
 
 	if ( verbose_outputDistCalc ) {
@@ -324,10 +328,10 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         RooRealVar roo_Mpi0(("roo_Mpi0"+sThread).c_str(),"Mass GeV",binRangePi0[1],binRangePi0[2]);
         roo_Mpi0.setRange(("roo_fitRangeMpi0"+sThread).c_str(),fitRangePi02[0], fitRangePi02[1]);
         RooDataSet rooData(("rooData"+sThread).c_str(),"rooData",RooArgSet(roo_Mpi0,roo_Meta));
-        RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX*0.9,fittedMassX*1.1);
-        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX*0.9,fittedSigmaX*1.1);
-        RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY*0.9,fittedMassY*1.1);
-        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY*0.9,fittedSigmaY*1.1);
+        RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX*0.5,fittedMassX*1.5);
+        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX*0.5,fittedSigmaX*1.5);
+        RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY*0.5,fittedMassY*1.5);
+        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY*0.5,fittedSigmaY*1.5);
 
         RooRealVar bern_parA(("bern_parA"+sThread).c_str(),"bern_parA",0,1);
         RooRealVar bern_parB(("bern_parB"+sThread).c_str(),"bern_parB",0,1);
@@ -476,13 +480,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                         bern_parD.setVal(fittedBernD);
                         sigFrac.setVal(initSigFrac);
 
-                        //{
-                        //    R__LOCKGUARD(gGlobalMutex);
-                        //}
-                        //`TThread::Lock();
                         RooFitResult* roo_result = rooSigPlusBkg.fitTo(rooData, Range(("roo_fitRangeMpi0"+sThread+",roo_fitRangeMeta"+sThread).c_str()), BatchMode(kTRUE), Hesse(kFALSE), Save(), PrintLevel(-1));
-                        //RooFitResult* roo_result = rooSigPlusBkg.fitTo(rooData, Range(("roo_fitRangeMpi0"+sThread+",roo_fitRangeMeta"+sThread).c_str()), Minimizer("Minuit2"), Hesse(kFALSE), BatchMode(kTRUE), Save(), PrintLevel(-1));
-                        //TThread::UnLock();
                         //roo_result->Print("v");
 
 		        duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
@@ -538,11 +536,6 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                                 allCanvases->Divide(3,2);
         
                                 allCanvases->cd(1);
-                                // OMG FOUND HOW TO FIX THE BUG! WE NEED TO SET THE NORMRANGE AND RANGE HERE IF WE ARE GOING TO FIT USING THE SAME PDF ON THE SAME DATA MULTIPLE TIMES. 
-                                // THERE IS AN ERROR ABOUT THE NORMALIZATIONS AND SOMEHOW MORE FUNCTIONS ARE CREATED AND WE GET A BUNCH OF SAME OF THE SAME OBJECTS THAT GETS ADDED
-                                // ONTO OUR ARGLIST
-                                // https://root-forum.cern.ch/t/roofit-normalization/23644/2
-                                
                                 /// -- Might need to use this code section if RooFit ever becomes thread safe. If we draw rooSigPlusBkg with the various Components we get an error when using plotOn
                                 /// -- when using multi threads. Projecting each sub PDF makes it work fine. 
                                 //RooAbsPdf* rooGaus2DProjMpi0 = rooGaus2D.createProjection(roo_Mpi0);
@@ -556,6 +549,12 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                                 //rooSigPlusBkgProjMpi0->plotOn(roo_Meta_frame);
                                 //rooSigPlusBkgProjMpi0->plotOn(roo_Meta_frame, Components("rooBkg*"),LineStyle(kDashed),LineColor(kOrange));
                                 //rooSigPlusBkgProjMpi0->paramOn(roo_Meta_frame);
+                                
+
+                                // OMG FOUND HOW TO FIX THE BUG! WE NEED TO SET THE NORMRANGE AND RANGE HERE IF WE ARE GOING TO FIT USING THE SAME PDF ON THE SAME DATA MULTIPLE TIMES. 
+                                // THERE IS AN ERROR ABOUT THE NORMALIZATIONS AND SOMEHOW MORE FUNCTIONS ARE CREATED AND WE GET A BUNCH OF SAME OF THE SAME OBJECTS THAT GETS ADDED
+                                // ONTO OUR ARGLIST
+                                // https://root-forum.cern.ch/t/roofit-normalization/23644/2
                                 RooPlot* roo_Meta_frame = roo_Meta.frame();
                                 rooData.plotOn(roo_Meta_frame);
                                 rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()));
@@ -622,12 +621,10 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         	        	// or whatever and maybe if multiple threads calls it then a blocking effect can happen
                                 qHistsFile->cd();
                                 if(iBS==nBS){
-        	                    //allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+".root").c_str());
                                     allCanvases->Write(("Mass-event"+std::to_string(ientry)).c_str());
                                     qHistsFile->Close();
                                 }
                                 else {
-        	        	        //allCanvases->SaveAs(("histograms/"+fileTag+"/Mass-event"+std::to_string(ientry)+"BS"+to_string(iBS)+".root").c_str());
                                         allCanvases->Write(("Mass-event"+std::to_string(ientry)+"BS"+to_string(iBS)).c_str());
                                 }
                                 
@@ -655,6 +652,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 	}
 	logFile.close();
 
+        // OLD CODE FOR SPAWNING THREADS INSTEAD OF WHAT WE USE NOW, WHICH IS JUST PROCESSES
 	//};
         //// Now that we have the lambda function we can start to spawn threads
 	//cout << "Launching " << nProcess << " threads 1 second apart!" << endl;

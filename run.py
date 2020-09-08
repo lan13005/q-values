@@ -13,26 +13,27 @@ start_time = time.time()
 
 _SET_nProcess=36 # how many processes to spawn
 _SET_kDim=300 # number of neighbors
-_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much larger than kDim or we might get errors .
+_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_numberEventsToSavePerProcess=5 # how many histograms (root files) we want to save.
-_SET_seedShift=134131 # in case we dont want the same q-value histogram we can choose another random seed
+_SET_seedShift=134131 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
-_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. Otherwise we will use the scaled fit parameters from getInitParams
+_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_nBS=0 # number of times we should bootstrap the set of neighbors to calculate q-factors with. Used to extract an error on the q-factors. Set to 0 if you dont want to do BS
 _SET_saveBShistsAlso=1 # should we save every bootstrapped histogram also?
-_SET_weightingScheme="as" # can be {"","as","as*bs"}. for no weights, accidental sub, both accidental and sideband. Accidental weights and sideband weights are taken from the input tree
+_SET_weightingScheme="as" # can be {"","as"}. for no accidental weights, accidental sub.
 _SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
 _SET_sbWeight="weightBS" # the branch to look at to get the sideband weight
-_SET_uniquenessTracking="UT_noTrackingWeights" # "default" or give a branch name. Default is the default implementation of the DSelector tracking specific particle combos. 
+_SET_uniquenessTracking="" # default is "" which will set all event counting weights to 1. Otherwise we can give it a branch to look at
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj;Mpi0g1;Mpi0g2" # what is the phase space variables to calculate distance in 
-_SET_discrimVars="Meta;Mpi0" # discriminating/reference variable
+_SET_discrimVars="Mpi0;Meta" # discriminating/reference variable
 _SET_emailWhenFinished=""#lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 _SET_verbose=1 # how much information we want to output to the logs folder
+
+
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
-
 rootFileBase="/d/grid15/ln16/pi0eta/q-values/"
 #rootFileBase="/home/lawrence/Desktop/gluex/q-values/"
 rootFileLocs=[
@@ -46,7 +47,6 @@ rootFileLocs=[
         #(rootFileBase+"degALL_FCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_FCAL_a0a2_tree_flat", "fcal")
         #,(rootFileBase+"degALL_SPLIT_a0a2_treeFlat_DSelector_UTweights.root", "degALL_SPLIT_a0a2_tree_flat", "split")
         ]
-#_SET_fitLocationBase="var1Fit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
 _SET_fitLocationBase="var1Vsvar2Fit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
 
 #############################################################################
@@ -113,7 +113,7 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@weightingScheme=".*";@weightingScheme="'+_SET_weightingScheme+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    sedArgs=["sed","-i",'s@s_discrimVars=".*";@s_discrimVar="'+_SET_discrimVars+'";@g',fileName]
+    sedArgs=["sed","-i",'s@s_discrimVar=".*";@s_discrimVar="'+_SET_discrimVars+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_accWeight=".*";@s_accWeight="'+_SET_accWeight+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
@@ -145,7 +145,6 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     '''
     # clean up the outputs of the "main" program
     print("Cleaning folders that are used by main")
-    subprocess.Popen("rm -f diagnosticPlots/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     os.system("rm -f main")
     os.system("rm -rf logs/"+_SET_fileTag)
     os.system("rm -rf histograms/"+_SET_fileTag)
@@ -236,7 +235,12 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     # run the makeDiagnosticHists program
     # ------------------------------------
     subprocess.Popen("cat logs/"+_SET_fileTag+"/process* > logs/"+_SET_fileTag+"/diagnostic_logs.txt",shell=True).wait()
-    subprocess.Popen("hadd diagnosticPlots/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root logs/"+_SET_fileTag+"/results*",shell=True).wait()
+    concatRootCmd="hadd diagnosticPlots/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root"
+    for iProcess in range(_SET_nProcess):
+        concatRootCmd=concatRootCmd+" logs/"+_SET_fileTag+"/results"+str(iProcess)+".root"
+    print(concatRootCmd)
+    #subprocess.Popen("hadd diagnosticPlots/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root logs/"+_SET_fileTag+"/results*",shell=True).wait()
+    subprocess.Popen(concatRootCmd,shell=True).wait()
     subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
 
 

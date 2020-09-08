@@ -132,10 +132,6 @@ class QFactorAnalysis{
                 // correspond to 100% bkg, 50/50, and 100% sig. If we want to do this here, the yields in the bkg and signal need to be modified. These vectors
                 // will hold that information
                 map<string, double> initializationParMap;
-                std::vector<double> redistributeFactorBkg;
-                std::vector<double> redistributeFactorSig;
-                parameterLimits parLimits;
-                parameterLimits2 parLimits2;
                 std::vector<double> sigFracs;
 
                 // initialize vectors to hold the discriminating and phase space variables
@@ -179,5 +175,176 @@ class QFactorAnalysis{
 
 };
 
+double calculateStd(int nentries, double* input){
+    double mean=0;
+    for(int ientry=0; ientry<nentries; ++ientry){ 
+        mean += input[ientry];
+    }
+    mean /= nentries;
+    double diff;
+    double std=0;
+    for(int ientry=0; ientry<nentries; ++ientry){ 
+        diff = input[ientry]-mean;
+        std += diff*diff;
+    }
+    std /= nentries-1;
+    return sqrt(std);
+}
+
+
+// Not used anymore. I thought it would interseting to check the stdev of the k nearest neighbors. 
+// Used to calculate the current std as we stream/insert more data
+class cumulativeStd{
+    public:
+        std::vector<double> inputVector;
+        // kDim would be the typical size of the calculation. But sometimes we will choose nentries < kDim when testing quickly (this is never the case in real example though)
+        cumulativeStd ( int kDim ){ _kDim=kDim; inputVector.reserve(_kDim); }
+        void insertValue ( double value ) {
+            inputVector[_timesCalled] = value;
+            ++_timesCalled;
+        }
+        double calcStd(){
+            for (int i=0; i<_timesCalled; ++i){
+                _sum+=inputVector[i];
+            }
+            _sum /= _timesCalled;
+            _mean=_sum; _sum=0;
+            //std::cout << "mean: " << _mean << std::endl;
+            for (int i=0; i<_timesCalled; ++i){
+                _diff = (inputVector[i]-_mean);
+                _sum += _diff*_diff;
+                //std::cout << "sum: " << _sum << std::endl;
+            }
+            _sum /= _timesCalled;
+            return sqrt(_sum);
+        }
+
+
+    private:
+        int _timesCalled=0;
+        double _sum=0;
+        double _mean=0;
+        double _diff;
+        UInt_t _kDim;
+
+};
+
+
+// The following two classes will be used to keep track of pairs of distances and index, sorted by distance. priority_queue in stl requires three arguments
+// which are type, container for type, and a comparator. we will use pair as the type which is held in a vector container. compareDist is the comparator
+// which compares the first elements of two pairs. The first element is the distance, the second is the index j (in dij when calculating the distances). 
+// distSort_kNN will setup our priority_queue that keeps a maximum of kDim elements simply by popping and pushing data. 
+// This type of sorting should have k*log(k) sorting, I think. If we do this N times then the complexit ~ N*k*log(k). Probably have to check me on this
+class compareDist
+{
+    public:
+        bool operator() (const std::pair<double,int>& p1, const std::pair<double,int>& p2)
+        {
+            // < for min heap
+            // maybe > for max heap?
+            return p1.first < p2.first;
+        }
+};
+class distSort_kNN
+{
+    public:
+        // constructor with basic output and setting kDim
+        distSort_kNN ( UInt_t kDim ) {
+            //std::cout << "Priority Queue is set up to sort the {distance,index} pairs keeping " << kDim << " neighbors" << std::endl;
+            _kDim = kDim;
+        }
+
+        std::priority_queue <std::pair<double,int>, vector<std::pair<double,int>>, compareDist > kNN;
+        
+        // depending on the size and the distanceis we will push, or pop+push
+        void insertPair ( std::pair<double,int> newPair ){
+            if ( kNN.size() >= _kDim ){
+                // > for min heap and maybe < for max heap 
+                if (kNN.top().first > newPair.first) {
+                    //std::cout << "\nPOPPING OUT " << kNN.top().first << std::endl;
+                    kNN.pop();
+                    kNN.push( newPair );
+                }
+            } 
+            else {      
+                //std::cout << "\nPUSHING " << newPair.first << std::endl;
+                kNN.push( newPair );
+            }
+        }
+
+    private:
+        UInt_t _kDim;
+        std::pair<double,int> _pair;
+};
+
+// This class will be used to standardize the phase space variables. 
+// Can either do stddev or range standardization
+class standardizeArray{
+	public:
+    		double max_inputVector;
+         	double min_inputVector;
+		
+		void rangeStandardization(std::vector<double> &inputVector, long long nentries){
+    			max_inputVector = DBL_MIN;
+         		min_inputVector = DBL_MAX;
+                        std::cout << "\nStarting range std" << std::endl;
+			for (int ientry=0; ientry<nentries; ++ientry){
+				if (inputVector[ientry] > max_inputVector){
+					max_inputVector = inputVector[ientry];
+				}
+				if (inputVector[ientry] < min_inputVector){
+					min_inputVector = inputVector[ientry];
+				}
+			}
+			for (int ientry=0; ientry<nentries; ++ientry){
+				inputVector[ientry] = (inputVector[ientry]-min_inputVector)/(max_inputVector-min_inputVector);
+			}
+                        std::cout << "Max,min: " << max_inputVector << "," << min_inputVector << std::endl;
+                        std::cout << "--Finished Range standardizing " << std::endl;
+		}
+		
+		double calcStd(std::vector<double> &inputVector, long long nentries){
+			double local_std=0;
+			double diff=0;
+			double mean=0;
+			for (int i=0; i<nentries; ++i){
+			    mean+=inputVector[i];
+			} 
+			mean/=nentries;
+			for (int ientry=0; ientry<nentries; ++ientry){
+                                std::cout << "mean: " << mean << std::endl;
+				diff = (inputVector[ientry]-mean);
+                                std::cout << "diff: " << diff << std::endl;
+				local_std += diff*diff;
+			}
+			local_std /= nentries;
+                        std::cout << "STD: " << local_std << std::endl;
+			return sqrt(local_std);
+		}
+		
+		void stdevStandardization(std::vector<double> &inputVector, long long nentries){
+			double std = calcStd(inputVector, nentries);
+			for (int ientry=0; ientry < nentries; ++ientry){
+				inputVector[ientry] = inputVector[ientry]/std; 
+			} 
+                        std::cout << "Finished Stdev Standardization" << endl;
+		}
+};
+
+
+// our distance calculation between two phase points
+double calc_distance( int dim, double* phaseSpace_1, double* phaseSpace_2, bool verbose_outputDistCalc){
+	double sum = 0;
+	double diff=0;
+        if(verbose_outputDistCalc){std::cout << "New event, new sum = " << sum << std::endl;}
+	for (int i=0; i<dim; ++i){
+		diff = phaseSpace_1[i]-phaseSpace_2[i];
+		sum += diff*diff;
+                if(verbose_outputDistCalc){
+                    std::cout << "phasePoint1["<<i<<"]="<<phaseSpace_1[i]<<", phasePoint2["<<i<<"]="<<phaseSpace_2[i]<<" --- squared sum=" << diff*diff << "---- total so far="<<sum<<std::endl;
+		}
+	}
+	return sum;
+}
 
 #endif

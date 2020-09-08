@@ -250,15 +250,23 @@ void getInitParams(){
                     cout << "Loading discrimVar: " << parseDiscrimVars.varStringSet[iVar] << endl;
 	            dataTree->SetBranchAddress(parseDiscrimVars.varStringSet[iVar].c_str(), &discrimVar[iVar]);
                 }
-		dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
-                dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
 		dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
+		dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
+
+                if(!s_sbWeight){
+                    dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
+                }
+                else{
+                    sbWeight=1;
+                }
 
                 // Uniqueness tracking, the default way or using weighted by number of combos in an event 
-        	dataTree->SetBranchAddress("isNotRepeated_eta",&isUniqueEtaB);
-        	dataTree->SetBranchAddress("isNotRepeated_pi0",&isUniquePi0B);
-        	dataTree->SetBranchAddress("isNotRepeated_pi0eta",&isUniquePi0EtaB);
-                dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
+                if (!s_utBranch.empty()){
+                    dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
+                }
+                else{
+                    utWeight=1;
+                }
 
 		long long nentries=dataTree->GetEntries();
 
@@ -283,32 +291,15 @@ void getInitParams(){
                         if (weightingScheme==""){ weight=1; }
                         if (weightingScheme=="as"){ weight=AccWeight; }
                         if (weightingScheme=="as*bs"){ weight=AccWeight*sbWeight; }
-                        if (s_utBranch=="default"){
-                	    if ( isUniquePi0EtaB ) {
-			    	massHistPi0Eta->Fill(Mpi0eta,weight);
-			    }
-                            // If doing 1D fits
-                	    if ( isUniqueEtaB*(!do2Dfit)) {
-		            	massHistEta->Fill(discrimVar[1],weight);
-			    }
-                	    if ( isUniquePi0B*(!do2Dfit) ) {
-		            	massHistPi0->Fill(discrimVar[0],weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
-			    }
-                            // If doing 2D fits
-                            if ( isUniquePi0EtaB*do2Dfit ){
-                                massHistPi0VsEta->Fill(discrimVar[0],discrimVar[1],weight);
-                            }
+                        weight=weight*utWeight;
+
+			massHistPi0Eta->Fill(Mpi0eta,weight);//
+                        if (!do2Dfit){
+		            massHistEta->Fill(discrimVar[1],weight);//
+		            massHistPi0->Fill(discrimVar[0],weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
                         }
                         else {
-                                weight=weight*utWeight;
-			    	massHistPi0Eta->Fill(Mpi0eta,weight);//
-                                if (!do2Dfit){
-		            	    massHistEta->Fill(discrimVar[1],weight);//
-		            	    massHistPi0->Fill(discrimVar[0],weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
-                                }
-                                else {
-                                    massHistPi0VsEta->Fill(discrimVar[0],discrimVar[1],weight);
-                                }
+                            massHistPi0VsEta->Fill(discrimVar[0],discrimVar[1],weight);
                         }
 		}
 		cout << "Filled all entries into histogram for a specific fit" << endl;
