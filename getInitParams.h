@@ -7,8 +7,6 @@
 TTree *dataTree;
 double Mpi0eta;
 double AccWeight;
-double sbWeight;
-
 
 // Uniqueness tracking, the default way or using weighted by number of combos in an event 
 bool isUniqueEtaB;

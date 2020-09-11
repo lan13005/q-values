@@ -202,7 +202,7 @@ void makeDiagnosticHists(){
         double utWeight;
 
         dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
-        if(!s_sbWeight){
+        if(!s_sbWeight.empty()){
             dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
         }
         else{
@@ -357,7 +357,7 @@ void makeDiagnosticHists(){
 		sigWeight = qvalue*baseWeight;
 		totWeight = baseWeight;
 		bkgWeight = conjugate_qvalue*baseWeight;
-                cout << "ientry,qVal,conj_qVal,AccWeight,sbWeight: " << ientry << "," << qvalue << "," << conjugate_qvalue << ", " << AccWeight << ", " << sbWeight << endl;
+                //cout << "ientry,qVal,conj_qVal,AccWeight,sbWeight: " << ientry << "," << qvalue << "," << conjugate_qvalue << ", " << AccWeight << ", " << sbWeight << endl;
 
                 //////////////////////////////
                 // Multply sideband and accidental weights if requested 

@@ -111,7 +111,7 @@ void QFactorAnalysis::loadData(){
 
         // Setting up tracking of weight branches
 	dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
-        if(!s_sbWeight){
+        if(!s_sbWeight.empty()){
             dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
         }
         else{
@@ -431,10 +431,10 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		        	for ( int iVar=0; iVar<dim; ++iVar ){
 		        	   	phasePoint2[iVar] = phaseSpaceVars[iVar][jentry];
 		        	}
-		        	if (spectroscopicComboIDs[jentry] != spectroscopicComboIDs[ientry]){
-		        	        distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
-		        	        distKNN.insertPair(make_pair(distance,jentry));
-		        	}
+		        	//if (spectroscopicComboIDs[jentry] != spectroscopicComboIDs[ientry]){
+		        	distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
+		        	distKNN.insertPair(make_pair(distance,jentry));
+		        	//}
 		        }
                     }
 		    duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
@@ -648,7 +648,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 	if (verbose){
 		auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 		logFile << "Total time: " << duration2 << " ms" << endl;
-		logFile << "Time Per Event: " << duration2/nentries  << " ms" << endl;
+		logFile << "Time Per Event: " << duration2/(largest_nentry-lowest_nentry) << " ms" << endl;
 	}
 	logFile.close();
 

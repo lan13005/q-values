@@ -253,7 +253,7 @@ void getInitParams(){
 		dataTree->SetBranchAddress("Mpi0eta",&Mpi0eta);
 		dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
 
-                if(!s_sbWeight){
+                if(!s_sbWeight.empty()){
                     dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
                 }
                 else{
