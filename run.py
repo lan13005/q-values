@@ -11,9 +11,9 @@ start_time = time.time()
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 
-_SET_nProcess=16 # how many processes to spawn
-_SET_kDim=400 # number of neighbors
-_SET_nentries=80000 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
+_SET_nProcess=12 # how many processes to spawn
+_SET_kDim=300 # number of neighbors
+_SET_nentries=12000 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_numberEventsToSavePerProcess=5 # how many histograms (root files) we want to save.
 _SET_seedShift=134131 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
@@ -30,12 +30,12 @@ _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj;Mpi0g1;Mpi0g2" # wh
 _SET_discrimVars="Mpi0;Meta" # discriminating/reference variable
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 _SET_verbose=1 # how much information we want to output to the logs folder
+_SET_runTag="1" # 3 folders are outputs of this set of programs {fitResults/diagnosticPlots/histograms}. We can append a runTag to the names allowing us to run multiple q-factors at the same time
 
 
 # What file we will analyze and what tree to look for
 # Also need a tag to save the data to so that we dont overwrite other runs
-rootFileBase="/d/grid15/ln16/pi0eta/q-values/"
-#rootFileBase="/home/lawrence/Desktop/gluex/q-values/"
+rootFileBase="/d/grid13/ln16/q-values-2/"
 rootFileLocs=[
         # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
         #(rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
@@ -111,6 +111,8 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@fileTag=".*";@fileTag="'+_SET_fileTag+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@runTag=".*";@runTag="'+_SET_runTag+'";@g',fileName]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@weightingScheme=".*";@weightingScheme="'+_SET_weightingScheme+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_discrimVar=".*";@s_discrimVar="'+_SET_discrimVars+'";@g',fileName]
@@ -128,10 +130,10 @@ def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     This programs cleans appropriate folders and runs getInitParams to extract the initialization parameters for the Q-factor analysis
     '''
     # First we clean the folders 
-    print("Cleaning fitResults folder")
-    os.system("rm -rf fitResults/"+_SET_fileTag)
-    os.system("rm -rf fitResults/"+_SET_fileTag)
-    os.system("mkdir -p fitResults/"+_SET_fileTag)
+    print("Cleaning fitResults"+_SET_runTag+" folder")
+    os.system("rm -rf fitResults"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("rm -rf fitResults"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("mkdir -p fitResults"+_SET_runTag+"/"+_SET_fileTag)
     # get the initialization parameters
     proc=subprocess.Popen("root -l -b -q getInitParams.C",shell=True).wait()
       
@@ -146,10 +148,10 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     # clean up the outputs of the "main" program
     print("Cleaning folders that are used by main")
     os.system("rm -f main")
-    os.system("rm -rf logs/"+_SET_fileTag)
-    os.system("rm -rf histograms/"+_SET_fileTag)
-    os.system("mkdir -p logs/"+_SET_fileTag)
-    os.system("mkdir -p histograms/"+_SET_fileTag)
+    os.system("rm -rf logs"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("rm -rf histograms"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("mkdir -p logs"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("mkdir -p histograms"+_SET_runTag+"/"+_SET_fileTag)
 
     # this combo is used when looping through all combinations for phase space variables to determine which set of variables are the best. 
     tagVec=["0" for i in range(len(varVec))]
@@ -190,10 +192,10 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     print(out)
     
     
-    subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    #subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
     print('Number of threads: '+str(_SET_nProcess))
-    _SET_fitLocation = "fitResults/"+_SET_fileTag+"/"+_SET_fitLocationBase+"_"+_SET_fileTag+".txt"
+    _SET_fitLocation = "fitResults"+_SET_runTag+"/"+_SET_fileTag+"/"+_SET_fitLocationBase+"_"+_SET_fileTag+".txt"
     print("Looking for initialzation fit in: "+_SET_fitLocation)
 
 
@@ -201,6 +203,8 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
         _SET_override_nentries=0
     else:
         _SET_override_nentries=1
+    _SET_cwd=os.getcwd()
+    # ----- Multiprocessing 
     _SET_iProcess=0;
     print("Launching processes one second apart...")
     time.sleep(3)
@@ -208,14 +212,22 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     openProcesses=[]
     for _SET_iProcess in range(_SET_nProcess):
         print("Launching process "+str(_SET_iProcess))
-        outLog = open("logs/"+_SET_fileTag+"/output"+str(_SET_iProcess)+".txt","w")
+        outLog = open("logs"+_SET_runTag+"/"+_SET_fileTag+"/output"+str(_SET_iProcess)+".txt","w")
         outLogs.append(outLog)
         executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
-                str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),"&"]
+                str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd,"&"]
         print(" ".join(executeMain))
         openProcess = subprocess.Popen(executeMain,stdout=outLog)
         openProcesses.append(openProcess)
     exit_codes = [proc.wait() for proc in openProcesses]
+    # ----- BATCH 
+    #os.system("rm -rf condor")
+    #for i in range(_SET_nProcess):
+    #    os.system("mkdir -p condor/job"+str(i))
+    #sedArgs=["sed","-i","s/queue.*/queue "+str(_SET_nProcess)+"/g","submit.main2"]
+    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    #sedArgs=["sed","-i","s@Arguments      = .*@Arguments      = "+str(_SET_kDim)+" "+_SET_varString+" "+_SET_standardizationType+" "+_SET_fitLocation+" "+str(_SET_redistributeBkgSigFits)+" "+str(_SET_doKRandomNeighbors)+" "+str(_SET_numberEventsToSavePerProcess)+" $(Process) "+str(_SET_nProcess)+" "+str(_SET_seedShift)+" "+str(_SET_nentries)+" "+str(_SET_nRndRepSubset)+" "+str(_SET_nBS)+" "+str(_SET_saveBShistsAlso)+" "+str(_SET_override_nentries)+" "+str(_SET_verbose)+" "+_SET_cwd+"@","submit.main2"]
+    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
         
        
@@ -225,21 +237,21 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     This untangling is mainly necessary due to the hadd function not ordering things properly 
     '''
     # clean up the files that are created by makeDiagnosticHists before we rerun it
-    print("Cleaning diagnosticPlots folder")
-    os.system("rm -rf diagnosticPlots/"+_SET_fileTag)
-    #os.system("rm -rf diagnosticPlots/"+_SET_fileTag)
-    os.system("mkdir -p diagnosticPlots/"+_SET_fileTag)
-    #subprocess.Popen("rm -f diagnosticPlots/"+_SET_fileTag+"/postQ_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    #subprocess.Popen("rm -f diagnosticPlots/"+_SET_fileTag+"/postQValHists_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    print("Cleaning diagnosticPlots"+_SET_runTag+" folder")
+    os.system("rm -rf diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
+    #os.system("rm -rf diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("mkdir -p diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
+    #subprocess.Popen("rm -f diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag+"/postQ_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    #subprocess.Popen("rm -f diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag+"/postQValHists_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     # ------------------------------------
     # run the makeDiagnosticHists program
     # ------------------------------------
-    subprocess.Popen("cat logs/"+_SET_fileTag+"/process* > logs/"+_SET_fileTag+"/diagnostic_logs.txt",shell=True).wait()
-    concatRootCmd="hadd diagnosticPlots/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root"
+    subprocess.Popen("cat logs"+_SET_runTag+"/"+_SET_fileTag+"/process* > logs"+_SET_runTag+"/"+_SET_fileTag+"/diagnostic_logs.txt",shell=True).wait()
+    concatRootCmd="hadd diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root"
     for iProcess in range(_SET_nProcess):
-        concatRootCmd=concatRootCmd+" logs/"+_SET_fileTag+"/results"+str(iProcess)+".root"
+        concatRootCmd=concatRootCmd+" logs"+_SET_runTag+"/"+_SET_fileTag+"/results"+str(iProcess)+".root"
     print(concatRootCmd)
-    #subprocess.Popen("hadd diagnosticPlots/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root logs/"+_SET_fileTag+"/results*",shell=True).wait()
+    #subprocess.Popen("hadd diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root logs/"+_SET_fileTag+"/results*",shell=True).wait()
     subprocess.Popen(concatRootCmd,shell=True).wait()
     subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
 
@@ -249,21 +261,23 @@ def combineAllGraphs():
     After running over all the different dataset we will just add all the histograms together and make one final plot
     '''
     tags = [rootFileLoc[2] for rootFileLoc in rootFileLocs]
-    haddHistCmd="hadd diagnosticPlots/postQVal.root"
-    haddTreeCmd="hadd diagnosticPlots/postQVal_flatTree.root"
+    haddHistCmd="hadd diagnosticPlots"+_SET_runTag+"/postQVal.root"
+    haddTreeCmd="hadd diagnosticPlots"+_SET_runTag+"/postQVal_flatTree.root"
     for tag in tags:
-        haddHistCmd = haddHistCmd+" diagnosticPlots/"+tag+"/postQValHists_"+tag+".root"
-        #haddTreeCmd = haddTreeCmd+" diagnosticPlots/"+tag+"/postQValTrees_"+tag+".root"
-        haddTreeCmd = haddTreeCmd+" diagnosticPlots/"+tag+"/postQ_"+tag+"_flatTree.root"
+        haddHistCmd = haddHistCmd+" diagnosticPlots"+_SET_runTag+"/"+tag+"/postQValHists_"+tag+".root"
+        haddTreeCmd = haddTreeCmd+" diagnosticPlots"+_SET_runTag+"/"+tag+"/postQ_"+tag+"_flatTree.root"
     print("\n\n")
     print(haddHistCmd)
     print(haddTreeCmd)
-    sedArgs=["sed","-i",'s@haddHistCmd=".*";@haddHistCmd="'+haddHistCmd+'";@g',"makeDiagnosticHists_drawSum.C"]
-    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    sedArgs=["sed","-i",'s@haddTreeCmd=".*";@haddTreeCmd="'+haddTreeCmd+'";@g',"makeDiagnosticHists_drawSum.C"]
-    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    os.system("rm -f diagnosticPlots/postQVal.root")
+    os.system(haddHistCmd)
+    os.system("rm -f diagnosticPlots/postQVal_flatTree.root")
+    os.system(haddTreeCmd)
+    #sedArgs=["sed","-i",'s@haddHistCmd=".*";@haddHistCmd="'+haddHistCmd+'";@g',"makeDiagnosticHists_drawSum.C"]
+    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    #sedArgs=["sed","-i",'s@haddTreeCmd=".*";@haddTreeCmd="'+haddTreeCmd+'";@g',"makeDiagnosticHists_drawSum.C"]
+    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     os.system("root -l -b -q makeDiagnosticHists_drawSum.C")
-
 
 
 #############################################################################

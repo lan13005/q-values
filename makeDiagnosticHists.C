@@ -1,11 +1,5 @@
 // "main" outputs results files that contain the q-values. The goal of tihs program is to read in all the q-value results and organizes them to be used when creating any histogram
-
-#include <ctime>
-#include <math.h> 
 #include "makeDiagnosticHists.h"
-#include "helperFuncs.h"
-
-
 
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
@@ -28,7 +22,7 @@ void makeDiagnosticHists(){
         
 
 	// Read in the qvalue data
-	string preQFileName = "diagnosticPlots/"+fileTag+"/qvalResults_"+fileTag+".root";
+	string preQFileName = "diagnosticPlots"+runTag+"/"+fileTag+"/qvalResults_"+fileTag+".root";
 	cout << "Opening " << preQFileName << endl;
 	TFile* qResultsFile = new TFile((preQFileName).c_str());
         TTree* qResultsTree;
@@ -74,14 +68,14 @@ void makeDiagnosticHists(){
 
         allCanvases->Clear();
 	dHist_qvalues->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/qvalues.png").c_str());
+        allCanvases->SaveAs(("diagnosticPlots"+runTag+"/"+fileTag+"/qvalues.png").c_str());
         allCanvases->Clear();
 	dHist_bestNLL->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/bestNLL.png").c_str());
+        allCanvases->SaveAs(("diagnosticPlots"+runTag+"/"+fileTag+"/bestNLL.png").c_str());
         allCanvases->Clear();
         gPad->SetLogy(1);
 	dHist_deltaNLL->Draw();
-        allCanvases->SaveAs(("diagnosticPlots/"+fileTag+"/deltaNLL.png").c_str());
+        allCanvases->SaveAs(("diagnosticPlots"+runTag+"/"+fileTag+"/deltaNLL.png").c_str());
         gPad->SetLogy(0);
         cout << "Making some diagnostic distributions of the Q-factors results" << endl;
 
@@ -275,7 +269,7 @@ void makeDiagnosticHists(){
         // Now we have a root tree that has all the data from the DSelector and the q-factors analysis
 	// ---------------------------------------------------------------------------
 
-	string postQFileName = "diagnosticPlots/"+fileTag+"/postQ_"+fileTag+"_flatTree.root";	
+	string postQFileName = "diagnosticPlots"+runTag+"/"+fileTag+"/postQ_"+fileTag+"_flatTree.root";	
 	cout << "Remaking " << postQFileName << endl;
 	TFile *qd_dataFile = TFile::Open((postQFileName).c_str(),"RECREATE"); 
 	TTree *outputTree = dataTree->CloneTree(-1,"fast"); 
@@ -468,24 +462,24 @@ void makeDiagnosticHists(){
         cout << "Made the histograms" << endl;
 
 	// HERE WE WILL JUST DRAW SOME OF THE HISTOGRAMS WITH THE BKG FILLED IN TO SEE THEIR CONTRIBUTION
-	makeStackedHist(Mpi0g_tot,Mpi0g_sig,Mpi0g_bkg,Mpi0g_sig_sb,Mpi0g_bkg_sb,"Mpi0gkin", "diagnosticPlots/"+fileTag);
+	makeStackedHist(Mpi0g_tot,Mpi0g_sig,Mpi0g_bkg,Mpi0g_sig_sb,Mpi0g_bkg_sb,"Mpi0gkin", "diagnosticPlots"+runTag+"/"+fileTag);
 	for (int i=0; i<2; i++){
 		string tag="";
 		if (i%2==0){ tag="meas"; }
 		else { tag="kin"; } 
-		makeStackedHist(Meta_tot[i],Meta_sig[i],Meta_bkg[i],Meta_sig_sb[i], Meta_bkg_sb[i],"Meta"+tag, "diagnosticPlots/"+fileTag);
-		makeStackedHist(Mpi0_tot[i],Mpi0_sig[i],Mpi0_bkg[i],Mpi0_sig_sb[i], Mpi0_bkg_sb[i],"Mpi0"+tag, "diagnosticPlots/"+fileTag);
-		makeStackedHist(Mpi0eta_tot[i],Mpi0eta_sig[i],Mpi0eta_bkg[i],Mpi0eta_sig_sb[i],Mpi0eta_bkg_sb[i],"Mpi0eta"+tag, "diagnosticPlots/"+fileTag);
-		makeStackedHist(cosThetaEta_GJ_tot[i],cosThetaEta_GJ_sig[i],cosThetaEta_GJ_bkg[i],cosThetaEta_GJ_sig_sb[i],cosThetaEta_GJ_bkg_sb[i],"cosThetaEta_GJ"+tag, "diagnosticPlots/"+fileTag);	
-		makeStackedHist(cosThetaX_CM_tot[i],cosThetaX_CM_sig[i],cosThetaX_CM_bkg[i],cosThetaX_CM_sig_sb[i],cosThetaX_CM_bkg_sb[i],"cosThetaX_CM"+tag, "diagnosticPlots/"+fileTag);	
-		makeStackedHist(phiEta_GJ_tot[i],phiEta_GJ_sig[i],phiEta_GJ_bkg[i],phiEta_GJ_sig_sb[i],phiEta_GJ_bkg_sb[i],"phiEta_GJ"+tag, "diagnosticPlots/"+fileTag);	
+		makeStackedHist(Meta_tot[i],Meta_sig[i],Meta_bkg[i],Meta_sig_sb[i], Meta_bkg_sb[i],"Meta"+tag, "diagnosticPlots"+runTag+"/"+fileTag);
+		makeStackedHist(Mpi0_tot[i],Mpi0_sig[i],Mpi0_bkg[i],Mpi0_sig_sb[i], Mpi0_bkg_sb[i],"Mpi0"+tag, "diagnosticPlots"+runTag+"/"+fileTag);
+		makeStackedHist(Mpi0eta_tot[i],Mpi0eta_sig[i],Mpi0eta_bkg[i],Mpi0eta_sig_sb[i],Mpi0eta_bkg_sb[i],"Mpi0eta"+tag, "diagnosticPlots"+runTag+"/"+fileTag);
+		makeStackedHist(cosThetaEta_GJ_tot[i],cosThetaEta_GJ_sig[i],cosThetaEta_GJ_bkg[i],cosThetaEta_GJ_sig_sb[i],cosThetaEta_GJ_bkg_sb[i],"cosThetaEta_GJ"+tag, "diagnosticPlots"+runTag+"/"+fileTag);	
+		makeStackedHist(cosThetaX_CM_tot[i],cosThetaX_CM_sig[i],cosThetaX_CM_bkg[i],cosThetaX_CM_sig_sb[i],cosThetaX_CM_bkg_sb[i],"cosThetaX_CM"+tag, "diagnosticPlots"+runTag+"/"+fileTag);	
+		makeStackedHist(phiEta_GJ_tot[i],phiEta_GJ_sig[i],phiEta_GJ_bkg[i],phiEta_GJ_sig_sb[i],phiEta_GJ_bkg_sb[i],"phiEta_GJ"+tag, "diagnosticPlots"+runTag+"/"+fileTag);	
 	}
 
         cout << "FINIHSED!"<<endl;
 	cout << "There were " << numNan << " nan values where q-value was not calculated. Fix me if nonzero!" << endl;
 
         // we can also directly save all the histograms to a root file
-	TFile* dataFile3 = new TFile(("diagnosticPlots/"+fileTag+"/postQValHists_"+fileTag+".root").c_str(),"RECREATE");
+	TFile* dataFile3 = new TFile(("diagnosticPlots"+runTag+"/"+fileTag+"/postQValHists_"+fileTag+".root").c_str(),"RECREATE");
 	for (int i=0; i<2; i++){
         	Meta_bkg[i]->Write();
         	Meta_sig[i]->Write();

@@ -124,6 +124,7 @@ class QFactorAnalysis{
 		bool verbose;
 		string varString;
                 string standardizationType;
+                string cwd;
                 bool redistributeBkgSigFits;
                 bool doKRandomNeighbors;
 		std::chrono::time_point<std::chrono::high_resolution_clock> start2;
@@ -149,7 +150,7 @@ class QFactorAnalysis{
 		std::vector<int> phasePoint2PotentialNeighbor; 
 	
 	public:
-		QFactorAnalysis(int kDim1, string varString1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1, int numberEventsToSavePerProcess1, int nProcess1,
+		QFactorAnalysis(int kDim1, string varString1, string cwd1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1, int numberEventsToSavePerProcess1, int nProcess1,
                                 int seedShift1, Long64_t nentries1, int nRndRepSubset1, int nBS1, bool saveBShistsAlso1, bool override_nentries1, bool verbose1){ 
 			cout << "Constructed QFactorAnalysis class..." << endl;
 			kDim=kDim1;
@@ -164,12 +165,13 @@ class QFactorAnalysis{
 			verbose=verbose1;
 			start2 = std::chrono::high_resolution_clock::now();
 			varString=varString1;
+                        cwd=cwd1;
                         standardizationType=standardizationType1;
                         redistributeBkgSigFits=redistributeBkgSigFits1;
                         doKRandomNeighbors=doKRandomNeighbors1;
 		}
 		void loadTree(string rootFileLoc, string rootTreeName);
-		void loadFitParameters(string fitLocation);
+		void loadFitParameters(string fitLocation,string cwd);
 		void loadData();
 		void runQFactorThreaded(int iProcess);
 

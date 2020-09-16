@@ -39,7 +39,7 @@ void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
 	phasePoint2PotentialNeighbor.reserve(nentries);
 }
 
-void QFactorAnalysis::loadFitParameters(string fitLocation){
+void QFactorAnalysis::loadFitParameters(string fitLocation,string cwd){
 	cout << "Loading the fit parameters" << endl;
 	double eventRatioSigToBkg = 1; // We try 3 different initializations: {100bkg, 100%sig, 50/50 bkg/sig}. We will use eventRatioSigToBkg to scale the amplitude parameters
 	// -----------------------------------------------------
@@ -51,7 +51,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation){
 	string varName;
 	double varVal;
 	ifstream inFile;
-	inFile.open(fitLocation.c_str());
+	inFile.open((cwd+"/"+fitLocation).c_str());
         std::vector<string> initParNames;
         cout << "RootFile(treeName)(fileTag): " << rootFileLoc << "(" << rootTreeName << ")(" << fileTag << ")" << endl;
 	while (inFile >> varName >> varVal){
@@ -237,7 +237,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         double qvalueBS_std=0;
 
         // Saving the results along with some diagnostics
-        TFile *resultsFile = new TFile(("logs/"+fileTag+"/results"+to_string(iProcess)+".root").c_str(),"RECREATE");
+        TFile *resultsFile = new TFile((cwd+"/logs"+runTag+"/"+fileTag+"/results"+to_string(iProcess)+".root").c_str(),"RECREATE");
         TTree* resultsTree = new TTree("resultsTree","results");
         resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
         resultsTree->Branch("qvalue",&best_qvalue,"qvalue/D");
@@ -263,7 +263,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 
 	// opening a file to write my log data to
     	ofstream logFile;
-    	logFile.open(("logs/"+fileTag+"/processLog"+to_string(iProcess)+".txt").c_str());
+    	logFile.open((cwd+"/logs"+runTag+"/"+fileTag+"/processLog"+to_string(iProcess)+".txt").c_str());
 	
 	// Determine what events each thread should run
 	int batchEntries = (int)nentries/nProcess; // batchEntries the size of the batch
@@ -359,7 +359,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                 vector<double> qvalues; qvalues.reserve(nBS);
                 TFile *qHistsFile;
         	if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
-                    qHistsFile = new TFile(("histograms/"+fileTag+"/qValueHists_"+to_string(ientry)+".root").c_str(),"RECREATE");
+                    qHistsFile = new TFile((cwd+"/histograms"+runTag+"/"+fileTag+"/qValueHists_"+to_string(ientry)+".root").c_str(),"RECREATE");
                 }
 
                 // Outputting the progress of each thread
@@ -719,6 +719,7 @@ int main( int argc, char* argv[] ){
         bool verbose;
         if ( atoi(argv[16])==1 ){ verbose=true;}
         else{ verbose=false;}
+        std::string cwd=argv[17];
         cout << "----------------------------" << endl;
         cout << "kDim: " << kDim << endl;
         cout << "iProcess: " << iProcess << endl;
@@ -732,19 +733,20 @@ int main( int argc, char* argv[] ){
         cout << "override_nentries: " << override_nentries << endl;
 	cout << "varString: " << varString << endl; 
         cout << "standardizationType: " << standardizationType << endl;
-        cout << "fitLocation: " << fitLocation << endl;
         cout << "verbose: " << verbose  << endl; 
         cout << "redistributeBkgSigFits: " << redistributeBkgSigFits << endl;
         cout << "doKRandomNeighbors: " << doKRandomNeighbors << endl;
+        cout << "cwd: " << cwd << endl;
+        cout << "fitLocation: " << fitLocation << endl;
         cout << "----------------------------" << endl;
 
         //cout << "Sleeping for 10 seconds so you can look at these settings" << endl;
         //sleep(10);
     
-	QFactorAnalysis analysisControl(kDim, varString, standardizationType, redistributeBkgSigFits, doKRandomNeighbors, 
+	QFactorAnalysis analysisControl(kDim, varString, cwd, standardizationType, redistributeBkgSigFits, doKRandomNeighbors, 
                 numberEventsToSavePerProcess, nProcess, seedShift, nentries, nRndRepSubset, nBS, saveBShistsAlso, override_nentries, verbose);
 	analysisControl.loadTree(rootFileLoc, rootTreeName);
-	analysisControl.loadFitParameters(fitLocation);
+	analysisControl.loadFitParameters(fitLocation,cwd);
 	analysisControl.loadData();
 	analysisControl.runQFactorThreaded(iProcess);
         return 0;

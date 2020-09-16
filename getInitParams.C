@@ -85,7 +85,7 @@ void fitAndOutput(TH1F* inputHist1, TF1* fit1, TF1* bkgFit1, TF1* sigFit1, doubl
     inputHist1->GetXaxis()->SetTitleSize(0.04);
     inputHist1->GetYaxis()->SetTitleSize(0.04);
     inputHist1->SetTitle(("Peak: "+to_string(par1[meanIndex])+"    width: "+to_string(weightedSigma)).c_str());
-    allCanvases1->SaveAs(("fitResults/"+fileTag+"/"+varTag1+"_fit_"+fileTag+".png").c_str());
+    allCanvases1->SaveAs(("fitResults"+runTag+"/"+fileTag+"/"+varTag1+"_fit_"+fileTag+".png").c_str());
     cout << "Saved for a specific fit!" << endl;
 }
 
@@ -213,7 +213,7 @@ void fitAndOutput2D(TH2F* inputHist1, TF2* fit1, TF2* bkgFit1, TF2* sigFit1, dou
     proj_var2->Draw("SAME");
     line2->DrawLine(par1[meanIndex2]-nSig*weightedSigma2,0,par1[meanIndex2]-nSig*weightedSigma2,dHist_var2->GetMaximum());
     line2->DrawLine(par1[meanIndex2]+nSig*weightedSigma2,0,par1[meanIndex2]+nSig*weightedSigma2,dHist_var2->GetMaximum());
-    allCanvases1->SaveAs(("fitResults/"+fileTag+"/"+varTag1+"_fit_"+fileTag+".png").c_str());
+    allCanvases1->SaveAs(("fitResults"+runTag+"/"+fileTag+"/"+varTag1+"_fit_"+fileTag+".png").c_str());
     cout << "Saved for a specific fit!" << endl;
 }
         	
@@ -307,7 +307,7 @@ void getInitParams(){
 		massHistPi0Eta->Draw("HIST");
 		massHistPi0Eta->GetXaxis()->SetTitleSize(0.04);
 		massHistPi0Eta->GetYaxis()->SetTitleSize(0.04);
-		allCanvases->SaveAs(("fitResults/"+fileTag+"/Mpi0eta_fit_"+fileTag+".png").c_str());
+		allCanvases->SaveAs(("fitResults"+runTag+"/"+fileTag+"/Mpi0eta_fit_"+fileTag+".png").c_str());
 		allCanvases->Clear();
         	cout <<"Initialized" << endl;
 
@@ -333,7 +333,7 @@ void getInitParams(){
                     fit->SetParLimits(3,0.5,0.6);
                     fit->SetParLimits(4,0,0.05);
 
-    		    logFile.open(("fitResults/"+fileTag+"/var2Fit_toMain_"+fileTag+".txt").c_str());
+    		    logFile.open(("fitResults"+runTag+"/"+fileTag+"/var2Fit_toMain_"+fileTag+".txt").c_str());
                     string varTag="Meta";
                     fitAndOutput(massHistEta, fit, bkgFit, sigFit, fitRange2[0], fitRange2[1], binWidthEta, nentries, &par[0], &logFile, allCanvases, varTag);
                     logFile.close();
@@ -351,7 +351,7 @@ void getInitParams(){
                     fit->SetParLimits(3,0.13,0.14);
                     fit->SetParLimits(4,0.001,0.03);
 
-    		    logFile.open(("fitResults/"+fileTag+"/var1Fit_toMain_"+fileTag+".txt").c_str());
+    		    logFile.open(("fitResults"+runTag+"/"+fileTag+"/var1Fit_toMain_"+fileTag+".txt").c_str());
                     varTag="Mpi0";
                     fitAndOutput(massHistPi0, fit, bkgFit, sigFit, fitRange1[0], fitRange1[1], binWidthPi0, nentries, &par[0], &logFile, allCanvases, varTag);
                     logFile.close();
@@ -376,7 +376,7 @@ void getInitParams(){
                     fit2D->SetParLimits(7,0.5,0.6);
                     fit2D->SetParLimits(8,0,0.05);
 
-    		    logFile.open(("fitResults/"+fileTag+"/var1Vsvar2Fit_toMain_"+fileTag+".txt").c_str());
+    		    logFile.open(("fitResults"+runTag+"/"+fileTag+"/var1Vsvar2Fit_toMain_"+fileTag+".txt").c_str());
                     string varTag="Mpi0VsMeta";
                     fitAndOutput2D(massHistPi0VsEta, fit2D, bkgFit2D, sigFit2D, fitRange1[0], fitRange1[1], fitRange2[0], fitRange2[1], binRangePi0, binRangeEta, proj_var1,proj_var2,
                             nentries, &par2D[0], &logFile, allCanvases, varTag);

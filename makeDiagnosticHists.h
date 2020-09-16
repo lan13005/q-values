@@ -1,5 +1,12 @@
 #ifndef MAKEDIAGNOSTICHISTS_H
 #define MAKEDIAGNOSTICHISTS_H
+
+
+
+#include <ctime>
+#include <math.h> 
+#include "helperFuncs.h"
+
 using namespace std;
 
 // This will stack our histograms and make them pretty. 
