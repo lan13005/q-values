@@ -8,9 +8,11 @@ output         = condor/job$(Process)/test.out
 error          = condor/job$(Process)/test.error             
 log            = condor/job$(Process)/test.log                                                    
 
-# Initialdir     = condor
-Arguments      = 300 cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj;Mpi0g1;Mpi0g2 range fitResults1/all/var1Vsvar2Fit_toMain_all.txt 0 0 5 $(Process) 12 134131 12000 0 0 1 1 1 /d/grid13/ln16/q-values-2
+Arguments      = 300 cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj;Mpi0g1;Mpi0g2 range fitResults/all/var1Vsvar2Fit_toMain_all.txt 0 0 5 $(Process) 36 134131 -1 0 0 1 0 1 /d/grid13/ln16/q-values-2
 
-request_cpus   = 1
-request_memory = 200 MB
-queue 12
+#+AccountingGroup = "group_local"
+accounting_group = group_local
+
+#request_cpus   = 1
+#request_memory = 200 MB
+queue 36

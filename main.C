@@ -34,14 +34,13 @@ void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
             discrimVars[iVar].reserve(nentries);
         }
 	AccWeights.reserve(nentries);
-	spectroscopicComboIDs.reserve(nentries);
 	// will hold all the ids of the unique combos
 	phasePoint2PotentialNeighbor.reserve(nentries);
 }
 
 void QFactorAnalysis::loadFitParameters(string fitLocation,string cwd){
 	cout << "Loading the fit parameters" << endl;
-	double eventRatioSigToBkg = 1; // We try 3 different initializations: {100bkg, 100%sig, 50/50 bkg/sig}. We will use eventRatioSigToBkg to scale the amplitude parameters
+	double eventRatioSigToBkg; // We try 3 different initializations: {100bkg, 100%sig, 50/50 bkg/sig}. We will use eventRatioSigToBkg to scale the amplitude parameters
 	// -----------------------------------------------------
 	// -----------------------------------------------------
 	//                         LOAD IN THE FITTED PARAMETERS TO THE FULL DISTRIBUTION
@@ -85,7 +84,6 @@ void QFactorAnalysis::loadData(){
 	// Create variables to hold the data as we read in the data from the tree
         double phaseSpaceVar[dim];
 	double AccWeight;
-	//ULong64_t spectroscopicComboID;
 
         // vars we will use to fill but not use directly
 	ULong64_t eventNumber;
@@ -104,7 +102,6 @@ void QFactorAnalysis::loadData(){
 	for (int iVar=0; iVar<parseDiscrimVars.varStringSet.size(); ++iVar){
 	    dataTree->SetBranchAddress(parseDiscrimVars.varStringSet[iVar].c_str(), &discrimVar[iVar]);
         }
-	//dataTree->SetBranchAddress("spectroscopicComboID",&spectroscopicComboID);
         
         // vars we will use to fill but not use directly
 	dataTree->SetBranchAddress("event",&eventNumber);
@@ -138,7 +135,6 @@ void QFactorAnalysis::loadData(){
 
 	        AccWeights.push_back(AccWeight);
                 utWeights.push_back(utWeight);
-	        //spectroscopicComboIDs.push_back(spectroscopicComboID);
 	}
 
 	if ( verbose_outputDistCalc ) {
@@ -186,14 +182,11 @@ void QFactorAnalysis::loadData(){
                 rndRepSubset.insert(rand()%nentries);
             }
             phasePoint2PotentialNeighbor.assign(rndRepSubset.begin(),rndRepSubset.end());
+            rndRepSubset.clear();
         }
         else {
 	    set<Int_t> setUsedSpectroscopicIDs;
 	    for (Int_t ientry=0; ientry<nentries; ientry++){ 
-	        //if ( setUsedSpectroscopicIDs.find( spectroscopicComboIDs[ientry] ) == setUsedSpectroscopicIDs.end() ) {
-	        //    setUsedSpectroscopicIDs.insert( spectroscopicComboIDs[ientry] );
-	        //    phasePoint2PotentialNeighbor.push_back(ientry);
-	        //}
 	        phasePoint2PotentialNeighbor.push_back(ientry);
                 
 	    }
@@ -208,7 +201,7 @@ void QFactorAnalysis::loadData(){
 
 }
 
-// This will be a thread that is totally independent and will be spawned in the main process after we have loaded all the data
+// This method was originally designed for multithreading. Turns out RooFit is not thread safe we we had to resort back to spawning multiple root processes. The orignially uses a lambda functon which contains the code to extract the q-values in batches. Some extra code to spawn the threads and waits for all of them to execute is there also
 void QFactorAnalysis::runQFactorThreaded(int iProcess){
 	// make sure the global variables are read in correctly
 	cout << "kDim: " << kDim << endl;
@@ -348,8 +341,8 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 
 
 	// the main loop where we loop through all events in a double for loop to calculate dij. Iterating through all j we can find the k nearest neighbors to event i.
-	// Then we can plot the k nearest neighbors in the discriminating distribution which happens to be a double gaussian and flat bkg. Calculate Q-Value from event
-	// i's discriminating variable's value. This value will be plugged into the signal PDF and the total PDF. The ratio of these two values are taken which is the Q-Value.
+	// Then we can plot the k nearest neighbors in the discriminating distribution
+        // Finally calculate the q-value by fitting and getting signal fraction
 	//logFile << std::fixed << std::setprecision(6);
 	int randomEntry;
         for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
@@ -363,16 +356,11 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                 }
 
                 // Outputting the progress of each thread
-		double unshiftedEntry = (double)(ientry-lowest_nentry);
-                if(batchEntries<=20){ cout << "Due to how we output the progress of the threads, we must have > 20 nentries PER nProcess\nEXITING\nEXITING" << endl; exit(0);}
-		int percentOfBatchEntries = (int)(batchEntries/20);
-		if ( (ientry-lowest_nentry) % percentOfBatchEntries == 0) { 
-			cout << "(Process " << iProcess << ") Percent done: " << (int)round( unshiftedEntry/(largest_nentry-lowest_nentry)*100 ) << "%" << endl;
-	       	}
 		flatEntryNumber=ientry;
 		auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start2).count();
 		auto duration_beginEvent = std::chrono::high_resolution_clock::now();
 		if(verbose) { logFile << "Starting event " << ientry << "/" << largest_nentry << " ---- Global Time: " << duration2 << "ms" << endl; }
+		cout << "Starting event " << ientry << "/" << largest_nentry << " ---- Global Time: " << duration2 << "ms" << endl; 
 		
                 // Phase space Definitions
 		for ( int iVar=0; iVar<dim; ++iVar ){
@@ -386,7 +374,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                 // Random generator for resampling of the input data, in this case the input data will be the set of potential neighbors for phasePoint2.
                 // --------------------------------------------
                 unsigned seed = std::chrono::system_clock::now().time_since_epoch().count(); 
-                // RNG using generators and distributions are really cheap. It is also threadsafe also whereas rand() is not. You will see all the threads are not operating at max potential if you use rand
+                // RNG using distributions are really cheap. It is also threadsafe also whereas rand() is not. You will see all the threads are not operating at max potential if you use rand
                 // https://stackoverflow.com/questions/21237905/how-do-i-generate-thread-safe-uniform-random-numbers
                 // Mersenne twistor requires large state storage but has the highest quality + period. 
                 // Lagged Fibonoci Generator liek ranlux24 has a much smaller period but should be much faster
@@ -399,6 +387,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 
                 // ---------------------
                 // NOW FIND NEIGHBORS AND EXTRACT Q-FACTORS.
+                // - The first iteration always uses the real data. if nBS > 0 then we will rerun and resample to get the bootstrapped q-factors
                 // ---------------------
                 for (int iBS=0; iBS<nBS+1; ++iBS){ 
                     // resetting some variables
@@ -410,7 +399,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                     if (iBS==nBS){
                         phasePoint2PotentailNeighbor_BS = phasePoint2PotentialNeighbor;
                     }
-                    else{ // resampling neighbors with replacement
+                    else{ // resampling neighbors with replacement if we want to do bootstrapping
                         for(int iNeighbor=0; iNeighbor<nPotentialNeighbors; ++iNeighbor){
                             phasePoint2PotentailNeighbor_BS.push_back(phasePoint2PotentialNeighbor[distribution(generator)]);
                         }
@@ -431,10 +420,8 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		        	for ( int iVar=0; iVar<dim; ++iVar ){
 		        	   	phasePoint2[iVar] = phaseSpaceVars[iVar][jentry];
 		        	}
-		        	//if (spectroscopicComboIDs[jentry] != spectroscopicComboIDs[ientry]){
 		        	distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
 		        	distKNN.insertPair(make_pair(distance,jentry));
-		        	//}
 		        }
                     }
 		    duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
@@ -500,9 +487,8 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		    	if (NLL < bestNLL){
 		    		best_qvalue = qvalue;
 		    		bestNLL=NLL;
-		    		//for (int i=0; i < sizeof(par2)/sizeof(Double_t); ++i){
-		    		//	parBest2[i]=par2[i];
-		    		//}
+                                RooArgSet* params=rooSigPlusBkg.getParameters(RooArgList(roo_Mpi0,roo_Meta));
+                                RooArgSet* savedParams = params->snapshot();
 		    	} 
 		    	if (NLL > worstNLL){
 		    		worstNLL = NLL;

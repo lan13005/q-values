@@ -10,10 +10,9 @@ start_time = time.time()
 #############################################################################
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
-
-_SET_nProcess=12 # how many processes to spawn
+_SET_nProcess=36 # how many processes to spawn
 _SET_kDim=300 # number of neighbors
-_SET_nentries=12000 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
+_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_numberEventsToSavePerProcess=5 # how many histograms (root files) we want to save.
 _SET_seedShift=134131 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
@@ -30,7 +29,8 @@ _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj;Mpi0g1;Mpi0g2" # wh
 _SET_discrimVars="Mpi0;Meta" # discriminating/reference variable
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 _SET_verbose=1 # how much information we want to output to the logs folder
-_SET_runTag="1" # 3 folders are outputs of this set of programs {fitResults/diagnosticPlots/histograms}. We can append a runTag to the names allowing us to run multiple q-factors at the same time
+_SET_runTag="" # 3 folders are outputs of this set of programs {fitResults/diagnosticPlots/histograms}. We can append a runTag to the names allowing us to run multiple q-factors at the same time
+_SET_runBatch=0 # (default=0) 0=run on a single computer, 1=submit to condor for batch processing
 
 
 # What file we will analyze and what tree to look for
@@ -153,7 +153,7 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     os.system("mkdir -p logs"+_SET_runTag+"/"+_SET_fileTag)
     os.system("mkdir -p histograms"+_SET_runTag+"/"+_SET_fileTag)
 
-    # this combo is used when looping through all combinations for phase space variables to determine which set of variables are the best. 
+    # We use this setup to make it easy to loop through all combinations for phase space variables to determine which set of variables are the best. 
     tagVec=["0" for i in range(len(varVec))]
     for ele in combo:
         tagVec[ele]="1"
@@ -182,17 +182,10 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     print(" ".join(exchangeVar))
     print(" ".join(compileMain))
     
-    # reconfiguring the appropriate files to the current settings
-    #sedArgs=["sed","-i",'s@standardizationType=".*";@standardizationType="'+_SET_standardizationType+'";@g',"main.h"]
-    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-
     # most processes shoudl have a wait but for some it doesnt matter. i.e. we have to wait for exchangeVar to run before compileMain
     subprocess.Popen(exchangeVar, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait() # we have to wait for this command to finish before compiling...
     out, err = subprocess.Popen(compileMain, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
     print(out)
-    
-    
-    #subprocess.Popen("rm diagnostic_logs.txt", shell=True,  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     
     print('Number of threads: '+str(_SET_nProcess))
     _SET_fitLocation = "fitResults"+_SET_runTag+"/"+_SET_fileTag+"/"+_SET_fitLocationBase+"_"+_SET_fileTag+".txt"
@@ -203,31 +196,38 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
         _SET_override_nentries=0
     else:
         _SET_override_nentries=1
+
+
     _SET_cwd=os.getcwd()
-    # ----- Multiprocessing 
-    _SET_iProcess=0;
-    print("Launching processes one second apart...")
-    time.sleep(3)
-    outLogs=[]
-    openProcesses=[]
-    for _SET_iProcess in range(_SET_nProcess):
-        print("Launching process "+str(_SET_iProcess))
-        outLog = open("logs"+_SET_runTag+"/"+_SET_fileTag+"/output"+str(_SET_iProcess)+".txt","w")
-        outLogs.append(outLog)
-        executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
-                str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd,"&"]
-        print(" ".join(executeMain))
-        openProcess = subprocess.Popen(executeMain,stdout=outLog)
-        openProcesses.append(openProcess)
-    exit_codes = [proc.wait() for proc in openProcesses]
-    # ----- BATCH 
-    #os.system("rm -rf condor")
-    #for i in range(_SET_nProcess):
-    #    os.system("mkdir -p condor/job"+str(i))
-    #sedArgs=["sed","-i","s/queue.*/queue "+str(_SET_nProcess)+"/g","submit.main2"]
-    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    #sedArgs=["sed","-i","s@Arguments      = .*@Arguments      = "+str(_SET_kDim)+" "+_SET_varString+" "+_SET_standardizationType+" "+_SET_fitLocation+" "+str(_SET_redistributeBkgSigFits)+" "+str(_SET_doKRandomNeighbors)+" "+str(_SET_numberEventsToSavePerProcess)+" $(Process) "+str(_SET_nProcess)+" "+str(_SET_seedShift)+" "+str(_SET_nentries)+" "+str(_SET_nRndRepSubset)+" "+str(_SET_nBS)+" "+str(_SET_saveBShistsAlso)+" "+str(_SET_override_nentries)+" "+str(_SET_verbose)+" "+_SET_cwd+"@","submit.main2"]
-    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    if _SET_runBatch==1:
+        # ----- BATCH 
+        os.system("rm -rf condor"+_SET_runTag)
+        for i in range(_SET_nProcess):
+            os.system("mkdir -p condor"+_SET_runTag+"/job"+str(i))
+        sedArgs=["sed","-i","s/queue.*/queue "+str(_SET_nProcess)+"/g","submit.main"]
+        subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+        sedArgs=["sed","-i","s@Arguments      = .*@Arguments      = "+str(_SET_kDim)+" "+_SET_varString+" "+_SET_standardizationType+" "+_SET_fitLocation+" "+str(_SET_redistributeBkgSigFits)+" "+str(_SET_doKRandomNeighbors)+" "+str(_SET_numberEventsToSavePerProcess)+" $(Process) "+str(_SET_nProcess)+" "+str(_SET_seedShift)+" "+str(_SET_nentries)+" "+str(_SET_nRndRepSubset)+" "+str(_SET_nBS)+" "+str(_SET_saveBShistsAlso)+" "+str(_SET_override_nentries)+" "+str(_SET_verbose)+" "+_SET_cwd+"@","submit.main"]
+        subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+        sedArgs=["sed","-i","s/counts=$((.*-1))/counts=$(("+str(_SET_nProcess)+"-1))/g","submit.sh"]
+        subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+        os.system("./submit.sh") # call the submit program to launch our condor_submit program
+    else:
+        # ----- Multiprocessing 
+        _SET_iProcess=0;
+        print("Launching processes one second apart...")
+        time.sleep(3)
+        outLogs=[]
+        openProcesses=[]
+        for _SET_iProcess in range(_SET_nProcess):
+            print("Launching process "+str(_SET_iProcess))
+            outLog = open("logs"+_SET_runTag+"/"+_SET_fileTag+"/output"+str(_SET_iProcess)+".txt","w")
+            outLogs.append(outLog)
+            executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
+                    str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd,"&"]
+            print(" ".join(executeMain))
+            openProcess = subprocess.Popen(executeMain,stdout=outLog)
+            openProcesses.append(openProcess)
+        exit_codes = [proc.wait() for proc in openProcesses]
 
         
        
@@ -239,10 +239,7 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     # clean up the files that are created by makeDiagnosticHists before we rerun it
     print("Cleaning diagnosticPlots"+_SET_runTag+" folder")
     os.system("rm -rf diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
-    #os.system("rm -rf diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
     os.system("mkdir -p diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
-    #subprocess.Popen("rm -f diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag+"/postQ_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    #subprocess.Popen("rm -f diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag+"/postQValHists_"+_SET_fileTag+"*", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     # ------------------------------------
     # run the makeDiagnosticHists program
     # ------------------------------------
@@ -251,7 +248,6 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     for iProcess in range(_SET_nProcess):
         concatRootCmd=concatRootCmd+" logs"+_SET_runTag+"/"+_SET_fileTag+"/results"+str(iProcess)+".root"
     print(concatRootCmd)
-    #subprocess.Popen("hadd diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root logs/"+_SET_fileTag+"/results*",shell=True).wait()
     subprocess.Popen(concatRootCmd,shell=True).wait()
     subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
 
@@ -273,10 +269,6 @@ def combineAllGraphs():
     os.system(haddHistCmd)
     os.system("rm -f diagnosticPlots/postQVal_flatTree.root")
     os.system(haddTreeCmd)
-    #sedArgs=["sed","-i",'s@haddHistCmd=".*";@haddHistCmd="'+haddHistCmd+'";@g',"makeDiagnosticHists_drawSum.C"]
-    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    #sedArgs=["sed","-i",'s@haddTreeCmd=".*";@haddTreeCmd="'+haddTreeCmd+'";@g',"makeDiagnosticHists_drawSum.C"]
-    #subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     os.system("root -l -b -q makeDiagnosticHists_drawSum.C")
 
 
@@ -290,7 +282,6 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     print("FileTag: {0}".format(_SET_fileTag))
 
     numVar=len(varVec)
-    # We are going pass as arugment a list of lists known as combo. This combo list contains all the lists of combos with numVar elements from the list varVec. If we use the command comboinations(range(3),2) we would get something like [ [1,2], [2,3], [1,3] ]. We can use these as indicies to index a a string of 0's to fill in whether a variable will be in use. i.e. if [1,3] is chosen then the string would be 101 with the second var turnedo off. This is useful when we are doing a scan of which variables we should use. Bruteforce style. 
     reconfigureSettings("helperFuncs.h",_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     if _SET_runFullFit:
         execFullFit(_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
@@ -304,6 +295,7 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
 
 
     # Use this code block to run over all possible combinations of variables
+    # We are going pass as arugment a list of lists known as combo. This combo list contains all the lists of combos with numVar elements from the list varVec. If we use the command comboinations(range(3),2) we would get something like [ [1,2], [2,3], [1,3] ]. We can use these as indicies to index a a string of 0's to fill in whether a variable will be in use. i.e. if [1,3] is chosen then the string would be 101 with the second var turnedo off. This is useful when we are doing a scan of which variables we should use. Bruteforce style. 
     #counter=0
     #for numVar in range(1,len((varVec))+1):
     #    combos=combinations(range(len(varVec)),numVar)
