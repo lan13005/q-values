@@ -60,6 +60,8 @@ void fitAndOutput(TH1F* inputHist1, TF1* fit1, TF1* bkgFit1, TF1* sigFit1, doubl
     double integralSIG_nsig = sigFit1->Integral(par1[meanIndex]-nSig*weightedSigma,par1[meanIndex]+nSig*weightedSigma);
     *outputFile1 << "#integralBKG_nSig " << integralBKG_nsig << endl;
     *outputFile1 << "#integralSIG_nSig " << integralSIG_nsig << endl;
+    integralBKG_nsig *= 1/binWidth1;
+    integralSIG_nsig *= 1/binWidth1;
     // Calculate eventRatioSigToBkg.
     double eventRatioSigToBkg = integralSIG_nsig/integralBKG_nsig;
     *outputFile1 << "#eventRatioSigToBkg " << eventRatioSigToBkg << endl;
@@ -150,8 +152,11 @@ void fitAndOutput2D(TH2F* inputHist1, TF2* fit1, TF2* bkgFit1, TF2* sigFit1, dou
     cout << "3Sig eta range: " << par1[meanIndex2]-nSig*weightedSigma2 << ", " << par1[meanIndex2]+nSig*weightedSigma2 << endl;
     double integralBKG_nsig = bkgFit1->Integral(par1[meanIndex1]-nSig*weightedSigma1,par1[meanIndex1]+nSig*weightedSigma1, par1[meanIndex2]-nSig*weightedSigma2,par1[meanIndex2]+nSig*weightedSigma2);
     double integralSIG_nsig = sigFit1->Integral(par1[meanIndex1]-nSig*weightedSigma1,par1[meanIndex1]+nSig*weightedSigma1, par1[meanIndex2]-nSig*weightedSigma2,par1[meanIndex2]+nSig*weightedSigma2);
+    integralBKG_nsig *= 1/binWidthPi01/binWidthEta1;
+    integralSIG_nsig *= 1/binWidthPi01/binWidthEta1;
     *outputFile1 << "#integralBKG_nSig " << integralBKG_nsig << endl;
     *outputFile1 << "#integralSIG_nSig " << integralSIG_nsig << endl;
+    
     // Calculate eventRatioSigToBkg.
     double eventRatioSigToBkg = integralSIG_nsig/integralBKG_nsig;
     *outputFile1 << "#eventRatioSigToBkg " << eventRatioSigToBkg << endl;
@@ -274,13 +279,9 @@ void getInitParams(){
 		// FILL YOUR HISTOGRAMS
 		// ///////////////////////////////////////////////////
 
-                if (!do2Dfit){
-                    massHistEta = new TH1F("",";M(#eta) (GeV)",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
-                    massHistPi0 = new TH1F("",";M(#pi) (GeV)",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
-                }
-                else{
-                    massHistPi0VsEta = new TH2F("",";M(#pi) (GeV);M(#eta) (GeV)", binRangePi0[0],binRangePi0[1],binRangePi0[2],binRangeEta[0],binRangeEta[1],binRangeEta[2]);
-                }
+                massHistEta = new TH1F("",";M(#eta) (GeV)",binRangeEta[0],binRangeEta[1],binRangeEta[2]);
+                massHistPi0 = new TH1F("",";M(#pi) (GeV)",binRangePi0[0],binRangePi0[1],binRangePi0[2]);
+                massHistPi0VsEta = new TH2F("",";M(#pi) (GeV);M(#eta) (GeV)", binRangePi0[0],binRangePi0[1],binRangePi0[2],binRangeEta[0],binRangeEta[1],binRangeEta[2]);
                 massHistPi0Eta = new TH1F("","", 350, 0, 3.5);
 		cout << "Initialized for a specific mass (eta/pi0) fit" << endl;
 		
@@ -294,13 +295,9 @@ void getInitParams(){
                         weight=weight*utWeight;
 
 			massHistPi0Eta->Fill(Mpi0eta,weight);//
-                        if (!do2Dfit){
-		            massHistEta->Fill(discrimVar[1],weight);//
-		            massHistPi0->Fill(discrimVar[0],weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
-                        }
-                        else {
-                            massHistPi0VsEta->Fill(discrimVar[0],discrimVar[1],weight);
-                        }
+		        massHistEta->Fill(discrimVar[1],weight);//
+		        massHistPi0->Fill(discrimVar[0],weight); /////////////////////////////////////////// NOT WEIGHTED SINCE WE WONT BE ABLE TO FIT IT PROPERLY 
+                        massHistPi0VsEta->Fill(discrimVar[0],discrimVar[1],weight);
 		}
 		cout << "Filled all entries into histogram for a specific fit" << endl;
 
@@ -309,6 +306,16 @@ void getInitParams(){
 		massHistPi0Eta->GetYaxis()->SetTitleSize(0.04);
 		allCanvases->SaveAs(("fitResults"+runTag+"/"+fileTag+"/Mpi0eta_fit_"+fileTag+".png").c_str());
 		allCanvases->Clear();
+		massHistPi0->Draw("HIST");
+		massHistPi0->GetXaxis()->SetTitleSize(0.04);
+		massHistPi0->GetYaxis()->SetTitleSize(0.04);
+		allCanvases->SaveAs(("fitResults"+runTag+"/"+fileTag+"/Mpi0_fit_"+fileTag+".png").c_str());
+		allCanvases->Clear();
+		massHistEta->Draw("HIST");
+		massHistEta->GetXaxis()->SetTitleSize(0.04);
+		massHistEta->GetYaxis()->SetTitleSize(0.04);
+		allCanvases->SaveAs(("fitResults"+runTag+"/"+fileTag+"/Meta_fit_"+fileTag+".png").c_str());
+		allCanvases->Clear();
         	cout <<"Initialized" << endl;
 
 		// ///////////////////////////////////////////////////
@@ -316,8 +323,6 @@ void getInitParams(){
 		// ///////////////////////////////////////////////////
     		ofstream logFile;
 
-		fitRange1={0.09,0.18};
-		fitRange2={0.4,0.7};
                 // 1D Fits
                 if (!do2Dfit){
                     // -------------------
@@ -365,7 +370,7 @@ void getInitParams(){
                     proj_var1 = new TF1("proj_var1",fitFunc2_projectVar1,fitRange1[0],fitRange1[1],numDOFsig2+numDOFbkg2);
                     proj_var2 = new TF1("proj_var2",fitFunc2_projectVar2,fitRange2[0],fitRange2[1],numDOFsig2+numDOFbkg2);
 
-		    fit2D->SetParameters(0,0,0,0,100,0.134,0.015,0.547,0.05);
+		    fit2D->SetParameters(50,50,50,50,1,0.135,0.01,0.547,0.02);
                     fit2D->SetParLimits(0,0,1000);
                     fit2D->SetParLimits(1,0,1000);
                     fit2D->SetParLimits(2,0,1000);

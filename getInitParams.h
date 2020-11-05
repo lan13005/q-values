@@ -75,7 +75,7 @@ Double_t fitFunc2_projectVar2(Double_t *x, Double_t *par){
         Double_t binWidth=binWidthPi0;
         Double_t min=binRangePi0[1];
         Double_t max=binRangePi0[2];
-        Double_t integratedBernstein = 0.5*(par[0]-par[1])*(max*max-min*min)+(par[1]+par[3]+(par[2]-par[3]))*(max-min);
+        Double_t integratedBernstein = 0.5*(par[0]-par[1])*(max*max-min*min)+(par[1]+par[3]+(par[2]-par[3])*x[0])*(max-min);
         Double_t gaus = par[4]/sqrt(2*TMath::Pi())/par[8]*TMath::Exp(-0.5*(r2*r2));
 	return (integratedBernstein+gaus)/binWidth; // need to scale by binWidth of the integrated dimension
 } 
@@ -86,17 +86,17 @@ Double_t fitFunc2_projectVar1(Double_t *x, Double_t *par){
         Double_t binWidth=binWidthEta;
         Double_t min=binRangeEta[1];
         Double_t max=binRangeEta[2];
-        Double_t integratedBernstein = 0.5*(par[2]-par[3])*(max*max-min*min)+(par[3]+par[1]+(par[0]-par[1]))*(max-min);
+        Double_t integratedBernstein = 0.5*(par[2]-par[3])*(max*max-min*min)+(par[3]+par[1]+(par[0]-par[1])*x[0])*(max-min);
         Double_t gaus = par[4]/sqrt(2*TMath::Pi())/par[6]*TMath::Exp(-0.5*(r1*r1));
 	return (integratedBernstein+gaus)/binWidth;
 } 
-Double_t background2_projectVar1(Double_t *x, Double_t *par){
-        Double_t min=binRangeEta[1];
-        Double_t max=binRangeEta[2];
-        Double_t binWidth=binWidthEta;
-        Double_t integratedBernstein = 0.5*(par[2]-par[3])*(max*max-min*min)+(par[3]+par[1]+(par[0]-par[1])*x[0])*(max-min);
-        return integratedBernstein/binWidth;
-}
+//Double_t background2_projectVar1(Double_t *x, Double_t *par){
+//        Double_t min=binRangeEta[1];
+//        Double_t max=binRangeEta[2];
+//        Double_t binWidth=binWidthEta;
+//        Double_t integratedBernstein = 0.5*(par[2]-par[3])*(max*max-min*min)+(par[3]+par[1]+(par[0]-par[1])*x[0])*(max-min);
+//        return integratedBernstein/binWidth;
+//}
 // Variables related to fitting the discriminating variable
 TF1* fit;
 TF1* bkgFit;

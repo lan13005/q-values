@@ -321,10 +321,10 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         RooRealVar roo_Mpi0(("roo_Mpi0"+sThread).c_str(),"Mass GeV",binRangePi0[1],binRangePi0[2]);
         roo_Mpi0.setRange(("roo_fitRangeMpi0"+sThread).c_str(),fitRangePi02[0], fitRangePi02[1]);
         RooDataSet rooData(("rooData"+sThread).c_str(),"rooData",RooArgSet(roo_Mpi0,roo_Meta));
-        RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX*0.5,fittedMassX*1.5);
-        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX*0.5,fittedSigmaX*1.5);
-        RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY*0.5,fittedMassY*1.5);
-        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY*0.5,fittedSigmaY*1.5);
+        RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX*0.85,fittedMassX*1.15);
+        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX*0.85,fittedSigmaX*1.15);
+        RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY*0.85,fittedMassY*1.15);
+        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY*0.85,fittedSigmaY*1.15);
 
         RooRealVar bern_parA(("bern_parA"+sThread).c_str(),"bern_parA",0,1);
         RooRealVar bern_parB(("bern_parB"+sThread).c_str(),"bern_parB",0,1);
@@ -346,8 +346,6 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 	//logFile << std::fixed << std::setprecision(6);
 	int randomEntry;
         for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
-                // clean up and reserve for next entry
-                rooData.reset();
                 dHist_qvaluesBS->Reset();
                 vector<double> qvalues; qvalues.reserve(nBS);
                 TFile *qHistsFile;
@@ -390,6 +388,8 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                 // - The first iteration always uses the real data. if nBS > 0 then we will rerun and resample to get the bootstrapped q-factors
                 // ---------------------
                 for (int iBS=0; iBS<nBS+1; ++iBS){ 
+                    // clean up and reserve for next entry
+                    rooData.reset();
                     // resetting some variables
 		    bestNLL=DBL_MAX;
 		    worstNLL=DBL_MIN;

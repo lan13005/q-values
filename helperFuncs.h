@@ -17,27 +17,34 @@ using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
 bool verbose = true;
-string rootFileLoc="/d/grid13/ln16/q-values-2/degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root";
-string rootTreeName="degALL_ALL_a0a2_tree_flat";
+string rootFileLoc="/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/allMC_trees.root";
+string rootTreeName="degALL_acc_mEllipse_tree_flat";
 string fileTag="all";
 string runTag="";
 string weightingScheme="as";
 string s_accWeight="AccWeight";
-string s_sbWeight="weightBS";
+string s_sbWeight="";
 string s_discrimVar="Mpi0;Meta";
-string s_utBranch="UT_noTrackingWeights";
+string s_utBranch="";
 
 ///// **************************************************************
 ///// STEP0.5: DEFINE HISTOGRAM BIN PARAMETERS SO THERE IS CONSISTENCY
 ///// **************************************************************
-std::vector<double> binRangeEta={200,0.25,0.85};
-std::vector<double> binRangePi0={200,0.005,0.25};
+std::vector<double> binRangeEta={200,0.34,0.8};
+std::vector<double> binRangePi0={200,0.075,0.21};
+//std::vector<double> binRangeEta={200,0.25,0.85};
+//std::vector<double> binRangePi0={200,0.005,0.25};
 double binWidthEta=(binRangeEta[2]-binRangeEta[1])/binRangeEta[0];
 double binWidthPi0=(binRangePi0[2]-binRangePi0[1])/binRangePi0[0];
-std::vector<double> fitRange1;
-std::vector<double> fitRange2;
-std::vector<double> fitRangeEta2={0.25,0.85};//{0.4,0.7};
-std::vector<double> fitRangePi02={0.005,0.25};//{0.09,0.18};
+
+std::vector<double> fitRangeEta2={0.4,0.7};//{0.4,0.7};
+std::vector<double> fitRangePi02={0.09,0.18};//{0.09,0.18};
+//std::vector<double> fitRangeEta2={0.25,0.85};//{0.4,0.7};
+//std::vector<double> fitRangePi02={0.005,0.25};//{0.09,0.18};
+
+// used in getInitParams
+std::vector<double> fitRange1=fitRangePi02;//{0.121,0.15};
+std::vector<double> fitRange2=fitRangeEta2;//{0.516,0.58};
 
 
 ///// **************************************************************

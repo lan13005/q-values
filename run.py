@@ -13,7 +13,7 @@ start_time = time.time()
 _SET_nProcess=36 # how many processes to spawn
 _SET_kDim=300 # number of neighbors
 _SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
-_SET_numberEventsToSavePerProcess=5 # how many histograms (root files) we want to save.
+_SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
 _SET_seedShift=134131 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
@@ -23,7 +23,7 @@ _SET_nBS=0 # number of times we should bootstrap the set of neighbors to calcula
 _SET_saveBShistsAlso=1 # should we save every bootstrapped histogram also?
 _SET_weightingScheme="as" # can be {"","as"}. for no accidental weights, accidental sub.
 _SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
-_SET_sbWeight="weightBS" # the branch to look at to get the sideband weight
+_SET_sbWeight="" # the branch to look at to get the sideband weight
 _SET_uniquenessTracking="" # default is "" which will set all event counting weights to 1. Otherwise we can give it a branch to look at
 _SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj;Mpi0g1;Mpi0g2" # what is the phase space variables to calculate distance in 
 _SET_discrimVars="Mpi0;Meta" # discriminating/reference variable
@@ -42,7 +42,11 @@ rootFileLocs=[
         #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
         #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
 
-        (rootFileBase+"degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_ALL_a0a2_tree_flat", "all")
+        ("/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/allMC_trees.root", "degALL_acc_mEllipse_tree_flat", "all")
+
+        #(rootFileBase+"degALL_data_2017_mEllipse_treeFlat_DSelector.root ", "degALL_data_2017_mEllipse_tree_flat", "all")
+
+        #(rootFileBase+"degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_ALL_a0a2_tree_flat", "all")
         #(rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
         #(rootFileBase+"degALL_FCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_FCAL_a0a2_tree_flat", "fcal")
         #,(rootFileBase+"degALL_SPLIT_a0a2_treeFlat_DSelector_UTweights.root", "degALL_SPLIT_a0a2_tree_flat", "split")
@@ -103,7 +107,7 @@ _SET_runFullFit,_SET_runQFactor,_SET_runMakeHists = parseCmdArgs()
 varVec=_SET_varStringBase.rstrip().split(";")
 def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     '''
-    Settings we need to set in getInitParams, main.h, and makeDiagnosticHists
+    Settings we need to set in helpFuncs
     '''
     sedArgs=["sed","-i",'s@rootFileLoc=".*";@rootFileLoc="'+_SET_rootFileLoc+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
@@ -119,9 +123,9 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_accWeight=".*";@s_accWeight="'+_SET_accWeight+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    sedArgs=["sed","-i",'s@s_sbWeight".*";@s_sbWeight="'+_SET_sbWeight+'";@g',fileName]
+    sedArgs=["sed","-i",'s@s_sbWeight=".*";@s_sbWeight="'+_SET_sbWeight+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
-    sedArgs=["sed","-i",'s@s_uniquenessTracking=".*";@s_uniquenessTracking="'+_SET_uniquenessTracking+'";@g',fileName]
+    sedArgs=["sed","-i",'s@s_utBranch=".*";@s_utBranch="'+_SET_uniquenessTracking+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
 
