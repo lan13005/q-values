@@ -14,11 +14,11 @@ start_time = time.time()
 _SET_nProcess=24 # how many processes to spawn
 _SET_kDim=300 # number of neighbors
 _SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
-_SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
+_SET_numberEventsToSavePerProcess=5 # how many histograms (root files) we want to save.
 _SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
-_SET_redistributeBkgSigFits=1 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
+_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_nBS=0 # number of times we should bootstrap the set of neighbors to calculate q-factors with. Used to extract an error on the q-factors. Set to 0 if you dont want to do BS
 _SET_saveBShistsAlso=1 # should we save every bootstrapped histogram also?
@@ -233,7 +233,7 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
             outLogs.append(outLog)
             errLogs.append(errLog)
             executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
-                    str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd]
+                    str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd, "&"]
             print(" ".join(executeMain))
             openProcess = subprocess.Popen(executeMain,stdout=outLog,stderr=errLog)
             openProcesses.append(openProcess)

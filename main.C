@@ -289,6 +289,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         // Some vars to initialize but not declare yet
         double sigPdfVal;
         double bkgPdfVal;
+        double totPdfVal;
 
         // Fit parameters 
         double fittedMassX = initializationParMap["massx"];
@@ -392,6 +393,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                     // resetting some variables
 		    bestNLL=DBL_MAX;
 		    worstNLL=DBL_MIN;
+                    RooArgSet* savedParams;
 		    duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 		    if(verbose){logFile << "\tBegin bootstrapping potential neighbors: " << duration2 << "ms" << endl; }
                     phasePoint2PotentailNeighbor_BS.clear();
@@ -475,9 +477,12 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                         // setting parameters for bkg/sig and extracting q-value
                         roo_Mpi0.setVal(discrimVars[0][ientry]);
                         roo_Meta.setVal(discrimVars[1][ientry]);
-                        sigPdfVal = sigFrac.getVal()*rooGaus2D.getVal(RooArgSet(roo_Mpi0,roo_Meta));
-                        bkgPdfVal = (1-sigFrac.getVal())*rooBkg.getVal(RooArgSet(roo_Mpi0,roo_Meta));
+                        sigPdfVal = sigFrac.getVal()*rooGaus2D.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
+                        bkgPdfVal = (1-sigFrac.getVal())*rooBkg.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
+                        totPdfVal = rooSigPlusBkg.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
                         qvalue = sigPdfVal/(sigPdfVal+bkgPdfVal);
+                        if(verbose){logFile << "sig, bkg, sig+bkg, tot, sigFrac, qvalue: " << sigPdfVal << ", " << bkgPdfVal << ", " << sigPdfVal+bkgPdfVal << ", " << totPdfVal << 
+                            ", " << sigFrac.getVal() << ", " << qvalue << endl;}
 		        if(verbose){logFile <<	"\tExtracted q-value (" << qvalue << "): " << duration2 << "ms" << endl;}
                         
                         // Different ways to calculate chiSq: https://nbviewer.jupyter.org/gist/wiso/443934add13fd7226e4b
@@ -504,7 +509,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		    		best_qvalue = qvalue;
 		    		bestNLL=NLL;
                                 RooArgSet* params=rooSigPlusBkg.getParameters(RooArgList(roo_Mpi0,roo_Meta));
-                                RooArgSet* savedParams = params->snapshot();
+                                savedParams = params->snapshot();
 		    	} 
 		    	if (NLL > worstNLL){
 		    		worstNLL = NLL;
