@@ -88,7 +88,6 @@ void QFactorAnalysis::loadData(){
         // vars we will use to fill but not use directly
 	ULong64_t eventNumber;
         double utWeight;
-        double sbWeight;
 
 	// Set branch addresses so we can read in the data
         parsePhaseSpace.updateString(varString);
@@ -108,12 +107,6 @@ void QFactorAnalysis::loadData(){
 
         // Setting up tracking of weight branches
 	dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
-        if(!s_sbWeight.empty()){
-            dataTree->SetBranchAddress(s_sbWeight.c_str(),&sbWeight);
-        }
-        else{
-            sbWeight=1;
-        }
         if (!s_utBranch.empty()){ // if string is not empty we will set the branch address
             dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
         }
@@ -227,6 +220,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 	double worstNLL;
         double qvalue;
         double best_qvalue;
+        double worst_qvalue;
         double qvalueBS_std=0;
 
         // Saving the results along with some diagnostics
@@ -234,6 +228,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         TTree* resultsTree = new TTree("resultsTree","results");
         resultsTree->Branch("flatEntryNumber",&flatEntryNumber,"flatEntryNumber/l");
         resultsTree->Branch("qvalue",&best_qvalue,"qvalue/D");
+        resultsTree->Branch("worst_qvalue",&worst_qvalue,"worst_qvalue/D");
         resultsTree->Branch("qvalueBS_std",&qvalueBS_std,"qvalueBS_std/D");
         resultsTree->Branch("bestNLL",&bestNLL,"bestNLL/D");
         resultsTree->Branch("worstNLL",&worstNLL,"worstNLL/D");
@@ -321,10 +316,14 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         RooRealVar roo_Mpi0(("roo_Mpi0"+sThread).c_str(),"Mass GeV",binRangePi0[1],binRangePi0[2]);
         roo_Mpi0.setRange(("roo_fitRangeMpi0"+sThread).c_str(),fitRangePi02[0], fitRangePi02[1]);
         RooDataSet rooData(("rooData"+sThread).c_str(),"rooData",RooArgSet(roo_Mpi0,roo_Meta));
-        RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX*0.85,fittedMassX*1.15);
-        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX*0.85,fittedSigmaX*1.15);
-        RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY*0.85,fittedMassY*1.15);
-        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY*0.85,fittedSigmaY*1.15);
+        RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX);//*0.85,fittedMassX*1.15);
+        //RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX);//*0.85,fittedMassX*1.15);
+        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX*0.15,fittedSigmaX*1.15);
+        //RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,0,0.05);
+        RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY);//*0.85,fittedMassY*1.15);
+        //RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY);//*0.85,fittedMassY*1.15);
+        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY*0.15,fittedSigmaY*1.15);
+        //RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,0,0.1);//,fittedSigmaY*1.15);
 
         RooRealVar bern_parA(("bern_parA"+sThread).c_str(),"bern_parA",0,1);
         RooRealVar bern_parB(("bern_parB"+sThread).c_str(),"bern_parB",0,1);
@@ -481,8 +480,25 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                         qvalue = sigPdfVal/(sigPdfVal+bkgPdfVal);
 		        if(verbose){logFile <<	"\tExtracted q-value (" << qvalue << "): " << duration2 << "ms" << endl;}
                         
+                        // Different ways to calculate chiSq: https://nbviewer.jupyter.org/gist/wiso/443934add13fd7226e4b
+                        // We can calculate chiSq by binning the data and using RooChi2Var. Example calculation is at:
+                        // https://hep.lancs.ac.uk/~ajf/root/RooChi2MCSModule_8cxx_source.html
+                        // Think we want to use nDataPts - nConstraints as in https://ned.ipac.caltech.edu/level5/Leo/Stats7_2.html
+                        //RooDataHist* binnedData = rooData.binnedClone();
+                        //RooChi2Var chiSq("chiSq","chiSq",rooSigPlusBkg,*binnedData);//,DataError(RooAbsData::SumW2));
+                        //roo_Meta.setBins(30);
+                        //roo_Mpi0.setBins(30);
+                        //RooPlot* roo_Mpi0_Meta_frame = new RooPlot(roo_Mpi0,roo_Meta);
+                        //rooData.plotOn(roo_Mpi0_Meta_frame);
+                        //rooSigPlusBkg.plotOn(roo_Mpi0_Meta_frame);
+                        //double chiSq = roo_Mpi0_Meta_frame->chiSquare();
+                        //RooArgSet* floatPars = (RooArgSet*)rooSigPlusBkg.getParameters(rooData)->selectByAttrib("Constant",kFALSE);
+                        //int nParams = floatPars->getSize();
+                        //int nBins = 900;
+                        //double chiSqPerDOF = chiSq/(nBins-nParams);
 		    	// now that the q-value is found we can get the NLL and save the parameters with the best NLL
                         // for more information look at RooFitResult class https://root.cern.ch/doc/master/classRooFitResult.html
+                        //cout << "NLL, chiSq, reduced ChiSq, nParams: " << NLL << ", " << chiSq << ", " << chiSqPerDOF << ", " << nParams << endl;
 		    	NLL = roo_result->minNll();
 		    	if (NLL < bestNLL){
 		    		best_qvalue = qvalue;
@@ -492,6 +508,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		    	} 
 		    	if (NLL > worstNLL){
 		    		worstNLL = NLL;
+                                worst_qvalue = qvalue;
 		    	}
 		        duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 		        if(verbose){logFile <<	"\tFitted hist with some initialization: " << duration2 << "ms" << endl;}
@@ -536,13 +553,15 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                                 //rooSigPlusBkgProjMpi0->plotOn(roo_Meta_frame, Components("rooBkg*"),LineStyle(kDashed),LineColor(kOrange));
                                 //rooSigPlusBkgProjMpi0->paramOn(roo_Meta_frame);
                                 
-
                                 // OMG FOUND HOW TO FIX THE BUG! WE NEED TO SET THE NORMRANGE AND RANGE HERE IF WE ARE GOING TO FIT USING THE SAME PDF ON THE SAME DATA MULTIPLE TIMES. 
                                 // THERE IS AN ERROR ABOUT THE NORMALIZATIONS AND SOMEHOW MORE FUNCTIONS ARE CREATED AND WE GET A BUNCH OF SAME OF THE SAME OBJECTS THAT GETS ADDED
                                 // ONTO OUR ARGLIST
                                 // https://root-forum.cern.ch/t/roofit-normalization/23644/2
                                 RooPlot* roo_Meta_frame = roo_Meta.frame();
                                 rooData.plotOn(roo_Meta_frame);
+                                // reload the best params
+                                RooArgSet* params=rooSigPlusBkg.getParameters(RooArgList(roo_Mpi0,roo_Meta));
+                                *params = *savedParams;
                                 rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()));
                                 rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()), Components(rooBkg),LineStyle(kDashed),LineColor(kOrange));
                                 roo_Meta_frame->Draw();
@@ -734,7 +753,7 @@ int main( int argc, char* argv[] ){
 	analysisControl.loadTree(rootFileLoc, rootTreeName);
 	analysisControl.loadFitParameters(fitLocation,cwd);
 	analysisControl.loadData();
-	analysisControl.runQFactorThreaded(iProcess);
+        analysisControl.runQFactorThreaded(iProcess);
         return 0;
 }
 

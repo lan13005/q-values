@@ -3,6 +3,7 @@ import os
 import sys
 import time
 from itertools import combinations
+from termcolor import colored
 
 start_time = time.time()
 
@@ -10,22 +11,22 @@ start_time = time.time()
 #############################################################################
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
-_SET_nProcess=36 # how many processes to spawn
+_SET_nProcess=24 # how many processes to spawn
 _SET_kDim=300 # number of neighbors
 _SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_numberEventsToSavePerProcess=2 # how many histograms (root files) we want to save.
-_SET_seedShift=134131 # in case we dont want to save the same q-value histogram we can choose another random seed
+_SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
-_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
+_SET_redistributeBkgSigFits=1 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_nBS=0 # number of times we should bootstrap the set of neighbors to calculate q-factors with. Used to extract an error on the q-factors. Set to 0 if you dont want to do BS
 _SET_saveBShistsAlso=1 # should we save every bootstrapped histogram also?
 _SET_weightingScheme="as" # can be {"","as"}. for no accidental weights, accidental sub.
 _SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
-_SET_sbWeight="" # the branch to look at to get the sideband weight
+_SET_sbWeight="weightBS" # the branch to look at to get the sideband weight
 _SET_uniquenessTracking="" # default is "" which will set all event counting weights to 1. Otherwise we can give it a branch to look at
-_SET_varStringBase="cosTheta_X_cm;cosTheta_eta_gj;phi_eta_gj;Mpi0g1;Mpi0g2" # what is the phase space variables to calculate distance in 
+_SET_varStringBase="cosTheta_eta_gj;Mpi0g1;Mpi0g2;nn0;nn1"#cosTheta_X_cm;phi_eta_gj # what is the phase space variables to calculate distance in 
 _SET_discrimVars="Mpi0;Meta" # discriminating/reference variable
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 _SET_verbose=1 # how much information we want to output to the logs folder
@@ -42,7 +43,9 @@ rootFileLocs=[
         #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
         #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
 
-        ("/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/allMC_trees.root", "degALL_acc_mEllipse_tree_flat", "all")
+        ("/d/grid13/ln16/q-values-2/allMC_tree_ext.root", "degALL_acc_mEllipse_tree_flat", "all")
+        #("/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/allMC_trees.root", "degALL_acc_mEllipse_tree_flat", "all")
+        #("/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/a0a2MC_trees.root", "degALL_acc_mEllipse_tree_flat", "all")
 
         #(rootFileBase+"degALL_data_2017_mEllipse_treeFlat_DSelector.root ", "degALL_data_2017_mEllipse_tree_flat", "all")
 
@@ -216,22 +219,44 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
         subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
         os.system("./submit.sh") # call the submit program to launch our condor_submit program
     else:
-        # ----- Multiprocessing 
+        # ----- Dumb Multiprocessing 
         _SET_iProcess=0;
         print("Launching processes one second apart...")
         time.sleep(3)
         outLogs=[]
+        errLogs=[]
         openProcesses=[]
         for _SET_iProcess in range(_SET_nProcess):
             print("Launching process "+str(_SET_iProcess))
-            outLog = open("logs"+_SET_runTag+"/"+_SET_fileTag+"/output"+str(_SET_iProcess)+".txt","w")
+            outLog = open("logs"+_SET_runTag+"/"+_SET_fileTag+"/out"+str(_SET_iProcess)+".txt","w")
+            errLog = open("logs"+_SET_runTag+"/"+_SET_fileTag+"/err"+str(_SET_iProcess)+".txt","w")
             outLogs.append(outLog)
+            errLogs.append(errLog)
             executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
-                    str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd,"&"]
+                    str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd]
             print(" ".join(executeMain))
-            openProcess = subprocess.Popen(executeMain,stdout=outLog)
+            openProcess = subprocess.Popen(executeMain,stdout=outLog,stderr=errLog)
             openProcesses.append(openProcess)
         exit_codes = [proc.wait() for proc in openProcesses]
+        print("\nprocess# | exit code (0=success) | manual check status")
+        successful_exits = True
+        for icode,exit_code in enumerate(exit_codes):
+            manualCheckStatus=subprocess.check_output("tail -n 1 /d/grid13/ln16/q-values-2/logs/all/out"+str(icode)+".txt",shell=True)[:8]=='nentries'
+            if manualCheckStatus:
+                manualCheckStatus="success"
+            else:
+                manualCheckStatus="failed"
+            print("process"+str(icode)+" | "+str(exit_code)+" | "+manualCheckStatus)
+            if (exit_code != 0) and (manualCheckStatus != "success"):
+                successful_exits = False
+        if not successful_exits:
+            print(colored("Atleast one proccess terminated without success. Exiting program...","red"))
+            exit()
+        else:
+            print(colored("All proccess terminated successfully","green"))
+        print("\n")
+            
+
 
         
        
@@ -282,7 +307,7 @@ def combineAllGraphs():
 for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     print("\n\n-------------------------------------")
     print("Starting running of {0}".format(_SET_rootFileLoc))
-    print("TreeName: {0}".format(_SET_rootFileLoc))
+    print("TreeName: {0}".format(_SET_rootTreeName))
     print("FileTag: {0}".format(_SET_fileTag))
 
     numVar=len(varVec)

@@ -17,13 +17,13 @@ using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
 bool verbose = true;
-string rootFileLoc="/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/allMC_trees.root";
+string rootFileLoc="/d/grid13/ln16/q-values-2/allMC_tree_ext.root";
 string rootTreeName="degALL_acc_mEllipse_tree_flat";
 string fileTag="all";
 string runTag="";
 string weightingScheme="as";
 string s_accWeight="AccWeight";
-string s_sbWeight="";
+string s_sbWeight="weightBS";
 string s_discrimVar="Mpi0;Meta";
 string s_utBranch="";
 

@@ -26,6 +26,7 @@
 #include <TPolyLine3D.h>
 #include <RooRealVar.h>
 #include <RooDataSet.h>
+#include <RooDataHist.h>
 #include <RooGenericPdf.h>
 #include <RooGaussian.h>
 #include <RooAddPdf.h>

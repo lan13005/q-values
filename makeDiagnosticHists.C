@@ -173,6 +173,7 @@ void makeDiagnosticHists(){
 	TFile* dataFile=new TFile((inputFileLoc).c_str());
 	TTree *dataTree;
 	dataFile->GetObject((rootTreeName).c_str(),dataTree);
+        cout << "Entries in input root tree: " << dataTree->GetEntries()  << endl;
 	
         TLine* etaLine;
         double AccWeight;
