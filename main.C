@@ -334,7 +334,11 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         roo_Meta.setRange(("roo_fitRangeMeta"+sThread).c_str(),fitRangeEta2[0], fitRangeEta2[1]);
         RooRealVar roo_Mpi0(("roo_Mpi0"+sThread).c_str(),"Mass GeV",fitRangePi02[0],fitRangePi02[1]);
         roo_Mpi0.setRange(("roo_fitRangeMpi0"+sThread).c_str(),fitRangePi02[0], fitRangePi02[1]);
-        RooDataSet rooData(("rooData"+sThread).c_str(),"rooData",RooArgSet(roo_Mpi0,roo_Meta));
+        RooRealVar roo_Weight(("roo_Weight"+sThread).c_str(), "Weight", -10, 10); // Weights can take a wide range
+
+        // We need to declare the weight variable with WeightVar and when we fill the weights we have to include the weight var in the argset AND include the weight
+        // So when we fill the data we use: rooData.add(RooArgSet(roo_Mpi0,roo_Meta,roo_Weight),weight);
+        RooDataSet rooData(("rooData"+sThread).c_str(),"rooData",RooArgSet(roo_Mpi0,roo_Meta, roo_Weight),WeightVar(roo_Weight));
         RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX);//*0.85,fittedMassX*1.15);
         RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,fittedSigmaX*0.15,fittedSigmaX*1.15);
         RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY);//*0.85,fittedMassY*1.15);
@@ -466,18 +470,16 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                             if (weightingScheme=="as"){ weight=AccWeights[newPair.second]; }
                             else { weight=1; } 
                             weight=weight*utWeights[newPair.second];
-                            cout << "Weights" << endl;
-                            cout << AccWeights[newPair.second] << ", " << utWeights[newPair.second] << endl;
-                            cout << weight << endl;
 
                             roo_Meta = discrimVars[1][newPair.second];
                             roo_Mpi0 = discrimVars[0][newPair.second];
-                            rooData.add(RooArgSet(roo_Mpi0,roo_Meta),weight);
+                            rooData.add(RooArgSet(roo_Mpi0,roo_Meta,roo_Weight),weight);
 
                             if(verbose_outputDistCalc){
 		                cout << "(" << newPair.first << ", " << newPair.second << ", " << discrimVars[0][newPair.second] << ", " << discrimVars[1][newPair.second] << ")" << endl; 
                             }
 		    }
+                    //rooData.Print();
 		    
 		    duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 		    if(verbose){logFile <<	"\tFilled neighbors: " << duration2 << "ms" << endl;}
