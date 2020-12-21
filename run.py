@@ -11,10 +11,10 @@ start_time = time.time()
 #############################################################################
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
-_SET_nProcess=24 # how many processes to spawn
+_SET_nProcess=1 # how many processes to spawn
 _SET_kDim=300 # number of neighbors
-_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
-_SET_numberEventsToSavePerProcess=5 # how many histograms (root files) we want to save.
+_SET_nentries=300 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
+_SET_numberEventsToSavePerProcess=4 # how many histograms (root files) we want to save.
 _SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 

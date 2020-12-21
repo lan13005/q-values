@@ -1,5 +1,10 @@
 #include "main.h"
+#include "utilities/drawPlots.C"
+
 using namespace RooFit;
+int skipInitial=618750;
+int extra=5;
+bool saveAll=true;
 
 void QFactorAnalysis::loadTree(string rootFileLoc, string rootTreeName){
 	cout << "Loading root file and tree" << endl;
@@ -69,7 +74,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation,string cwd){
         // We will do 3 iterations. Not sure if I am doing this correctly
         // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
         // If not redistributing we will use what you want to set it at
-        if (redistributeBkgSigFits) { sigFracs={0,0.5,1}; }
+        if (redistributeBkgSigFits) { sigFracs={0.5,0,1}; }
         else { sigFracs={eventRatioSigToBkg}; }
 }
 
@@ -105,13 +110,24 @@ void QFactorAnalysis::loadData(){
         // vars we will use to fill but not use directly
 	dataTree->SetBranchAddress("event",&eventNumber);
 
-        // Setting up tracking of weight branches
-	dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
+        // Setting up tracking of accidental weights
+        if (!s_accWeight.empty()){ // if string is not empty we will set the branch address
+	    dataTree->SetBranchAddress(s_accWeight.c_str(),&AccWeight);
+            cout << "Using accidental weights in branch: "+s_utBranch << endl;
+        }
+        else{
+            AccWeight=1;
+            cout << "No accidental weights used" << endl;
+        }
+
+        // Setting up tracking of uniqueness tracking weights
         if (!s_utBranch.empty()){ // if string is not empty we will set the branch address
             dataTree->SetBranchAddress(s_utBranch.c_str(),&utWeight);
+            cout << "Using uniqueness tracking weights in branch: "+s_utBranch << endl;
         }
         else{
             utWeight=1;
+            cout << "No uniqueness tracking weights used" << endl;
         }
 
 	
@@ -223,6 +239,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         double worst_qvalue;
         double qvalueBS_std=0;
 
+
         // Saving the results along with some diagnostics
         TFile *resultsFile = new TFile((cwd+"/logs"+runTag+"/"+fileTag+"/results"+to_string(iProcess)+".root").c_str(),"RECREATE");
         TTree* resultsTree = new TTree("resultsTree","results");
@@ -275,6 +292,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		randomEvent += lowest_nentry; // shift by the lowest entry of the batch
 		selectRandomIdxToSave.insert( randomEvent );
 	}
+        selectRandomIdxToSave.insert(618759);
         cout << "randomly selected some events to save" << endl;
 
         // Determining how many fits we do, depending on if we want to redistribute signal and bkg ratios
@@ -296,10 +314,10 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         double fittedMassY = initializationParMap["massy"];
         double fittedSigmaX = initializationParMap["sigmax"];
         double fittedSigmaY = initializationParMap["sigmay"];
-        double fittedBernA = initializationParMap["bernx01"];
-        double fittedBernB = initializationParMap["bernx11"];
-        double fittedBernC = initializationParMap["berny01"];
-        double fittedBernD = initializationParMap["berny11"];
+        double fittedBernA = 0.5;//initializationParMap["bernx01"];
+        double fittedBernB = 0.5;//initializationParMap["bernx11"];
+        double fittedBernC = 0.5;//initializationParMap["berny01"];
+        double fittedBernD = 0.5;//initializationParMap["berny11"];
         cout << "fittedMassX " << fittedMassX << endl;
         cout << "fittedMassY " << fittedMassY << endl;
         cout << "fittedSigmaX " << fittedSigmaX << endl;
@@ -312,31 +330,32 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         // For loading the data
         string sThread = to_string(iProcess);
         RooWorkspace* roo_ws = new RooWorkspace(("roo_ws"+sThread).c_str());
-        RooRealVar roo_Meta(("roo_Meta"+sThread).c_str(),"Mass GeV",1,binRangeEta[1],binRangeEta[2]);
+        RooRealVar roo_Meta(("roo_Meta"+sThread).c_str(),"Mass GeV",1,fitRangeEta2[0],fitRangeEta2[1]);
         roo_Meta.setRange(("roo_fitRangeMeta"+sThread).c_str(),fitRangeEta2[0], fitRangeEta2[1]);
-        RooRealVar roo_Mpi0(("roo_Mpi0"+sThread).c_str(),"Mass GeV",binRangePi0[1],binRangePi0[2]);
+        RooRealVar roo_Mpi0(("roo_Mpi0"+sThread).c_str(),"Mass GeV",fitRangePi02[0],fitRangePi02[1]);
         roo_Mpi0.setRange(("roo_fitRangeMpi0"+sThread).c_str(),fitRangePi02[0], fitRangePi02[1]);
         RooDataSet rooData(("rooData"+sThread).c_str(),"rooData",RooArgSet(roo_Mpi0,roo_Meta));
         RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX);//*0.85,fittedMassX*1.15);
-        //RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX);//*0.85,fittedMassX*1.15);
-        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX*0.15,fittedSigmaX*1.15);
-        //RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,0,0.05);
+        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,fittedSigmaX*0.15,fittedSigmaX*1.15);
         RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY);//*0.85,fittedMassY*1.15);
-        //RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY);//*0.85,fittedMassY*1.15);
-        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY*0.15,fittedSigmaY*1.15);
-        //RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,0,0.1);//,fittedSigmaY*1.15);
+        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,fittedSigmaY*0.15,fittedSigmaY*1.15);
 
-        RooRealVar bern_parA(("bern_parA"+sThread).c_str(),"bern_parA",0,1);
-        RooRealVar bern_parB(("bern_parB"+sThread).c_str(),"bern_parB",0,1);
-        RooRealVar bern_parC(("bern_parC"+sThread).c_str(),"bern_parC",0,1);
-        RooRealVar bern_parD(("bern_parD"+sThread).c_str(),"bern_parD",0,1);
-        RooRealVar sigFrac(("sigFrac"+sThread).c_str(),"sigFrac",0,1);
+        RooRealVar bern_parA(("bern_parA"+sThread).c_str(),"bern_parA",fittedBernA,0,1);
+        RooRealVar bern_parB(("bern_parB"+sThread).c_str(),"bern_parB",fittedBernB,0,1);
+        RooRealVar bern_parC(("bern_parC"+sThread).c_str(),"bern_parC",fittedBernC,0,1);
+        RooRealVar bern_parD(("bern_parD"+sThread).c_str(),"bern_parD",fittedBernD,0,1);
+        RooRealVar nsig(("nsig"+sThread).c_str(),"nsig",0,kDim);
+        RooRealVar nbkg(("nbkg"+sThread).c_str(),"nbkg",0,kDim);
 
-        RooGenericPdf rooBkg(("rooBkg"+sThread).c_str(), "rooBkg", ("bern_parA"+sThread+"*roo_Mpi0"+sThread+"+bern_parB"+sThread+"*(1-roo_Mpi0"+sThread+")+bern_parC"+sThread+"*roo_Meta"+sThread+"+bern_parD"+sThread+"*(1-roo_Meta"+sThread+")").c_str(),RooArgSet(bern_parA,bern_parB,bern_parC,bern_parD,roo_Mpi0,roo_Meta));
+        //RooGenericPdf rooBkg(("rooBkg"+sThread).c_str(), "rooBkg", ("bern_parA"+sThread+"*roo_Mpi0"+sThread+"+bern_parB"+sThread+"*(1-roo_Mpi0"+sThread+")+bern_parC"+sThread+"*roo_Meta"+sThread+"+bern_parD"+sThread+"*(1-roo_Meta"+sThread+")").c_str(),RooArgSet(bern_parA,bern_parB,bern_parC,bern_parD,roo_Mpi0,roo_Meta));
+        RooGenericPdf rooBkgY(("rooBkgX"+sThread).c_str(), "rooBkgX", ("bern_parA"+sThread+"*roo_Mpi0"+sThread+"+bern_parB"+sThread+"*(1-roo_Mpi0"+sThread+")").c_str(),RooArgSet(bern_parA,bern_parB,roo_Mpi0));
+        RooGenericPdf rooBkgX(("rooBkgY"+sThread).c_str(), "rooBkgY", ("bern_parC"+sThread+"*roo_Meta"+sThread+"+bern_parD"+sThread+"*(1-roo_Meta"+sThread+")").c_str(),RooArgSet(bern_parC,bern_parD,roo_Meta));
+        RooProdPdf rooBkg(("rooBkg"+sThread).c_str(),"rooBkg",RooArgList(rooBkgX,rooBkgY));
+
         RooGaussian rooGausPi0(("rooGausPi0"+sThread).c_str(), "rooGausPi0", roo_Mpi0, peak_pi0, width_pi0);
         RooGaussian rooGausEta(("rooGausEta"+sThread).c_str(), "rooGausEta", roo_Meta, peak_eta, width_eta);
         RooProdPdf rooGaus2D(("rooGaus2D"+sThread).c_str(), "rooGaus2D", RooArgSet(rooGausPi0,rooGausEta));
-        RooAddPdf rooSigPlusBkg(("rooSumPdf"+sThread).c_str(), "rooSumPdf", RooArgList(rooGaus2D,rooBkg),sigFrac);
+        RooAddPdf rooSigPlusBkg(("rooSumPdf"+sThread).c_str(), "rooSumPdf", RooArgList(rooGaus2D,rooBkg),RooArgSet(nsig,nbkg));
         // ---------------------------
 
 
@@ -345,11 +364,19 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         // Finally calculate the q-value by fitting and getting signal fraction
 	//logFile << std::fixed << std::setprecision(6);
 	int randomEntry;
-        for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){ 
+        int counter=-1;
+        //int ientry;
+        for (int ientry=lowest_nentry; ientry<largest_nentry; ientry++){//largest_nentry; ientry++){ 
+                //ientry = ientry2+38145;
+                //if (ientry > largest_nentry){ ientry = lowest_nentry; } 
+                //++counter;
+                //if (counter > extra){
+                //    exit(0);
+                //}
                 dHist_qvaluesBS->Reset();
                 vector<double> qvalues; qvalues.reserve(nBS);
                 TFile *qHistsFile;
-        	if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
+        	if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end() || saveAll) {
                     qHistsFile = new TFile((cwd+"/histograms"+runTag+"/"+fileTag+"/qValueHists_"+to_string(ientry)+".root").c_str(),"RECREATE");
                 }
 
@@ -397,7 +424,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		    duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 		    if(verbose){logFile << "\tBegin bootstrapping potential neighbors: " << duration2 << "ms" << endl; }
                     phasePoint2PotentailNeighbor_BS.clear();
-                    if (iBS==nBS){
+                    if (iBS==0){
                         phasePoint2PotentailNeighbor_BS = phasePoint2PotentialNeighbor;
                     }
                     else{ // resampling neighbors with replacement if we want to do bootstrapping
@@ -431,17 +458,21 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		        << "\n    -- if size is 1 less than kDim it is probably because kDim=nentries and event i cannot be a neighbor to itself" << 
 		        "\n    -- if size != kDim it could also mean that the number of spectroscopically unique neighbors reduces the number of poential neighbors below kDim" << endl;}
                     if(verbose_outputDistCalc){ cout << "These are our neighbors" << endl; }
+                    double weight;
 		    while ( distKNN.kNN.empty() == false ){
 		            newPair = distKNN.kNN.top();
 		            distKNN.kNN.pop();
-                            double weight;
                             if (weightingScheme==""){ weight=1; }
                             if (weightingScheme=="as"){ weight=AccWeights[newPair.second]; }
+                            else { weight=1; } 
                             weight=weight*utWeights[newPair.second];
+                            cout << "Weights" << endl;
+                            cout << AccWeights[newPair.second] << ", " << utWeights[newPair.second] << endl;
+                            cout << weight << endl;
 
                             roo_Meta = discrimVars[1][newPair.second];
                             roo_Mpi0 = discrimVars[0][newPair.second];
-                            rooData.add(RooArgSet(roo_Mpi0,roo_Meta));
+                            rooData.add(RooArgSet(roo_Mpi0,roo_Meta),weight);
 
                             if(verbose_outputDistCalc){
 		                cout << "(" << newPair.first << ", " << newPair.second << ", " << discrimVars[0][newPair.second] << ", " << discrimVars[1][newPair.second] << ")" << endl; 
@@ -466,10 +497,25 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                         bern_parB.setVal(fittedBernB);
                         bern_parC.setVal(fittedBernC);
                         bern_parD.setVal(fittedBernD);
-                        sigFrac.setVal(initSigFrac);
+                        nsig.setVal(initSigFrac*kDim);
+                        nbkg.setVal((1-initSigFrac)*kDim);
 
-                        RooFitResult* roo_result = rooSigPlusBkg.fitTo(rooData, Range(("roo_fitRangeMpi0"+sThread+",roo_fitRangeMeta"+sThread).c_str()), BatchMode(kTRUE), Hesse(kFALSE), Save(), PrintLevel(-1));
-                        //roo_result->Print("v");
+                        // need RooFit::SumW2Error(true) since we are using a weighted dataset
+                        RooFitResult* roo_result = rooSigPlusBkg.fitTo(rooData,Save(),Extended(),PrintLevel(-1), RooFit::SumW2Error(true), BatchMode(kTRUE));//, Range(("roo_fitRangeMpi0"+sThread+",roo_fitRangeMeta"+sThread).c_str()), RooFit::SumW2Error(true), Save(), PrintLevel(-1));//, BatchMode(kTRUE), Hesse(kFALSE));
+                        double sigFrac = nsig.getVal()/kDim;
+
+
+                        //TString outputString;
+                        //for (int i2=lowest_nentry; i2<lowest_nentry+extra; i2++){//largest_nentry; ientry++){ 
+                        //    roo_Mpi0.setVal(discrimVars[0][i2]);
+                        //    roo_Meta.setVal(discrimVars[1][i2]);
+                        //    sigPdfVal = sigFrac*rooGaus2D.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
+                        //    bkgPdfVal = (1-sigFrac)*rooBkg.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
+                        //    totPdfVal = rooSigPlusBkg.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
+                        //    qvalue = sigPdfVal/(sigPdfVal+bkgPdfVal);
+                        //    outputString.Form("%d, %.2f, %.2f, %.2f, %.2f, %.2f", i2, sigPdfVal, bkgPdfVal, totPdfVal, sigFrac, qvalue); 
+                        //    cout << outputString.Data() << endl;
+                        //}
 
 		        duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 		        if(verbose){logFile <<	"\tFitted fits (nentries " << rooData.sumEntries() << "): " << duration2 << "ms" << endl;}
@@ -477,13 +523,12 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                         // setting parameters for bkg/sig and extracting q-value
                         roo_Mpi0.setVal(discrimVars[0][ientry]);
                         roo_Meta.setVal(discrimVars[1][ientry]);
-                        sigPdfVal = sigFrac.getVal()*rooGaus2D.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
-                        bkgPdfVal = (1-sigFrac.getVal())*rooBkg.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
-                        totPdfVal = rooSigPlusBkg.getVal();//RooArgSet(roo_Mpi0,roo_Meta));
+                        cout << "Mpi0, Meta: " << roo_Mpi0.getVal() << ", " << roo_Meta.getVal() << endl;
+                        sigPdfVal = sigFrac*rooGaus2D.getVal(RooArgSet(roo_Mpi0,roo_Meta));
+                        bkgPdfVal = (1-sigFrac)*rooBkg.getVal(RooArgSet(roo_Mpi0,roo_Meta));
+                        totPdfVal = rooSigPlusBkg.getVal(RooArgSet(roo_Mpi0,roo_Meta));
                         qvalue = sigPdfVal/(sigPdfVal+bkgPdfVal);
-                        if(verbose){logFile << "sig, bkg, sig+bkg, tot, sigFrac, qvalue: " << sigPdfVal << ", " << bkgPdfVal << ", " << sigPdfVal+bkgPdfVal << ", " << totPdfVal << 
-                            ", " << sigFrac.getVal() << ", " << qvalue << endl;}
-		        if(verbose){logFile <<	"\tExtracted q-value (" << qvalue << "): " << duration2 << "ms" << endl;}
+		        //if(verbose){logFile <<	"\tExtracted q-value (" << qvalue << "): " << duration2 << "ms" << endl;}
                         
                         // Different ways to calculate chiSq: https://nbviewer.jupyter.org/gist/wiso/443934add13fd7226e4b
                         // We can calculate chiSq by binning the data and using RooChi2Var. Example calculation is at:
@@ -530,7 +575,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         	        // /////////////////////////////////////////
         	        // Drawing histogram 
         	        // /////////////////////////////////////////
-        	        if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end()) {
+        	        if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end() || saveAll) {
         	                // Here we draw the histograms that were randomly selected
         	                allCanvases->Clear();
         	                legend_fit->Clear();
@@ -564,49 +609,53 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                                 // https://root-forum.cern.ch/t/roofit-normalization/23644/2
                                 RooPlot* roo_Meta_frame = roo_Meta.frame();
                                 rooData.plotOn(roo_Meta_frame);
+
                                 // reload the best params
                                 RooArgSet* params=rooSigPlusBkg.getParameters(RooArgList(roo_Mpi0,roo_Meta));
                                 *params = *savedParams;
-                                rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()));
-                                rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()), Components(rooBkg),LineStyle(kDashed),LineColor(kOrange));
-                                roo_Meta_frame->Draw();
-                                roo_Meta_frame->GetXaxis()->SetTitle("M_{#eta}");
-                                roo_Meta_frame->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)).c_str());
-        	          	varLine->DrawLine(discrimVars[1][ientry],0,discrimVars[1][ientry],roo_Meta_frame->GetMaximum());
-		                if(verbose){logFile <<	"\tCompleted drawing on pad 1: " << duration2 << "ms" << endl;}
+                                
+                                drawPlots(&roo_Mpi0, &roo_Meta, discrimVars[0][ientry], discrimVars[1][ientry], kDim, &rooSigPlusBkg, &rooBkg, &rooGaus2D, &rooData, &nsig, &nbkg, allCanvases);
+                                
+                                //rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()));
+                                //rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()), Components(rooBkg),LineStyle(kDashed),LineColor(kOrange));
+                                //rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()), Components(rooGaus2D),LineStyle(kDashed),LineColor(kMagenta));
+                                //roo_Meta_frame->Draw();
+                                //roo_Meta_frame->GetXaxis()->SetTitle("M_{#eta}");
+                                //roo_Meta_frame->SetTitle(("BEST VALS:  QValue="+to_string(best_qvalue)).c_str());
+        	          	//varLine->DrawLine(discrimVars[1][ientry],0,discrimVars[1][ientry],roo_Meta_frame->GetMaximum());
+		                //if(verbose){logFile <<	"\tCompleted drawing on pad 1: " << duration2 << "ms" << endl;}
 
-                                allCanvases->cd(2);
-                                RooPlot* roo_Mpi0_frame = roo_Mpi0.frame();
-                                rooData.plotOn(roo_Mpi0_frame);
-                                rooSigPlusBkg.plotOn(roo_Mpi0_frame, NormRange(("roo_fitRangeMpi0"+sThread).c_str()),Range(("roo_fitRangeMpi0"+sThread).c_str()));
-                                rooSigPlusBkg.plotOn(roo_Mpi0_frame, NormRange(("roo_fitRangeMpi0"+sThread).c_str()),Range(("roo_fitRangeMpi0"+sThread).c_str()), Components(rooBkg),LineStyle(kDashed),LineColor(kOrange));
-                                roo_Mpi0_frame->Draw();
-                                roo_Mpi0_frame->GetXaxis()->SetTitle("M_{#pi}");
-        	          	varLine->DrawLine(discrimVars[0][ientry],0,discrimVars[0][ientry],roo_Mpi0_frame->GetMaximum());
-		                if(verbose){logFile <<	"\tCompleted drawing on pad 2: " << duration2 << "ms" << endl;}
+                                //allCanvases->cd(2);
+                                //RooPlot* roo_Mpi0_frame = roo_Mpi0.frame();
+                                //rooData.plotOn(roo_Mpi0_frame);
+                                //rooSigPlusBkg.plotOn(roo_Mpi0_frame, NormRange(("roo_fitRangeMpi0"+sThread).c_str()),Range(("roo_fitRangeMpi0"+sThread).c_str()));
+                                //rooSigPlusBkg.plotOn(roo_Mpi0_frame, NormRange(("roo_fitRangeMpi0"+sThread).c_str()),Range(("roo_fitRangeMpi0"+sThread).c_str()), Components(rooBkg),LineStyle(kDashed),LineColor(kOrange));
+                                //rooSigPlusBkg.plotOn(roo_Mpi0_frame, NormRange(("roo_fitRangeMpi0"+sThread).c_str()),Range(("roo_fitRangeMpi0"+sThread).c_str()), Components(rooGaus2D),LineStyle(kDashed),LineColor(kMagenta));
+                                //roo_Mpi0_frame->Draw();
+                                //roo_Mpi0_frame->GetXaxis()->SetTitle("M_{#pi}");
+        	          	//varLine->DrawLine(discrimVars[0][ientry],0,discrimVars[0][ientry],roo_Mpi0_frame->GetMaximum());
+		                //if(verbose){logFile <<	"\tCompleted drawing on pad 2: " << duration2 << "ms" << endl;}
         
-                                allCanvases->cd(3);
-                                TH1* rooDataHist = rooData.createHistogram(("roo_Mpi0"+sThread+",roo_Meta"+sThread).c_str(),50,50);
-                                rooDataHist->SetFillColor(kYellow);
-                                rooDataHist->Draw("lego1 0"); 
-                                TPolyLine3D *pl3d = new TPolyLine3D(2);
-                                pl3d->SetLineColor(kRed);
-                                pl3d->SetLineWidth(3);
-                                pl3d->SetPoint(0,discrimVars[0][ientry],discrimVars[1][ientry],0);
-                                pl3d->SetPoint(1,discrimVars[0][ientry],discrimVars[1][ientry],rooDataHist->GetMaximum());
-                                pl3d->Draw("same");
-                                gPad->SetTheta(75);
-                                gPad->Update();
-		                if(verbose){logFile <<	"\tCompleted drawing on pad 3: " << duration2 << "ms" << endl;}
+                                //allCanvases->cd(3);
+                                //TH1* rooDataHist = rooData.createHistogram(("roo_Mpi0"+sThread+",roo_Meta"+sThread).c_str(),50,50);
+                                //rooDataHist->SetFillColor(kYellow);
+                                //rooDataHist->Draw("lego1 0"); 
+                                //TPolyLine3D *pl3d = new TPolyLine3D(2);
+                                //pl3d->SetLineColor(kRed);
+                                //pl3d->SetLineWidth(3);
+                                //pl3d->SetPoint(0,discrimVars[0][ientry],discrimVars[1][ientry],0);
+                                //pl3d->SetPoint(1,discrimVars[0][ientry],discrimVars[1][ientry],rooDataHist->GetMaximum());
+                                //pl3d->Draw("same");
+                                //gPad->SetTheta(75);
+                                //gPad->Update();
+		                //if(verbose){logFile <<	"\tCompleted drawing on pad 3: " << duration2 << "ms" << endl;}
 
-                                allCanvases->cd(4);
-                                rooDataHist->Draw("lego1 0"); 
-                                pl3d->Draw("same");
-                                gPad->SetTheta(75);
-                                gPad->SetPhi(75);
-                                gPad->Update();
-		                if(verbose){logFile <<	"\tCompleted drawing on pad 4: " << duration2 << "ms" << endl;}
-
+                                //allCanvases->cd(4);
+                                //rooDataHist->Draw("COLZ"); 
+        	          	//varLine->DrawLine(fitRangePi02[0],discrimVars[1][ientry],fitRangePi02[1],discrimVars[1][ientry]);
+        	          	//varLine->DrawLine(discrimVars[0][ientry],fitRangeEta2[0],discrimVars[0][ientry],fitRangeEta2[1]);
+                                //gPad->Update();
+		                //if(verbose){logFile <<	"\tCompleted drawing on pad 4: " << duration2 << "ms" << endl;}
 
                                 allCanvases->cd(6);
                                 if (iBS==nBS){
@@ -684,7 +733,7 @@ int main( int argc, char* argv[] ){
 	// This suppresses all the "info" messages from roofit. Like saying that it will use numeric integrator for the generic pdf we define
 	// https://root-forum.cern.ch/t/suppressing-info-messages/14642/6
 	RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
-    	gStyle->SetOptFit(111);
+    	gStyle->SetOptFit(1111);
 	gStyle->SetStatH(0.1);
 	gStyle->SetStatW(0.1);
 
