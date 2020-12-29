@@ -23,7 +23,9 @@
 #include <TMath.h>
 #include <TLatex.h>
 #include <TLegend.h>
+#include <TSystem.h>
 #include <TPolyLine3D.h>
+#include <RooAbsReal.h>
 #include <RooRealVar.h>
 #include <RooDataSet.h>
 #include <RooDataHist.h>
@@ -38,6 +40,7 @@
 #include <RooFitResult.h>
 #include <RooChi2Var.h>
 #include <RooWorkspace.h>
+#include <RooMinimizer.h>
 //#include "RooAddPdf.h"
 //#include "RooFormulaVar.h"
 //
@@ -144,6 +147,7 @@ class QFactorAnalysis{
 
                 std::vector<std::vector<double>> phaseSpaceVars;
 		std::vector<double> AccWeights; 
+		std::vector<int> mcprocesses; 
                 std::vector<double> utWeights;
                 // Not all combinations will be a valid pairing. Suppose we only care about spectroscopically unique pairs, then we can fill phasePoint2PotentialNeighbor with
                 // only unique combos.

@@ -16,7 +16,7 @@ using namespace std;
 // !!!!!!
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
-bool verbose = true;
+//bool verbose=true;
 string rootFileLoc="/d/grid13/ln16/q-values-2/allMC_tree_ext.root";
 string rootTreeName="degALL_acc_mEllipse_tree_flat";
 string fileTag="all";
@@ -26,6 +26,7 @@ string s_accWeight="AccWeight";
 string s_sbWeight="weightBS";
 string s_discrimVar="Mpi0;Meta";
 string s_utBranch="";
+string s_mcprocessBranch="mcprocess";
 
 ///// **************************************************************
 ///// STEP0.5: DEFINE HISTOGRAM BIN PARAMETERS SO THERE IS CONSISTENCY
@@ -37,8 +38,8 @@ std::vector<double> binRangePi0={200,0.075,0.21};
 double binWidthEta=(binRangeEta[2]-binRangeEta[1])/binRangeEta[0];
 double binWidthPi0=(binRangePi0[2]-binRangePi0[1])/binRangePi0[0];
 
-std::vector<double> fitRangeEta2={0.4,0.7};//{0.4,0.7};
-std::vector<double> fitRangePi02={0.09,0.18};//{0.09,0.18};
+std::vector<double> fitRangeEta2={0.36,0.75};//{0.4,0.7};//{0.4,0.7};
+std::vector<double> fitRangePi02={0.085,0.185};//{0.09,0.18};//{0.09,0.18};
 //std::vector<double> fitRangeEta2={0.25,0.85};//{0.4,0.7};
 //std::vector<double> fitRangePi02={0.005,0.25};//{0.09,0.18};
 

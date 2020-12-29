@@ -4,6 +4,7 @@ import sys
 import time
 from itertools import combinations
 from termcolor import colored
+from checkCompletion import checkCompletion
 
 start_time = time.time()
 
@@ -11,27 +12,29 @@ start_time = time.time()
 #############################################################################
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
-_SET_nProcess=24 # how many processes to spawn
-_SET_kDim=300 # number of neighbors
-_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
-_SET_numberEventsToSavePerProcess=4 # how many histograms (root files) we want to save.
+_SET_nProcess=1 # how many processes to spawn
+_SET_kDim=200 # number of neighbors
+_SET_nentries=200 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
+_SET_numberEventsToSavePerProcess=3 # how many histograms (root files) we want to save. -1 = Save all histograms
 _SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
-_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
+_SET_redistributeBkgSigFits=1 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_nBS=0 # number of times we should bootstrap the set of neighbors to calculate q-factors with. Used to extract an error on the q-factors. Set to 0 if you dont want to do BS
-_SET_saveBShistsAlso=1 # should we save every bootstrapped histogram also?
+_SET_saveBShistsAlso=0 # should we save every bootstrapped histogram also?
 _SET_weightingScheme="as" # can be {"","as"}. for no accidental weights, accidental sub.
 _SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
 _SET_sbWeight="weightBS" # the branch to look at to get the sideband weight
 _SET_uniquenessTracking="" # default is "" which will set all event counting weights to 1. Otherwise we can give it a branch to look at
-_SET_varStringBase="cosTheta_eta_gj;Mpi0g1;Mpi0g2;nn0;nn1"#cosTheta_X_cm;phi_eta_gj # what is the phase space variables to calculate distance in 
+_SET_varStringBase="cosTheta_eta_gj;phi_eta_gj;cosTheta_X_cm;nn0;nn1"#Mpi0g1;Mpi0g2;cosTheta_X_cm;phi_eta_gj # what is the phase space variables to calculate distance in 
 _SET_discrimVars="Mpi0;Meta" # discriminating/reference variable
+_SET_mcprocessBranch="mcprocess" # if you use a sum of simulated events with a branch for the reaction processes we can output some more information
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 _SET_verbose=1 # how much information we want to output to the logs folder
 _SET_runTag="" # 3 folders are outputs of this set of programs {fitResults/diagnosticPlots/histograms}. We can append a runTag to the names allowing us to run multiple q-factors at the same time
 _SET_runBatch=0 # (default=0) 0=run on a single computer, 1=submit to condor for batch processing
+_SET_saveMemUsage=1 #save a file for the memory usage per process
 
 
 # What file we will analyze and what tree to look for
@@ -130,6 +133,8 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_utBranch=".*";@s_utBranch="'+_SET_uniquenessTracking+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@s_mcprocessBranch=".*";@s_mcprocessBranch="'+_SET_mcprocessBranch+'";@g',fileName]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
 
 def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
@@ -159,6 +164,13 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     os.system("rm -rf histograms"+_SET_runTag+"/"+_SET_fileTag)
     os.system("mkdir -p logs"+_SET_runTag+"/"+_SET_fileTag)
     os.system("mkdir -p histograms"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("rm -rf memUsage")
+    if _SET_saveMemUsage:
+        print("Will be saving memory usuage information of each process")
+        os.system("mkdir -p memUsage")
+    else:
+        print("Not saving memory usuage information for the process")
+
 
     # We use this setup to make it easy to loop through all combinations for phase space variables to determine which set of variables are the best. 
     tagVec=["0" for i in range(len(varVec))]
@@ -226,6 +238,7 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
         outLogs=[]
         errLogs=[]
         openProcesses=[]
+        pids=[]
         for _SET_iProcess in range(_SET_nProcess):
             print("Launching process "+str(_SET_iProcess))
             outLog = open("logs"+_SET_runTag+"/"+_SET_fileTag+"/out"+str(_SET_iProcess)+".txt","w")
@@ -236,25 +249,31 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
                     str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd, "&"]
             print(" ".join(executeMain))
             openProcess = subprocess.Popen(executeMain,stdout=outLog,stderr=errLog)
+            if _SET_saveMemUsage:
+                # have to specifcy the shell, the first argument
+                subprocess.Popen(["sh","./auxilliary/getMemOfProcess.sh",str(_SET_iProcess),str(openProcess.pid),"5000","1","memUsage","&"]) #process id, pid of process, max iterations, sleep time, output Directory 
+            pids.append(openProcess.pid)
             openProcesses.append(openProcess)
         exit_codes = [proc.wait() for proc in openProcesses]
-        print("\nprocess# | exit code (0=success) | manual check status")
-        successful_exits = True
-        for icode,exit_code in enumerate(exit_codes):
-            manualCheckStatus=subprocess.check_output("tail -n 1 /d/grid13/ln16/q-values-2/logs/all/out"+str(icode)+".txt",shell=True)[:8]=='nentries'
-            if manualCheckStatus:
-                manualCheckStatus="success"
-            else:
-                manualCheckStatus="failed"
-            print("process"+str(icode)+" | "+str(exit_code)+" | "+manualCheckStatus)
-            if (exit_code != 0) and (manualCheckStatus != "success"):
-                successful_exits = False
-        if not successful_exits:
-            print(colored("Atleast one proccess terminated without success. Exiting program...","red"))
+        if checkCompletion(exit_codes)==1:
             exit()
-        else:
-            print(colored("All proccess terminated successfully","green"))
-        print("\n")
+        #print("\nprocess# | exit code (0=success) | manual check status")
+        #successful_exits = True
+        #for icode,exit_code in enumerate(exit_codes):
+        #    manualCheckStatus=subprocess.check_output("tail -n 1 /d/grid13/ln16/q-values-2/logs/all/out"+str(icode)+".txt",shell=True)[:8]=='nentries'
+        #    if manualCheckStatus:
+        #        manualCheckStatus="success"
+        #    else:
+        #        manualCheckStatus="failed"
+        #    print("process"+str(icode)+" | "+str(exit_code)+" | "+manualCheckStatus)
+        #    if (exit_code != 0) and (manualCheckStatus != "success"):
+        #        successful_exits = False
+        #if not successful_exits:
+        #    print(colored("Atleast one proccess terminated without success. Exiting program...","red"))
+        #    exit()
+        #else:
+        #    print(colored("All proccess terminated successfully","green"))
+        #print("\n")
             
 
 
