@@ -17,7 +17,7 @@ using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
 //bool verbose=true;
-string rootFileLoc="/d/grid13/ln16/q-values-2/allMC_tree_ext.root";
+string rootFileLoc="/d/grid13/ln16/q-values-2/allMC_tree_ext_subset.root";
 string rootTreeName="degALL_acc_mEllipse_tree_flat";
 string fileTag="all";
 string runTag="";
@@ -101,24 +101,23 @@ class parseVarString{
         int nVars=0;
         std::string delimiter=";";
         std::string token;
+        std::string varString;
         size_t pos=0;
     public:
         std::vector<std::string> varStringSet;
-        std::string varString;
         parseVarString(){}; 
-        void updateString(std::string inputString){
+        void parseString(std::string inputString){
            varString =  inputString;
-        }
-        void parseString(){
-            while ((pos = varString.find(delimiter)) != std::string::npos) {
-                token = varString.substr(0, pos);
-                varStringSet.push_back(token);
-                //std::cout << token << std::endl;
-                varString.erase(0, pos + delimiter.length());
-                ++nVars;
-            }
-            varStringSet.push_back(varString);
-            //std::cout << varString << std::endl;
+           varStringSet.clear();
+           while ((pos = varString.find(delimiter)) != std::string::npos) {
+               token = varString.substr(0, pos);
+               varStringSet.push_back(token);
+               //std::cout << token << std::endl;
+               varString.erase(0, pos + delimiter.length());
+               ++nVars;
+           }
+           varStringSet.push_back(varString);
+           //std::cout << varString << std::endl;
         }
 };
 

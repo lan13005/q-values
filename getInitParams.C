@@ -243,8 +243,7 @@ void getInitParams(){
                 allCanvases = new TCanvas("anyHists","",1440,900);
                 
                 parseVarString parseDiscrimVars;
-                parseDiscrimVars.updateString(s_discrimVar); 
-	        parseDiscrimVars.parseString();
+                parseDiscrimVars.parseString(s_discrimVar); 
                 std::vector<double> discrimVar;
                 // we have to push_back first for w.e. reason
 	        for (int iVar=0; iVar<parseDiscrimVars.varStringSet.size(); ++iVar){

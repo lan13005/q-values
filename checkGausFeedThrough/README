@@ -1,0 +1,5 @@
+log_optimal uses the same initSigFrac during fitting and generation
+log_bias sets initSigFrac to 1 during fitting
+logBias_NoBkgPeak keeps initSigFrac at 1 during fitting but has no bkg Gaussian Pi0 peak
+logBias_AllBkgPeak keeps initSigFrac at 1 during fitting and ONLY has bkg Gaussian Pi0 peak
+

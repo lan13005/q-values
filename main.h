@@ -41,13 +41,14 @@
 #include <RooChi2Var.h>
 #include <RooWorkspace.h>
 #include <RooMinimizer.h>
+#include <RooTrace.h>
 //#include "RooAddPdf.h"
 //#include "RooFormulaVar.h"
 //
 //#include "Math/MinimizerOptions.h"
 
 
-const int dim=5; // will get replaced by run.py
+const int dim=7; // will get replaced by run.py
 bool verbose_outputDistCalc=false;
 TRandom rgen;
 
@@ -127,6 +128,7 @@ class QFactorAnalysis{
 		bool override_nentries;
 		bool verbose;
 		string varString;
+                string alwaysSaveTheseEvents;
                 string standardizationType;
                 string cwd;
                 bool redistributeBkgSigFits;
@@ -142,6 +144,7 @@ class QFactorAnalysis{
                 // initialize vectors to hold the discriminating and phase space variables
                 parseVarString parseDiscrimVars;
 	        parseVarString parsePhaseSpace;
+                parseVarString parseEventsToSave;
                 std::vector<std::vector<double>> discrimVars; 
                 std::vector<double> discrimVar; // will contain the discriminating variables for just one entry whereas the above will hold all the data
 
@@ -154,8 +157,9 @@ class QFactorAnalysis{
 		std::vector<int> phasePoint2PotentialNeighbor; 
 	
 	public:
-		QFactorAnalysis(int kDim1, string varString1, string cwd1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1, int numberEventsToSavePerProcess1, int nProcess1,
-                                int seedShift1, Long64_t nentries1, int nRndRepSubset1, int nBS1, bool saveBShistsAlso1, bool override_nentries1, bool verbose1){ 
+		QFactorAnalysis(int kDim1, string varString1, string cwd1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1,
+                                int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, int nRndRepSubset1, 
+                                int nBS1, bool saveBShistsAlso1, bool override_nentries1, bool verbose1, string alwaysSaveTheseEvents1){ 
 			cout << "Constructed QFactorAnalysis class..." << endl;
 			kDim=kDim1;
 			numberEventsToSavePerProcess=numberEventsToSavePerProcess1;
@@ -169,6 +173,7 @@ class QFactorAnalysis{
 			verbose=verbose1;
 			start2 = std::chrono::high_resolution_clock::now();
 			varString=varString1;
+                        alwaysSaveTheseEvents=alwaysSaveTheseEvents1;
                         cwd=cwd1;
                         standardizationType=standardizationType1;
                         redistributeBkgSigFits=redistributeBkgSigFits1;

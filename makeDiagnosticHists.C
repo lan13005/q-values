@@ -33,11 +33,17 @@ void makeDiagnosticHists(){
 	double conjugate_qvalue;
 	double bestNLL;
 	double worstNLL;
+        double worst_qvalue;
+        double qvalueBS_std;
+        double eff_nentries;
         Bool_t bool_MetaFlat;
 
 	qResultsTree->SetBranchAddress("qvalue",&qvalue);
 	qResultsTree->SetBranchAddress("bestNLL",&bestNLL);
 	qResultsTree->SetBranchAddress("worstNLL",&worstNLL);
+        qResultsTree->SetBranchAddress("worst_qvalue",&worst_qvalue);
+        qResultsTree->SetBranchAddress("qvalueBS_std",&qvalueBS_std);
+        qResultsTree->SetBranchAddress("eff_nentries",&eff_nentries);
 
 
 	ULong64_t nentries;
@@ -49,6 +55,9 @@ void makeDiagnosticHists(){
 	std::vector< double > qvalues;
 	std::vector< double > bestNLLs;
 	std::vector< double > worstNLLs;
+	std::vector< double > worst_qvalues;
+	std::vector< double > qvalueBS_stds;
+	std::vector< double > eff_nentrieses;
 	for (int ientry=0; ientry<c_nentriesResults; ientry++)
 	{
         	qResultsTree->GetEntry(ientry);
@@ -58,6 +67,9 @@ void makeDiagnosticHists(){
                 }
         	bestNLLs.push_back(bestNLL);
         	worstNLLs.push_back(worstNLL);
+                worst_qvalues.push_back(worst_qvalue);
+                qvalueBS_stds.push_back(qvalueBS_std);
+                eff_nentrieses.push_back(eff_nentries);
         	
         	dHist_qvalues->Fill(qvalue);
         	dHist_bestNLL->Fill(bestNLL);
@@ -266,7 +278,7 @@ void makeDiagnosticHists(){
 
 	// ---------------------------------------------------------------------------
 	// ----------------------------------------------------- Loading the datafile data
-	// and clone the datafile and add 3 new branches to track the qvalue, chiSq
+	// and clone the datafile and add new branches to track the qvalue, NLL, etc
         // Now we have a root tree that has all the data from the DSelector and the q-factors analysis
 	// ---------------------------------------------------------------------------
 
@@ -275,11 +287,17 @@ void makeDiagnosticHists(){
 	TFile *qd_dataFile = TFile::Open((postQFileName).c_str(),"RECREATE"); 
 	TTree *outputTree = dataTree->CloneTree(-1,"fast"); 
 	TBranch* b_qvalue;
-	TBranch* b_qvalue_NLLBest;
-	TBranch* b_qvalue_NLLWorst;
+	TBranch* b_NLLBest;
+	TBranch* b_NLLWorst;
+        TBranch* b_worst_qvalue;
+        TBranch* b_qvalueBS_std;
+        TBranch* b_eff_nentries;
 	b_qvalue = outputTree->Branch("qvalue",&qvalue,"qvalue/D");
-	b_qvalue_NLLBest = outputTree->Branch("qvalue_NLLBest",&bestNLL,"qvalue_NLLBest/D");
-	b_qvalue_NLLWorst = outputTree->Branch("qvalue_NLLWorst",&worstNLL,"qvalue_NLLWorst/D");
+	b_NLLBest = outputTree->Branch("NLLBest",&bestNLL,"qvalue_NLLBest/D");
+	b_NLLWorst = outputTree->Branch("NLLWorst",&worstNLL,"qvalue_NLLWorst/D");
+	b_worst_qvalue = outputTree->Branch("worst_qvalue",&worst_qvalue,"worst_qvalue/D");
+	b_qvalueBS_std = outputTree->Branch("qvalueBS_std",&qvalueBS_std,"qvalueBS_std/D");
+        b_eff_nentries = outputTree->Branch("eff_nentries",&eff_nentries,"eff_nentries/D");
 
 	for (int ientry=0; ientry<c_nentriesResults; ientry++)
 	{
@@ -310,9 +328,15 @@ void makeDiagnosticHists(){
 		qvalue = qvalues[ientry];
 		bestNLL = bestNLLs[ientry];
 		worstNLL = worstNLLs[ientry];
+                worst_qvalue = worst_qvalues[ientry];
+                qvalueBS_std = qvalueBS_stds[ientry];
+                eff_nentries = eff_nentrieses[ientry];
 		b_qvalue->Fill();
-		b_qvalue_NLLBest->Fill();
-		b_qvalue_NLLWorst->Fill();
+		b_NLLBest->Fill();
+		b_NLLWorst->Fill();
+	        b_worst_qvalue->Fill();
+	        b_qvalueBS_std->Fill();
+                b_eff_nentries->Fill();
 	}
 
         cout << "Imported all the tree data into arrays" << endl;

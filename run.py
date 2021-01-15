@@ -13,13 +13,12 @@ start_time = time.time()
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 _SET_nProcess=1 # how many processes to spawn
-_SET_kDim=200 # number of neighbors
-_SET_nentries=200 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
-_SET_numberEventsToSavePerProcess=3 # how many histograms (root files) we want to save. -1 = Save all histograms
+_SET_kDim=800 # number of neighbors
+_SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
-_SET_redistributeBkgSigFits=1 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
+_SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
 _SET_nBS=0 # number of times we should bootstrap the set of neighbors to calculate q-factors with. Used to extract an error on the q-factors. Set to 0 if you dont want to do BS
 _SET_saveBShistsAlso=0 # should we save every bootstrapped histogram also?
@@ -27,14 +26,16 @@ _SET_weightingScheme="as" # can be {"","as"}. for no accidental weights, acciden
 _SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
 _SET_sbWeight="weightBS" # the branch to look at to get the sideband weight
 _SET_uniquenessTracking="" # default is "" which will set all event counting weights to 1. Otherwise we can give it a branch to look at
-_SET_varStringBase="cosTheta_eta_gj;phi_eta_gj;cosTheta_X_cm;nn0;nn1"#Mpi0g1;Mpi0g2;cosTheta_X_cm;phi_eta_gj # what is the phase space variables to calculate distance in 
+_SET_varStringBase="cosTheta_eta_gj;phi_eta_gj;cosTheta_X_cm;nn0;nn1;Mpi0g1;Mpi0g2" #;cosTheta_X_cm;phi_eta_gj # what is the phase space variables to calculate distance in 
 _SET_discrimVars="Mpi0;Meta" # discriminating/reference variable
 _SET_mcprocessBranch="mcprocess" # if you use a sum of simulated events with a branch for the reaction processes we can output some more information
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
 _SET_verbose=1 # how much information we want to output to the logs folder
 _SET_runTag="" # 3 folders are outputs of this set of programs {fitResults/diagnosticPlots/histograms}. We can append a runTag to the names allowing us to run multiple q-factors at the same time
 _SET_runBatch=0 # (default=0) 0=run on a single computer, 1=submit to condor for batch processing
-_SET_saveMemUsage=1 #save a file for the memory usage per process
+_SET_saveMemUsage=0 #save a file for the memory usage per process
+_SET_numberEventsToSavePerProcess=0 # how many histograms (root files) we want to save. -1 = Save all histograms
+_SET_alwaysSaveTheseEvents="229079" # A histogram of the fit including a csv of the actual data will be saved for these semicolon separated events
 
 
 # What file we will analyze and what tree to look for
@@ -46,7 +47,7 @@ rootFileLocs=[
         #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
         #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
 
-        ("/d/grid13/ln16/q-values-2/allMC_tree_ext.root", "degALL_acc_mEllipse_tree_flat", "all")
+        ("/d/grid13/ln16/q-values-2/allMC_tree_ext_subset.root", "degALL_acc_mEllipse_tree_flat", "all")
         #("/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/allMC_trees.root", "degALL_acc_mEllipse_tree_flat", "all")
         #("/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/a0a2MC_trees.root", "degALL_acc_mEllipse_tree_flat", "all")
 
@@ -246,9 +247,17 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
             outLogs.append(outLog)
             errLogs.append(errLog)
             executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
-                    str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset),str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd, "&"]
-            print(" ".join(executeMain))
+                    str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset), \
+                    str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd,_SET_alwaysSaveTheseEvents, "&"]
+            # print out the commands with the appropriate quotations so it can be directly run if needed
+            validCommand=executeMain[:-1]
+            for i in range(1,len(validCommand)):
+               validCommand[i]='"'+validCommand[i]+'"' 
+            validCommand=" ".join(validCommand)
+            print(validCommand)
+            outLog.write("\n--------------------\nCMD:\n"+validCommand+"\n--------------------")
             openProcess = subprocess.Popen(executeMain,stdout=outLog,stderr=errLog)
+
             if _SET_saveMemUsage:
                 # have to specifcy the shell, the first argument
                 subprocess.Popen(["sh","./auxilliary/getMemOfProcess.sh",str(_SET_iProcess),str(openProcess.pid),"5000","1","memUsage","&"]) #process id, pid of process, max iterations, sleep time, output Directory 
@@ -288,6 +297,8 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     print("Cleaning diagnosticPlots"+_SET_runTag+" folder")
     os.system("rm -rf diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
     os.system("mkdir -p diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("cp main.C logs/main.C")
+    os.system("cp run.py logs/run.py")
     # ------------------------------------
     # run the makeDiagnosticHists program
     # ------------------------------------
@@ -357,6 +368,7 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     
 if _SET_runMakeHists:
     combineAllGraphs()
+
 
 print("--- %s seconds ---" % (time.time() - start_time))
 

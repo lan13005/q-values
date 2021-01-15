@@ -2,6 +2,8 @@ void subdetector_convertROOTtoPNG(string inDir){
 	cout << "Looking in directory: " << inDir << endl;
 	char* dir = gSystem->ExpandPathName(inDir.c_str());
 	void* dirp = gSystem->OpenDirectory(dir);
+        
+        gStyle->SetLineScalePS(1);
 	
 	const char* entry;
 	static const int maxFiles = 500;
@@ -42,7 +44,6 @@ void subdetector_convertROOTtoPNG(string inDir){
                                 // --- BUT IT ALLOWS ME TO COMPLETE THE PROGRAM.
 		    	    	h->DrawClone();
 		    	    	h->SaveAs((inDir+"/"+key->GetName()+".png").c_str());
-
 
                                 //if ( counter==0 ){
 		    	    	//    h->Print((inDir+"/massHists.pdf(").c_str(),"pdf");
