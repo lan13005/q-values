@@ -12,7 +12,7 @@ start_time = time.time()
 #############################################################################
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
-_SET_nProcess=1 # how many processes to spawn
+_SET_nProcess=26 # how many processes to spawn
 _SET_kDim=800 # number of neighbors
 _SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
@@ -34,7 +34,7 @@ _SET_verbose=1 # how much information we want to output to the logs folder
 _SET_runTag="" # 3 folders are outputs of this set of programs {fitResults/diagnosticPlots/histograms}. We can append a runTag to the names allowing us to run multiple q-factors at the same time
 _SET_runBatch=0 # (default=0) 0=run on a single computer, 1=submit to condor for batch processing
 _SET_saveMemUsage=0 #save a file for the memory usage per process
-_SET_numberEventsToSavePerProcess=0 # how many histograms (root files) we want to save. -1 = Save all histograms
+_SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save. -1 = Save all histograms
 _SET_alwaysSaveTheseEvents="229079" # A histogram of the fit including a csv of the actual data will be saved for these semicolon separated events
 
 

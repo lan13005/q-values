@@ -73,7 +73,7 @@ void QFactorAnalysis::loadFitParameters(string fitLocation,string cwd){
         // We will do 3 iterations. Not sure if I am doing this correctly
         // The goal would be to use 100 bkg, 50/50, 100% signal. We can scale the amplitudes by a certain factor related to eventRatioSigToBkg
         // If not redistributing we will use what you want to set it at
-        if (redistributeBkgSigFits) { sigFracs={1,0.5,0}; }
+        if (redistributeBkgSigFits) { sigFracs={0,0.5,1}; }
         else { sigFracs={eventRatioSigToBkg}; }
 }
 
@@ -263,6 +263,11 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         double worst_qvalue;
         double eff_nentries;
         double qvalueBS_std=0;
+        double best_nsig;
+        double best_nbkg;
+        double best_ntot;
+        double effNentriesMinusTotal;
+        int neighbors[kDim];
 
         // Saving the results along with some diagnostics
         TFile *resultsFile = new TFile((cwd+"/logs"+runTag+"/"+fileTag+"/results"+to_string(iProcess)+".root").c_str(),"RECREATE");
@@ -273,7 +278,13 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         resultsTree->Branch("qvalueBS_std",&qvalueBS_std,"qvalueBS_std/D");
         resultsTree->Branch("bestNLL",&bestNLL,"bestNLL/D");
         resultsTree->Branch("worstNLL",&worstNLL,"worstNLL/D");
+        resultsTree->Branch("best_nsig",&best_nsig,"best_nsig/D");
+        resultsTree->Branch("best_nbkg",&best_nbkg,"best_nbkg/D");
+        resultsTree->Branch("best_ntot",&best_ntot,"best_ntot/D");
         resultsTree->Branch("eff_nentries",&eff_nentries,"eff_nentries/D");
+        resultsTree->Branch("kDim",&kDim,"kDim/i"); // 32 bit integer. Could have used unsigned but not really worth the change...
+        resultsTree->Branch("neighbors",neighbors,"neighbors[kDim]/i"); // i = 32 bit integer
+        resultsTree->Branch("effNentriesMinusTotal",&effNentriesMinusTotal,"effNentriesMinusTotal/D");
         cout << "Set up branch addresses" << endl;
 
 	// Define some needed variables like canvases, histograms, and legends
@@ -312,8 +323,6 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         parseEventsToSave.parseString(alwaysSaveTheseEvents);
         TFile *qHistsFile;
 	set<int> selectRandomIdxToSave;
-        map<int,int> mapSaveEventToLogNum; // mapping the event number we are saving the index of the data logs
-        std::vector<std::ofstream*> alwaysSaveLogs;
         bool saveAllHistograms=false;
         if (numberEventsToSavePerProcess>=0){
 	    int randomEvent;
@@ -328,11 +337,6 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
             cout << "now gathering the events we are told to always save:";
             for (string saveEvent : parseEventsToSave.varStringSet){
                 selectRandomIdxToSave.insert(stoi(saveEvent));
-                mapSaveEventToLogNum[stoi(saveEvent)] = (int)alwaysSaveLogs.size();
-                gSystem->Exec(("mkdir -p histograms/"+fileTag+"/dataWriteOut/"+saveEvent).c_str());
-                string fileName = "histograms/"+fileTag+"/dataWriteOut/"+saveEvent+"/rooData.log";
-                std::ofstream* newLog = new std::ofstream(fileName);
-                alwaysSaveLogs.push_back(newLog);
                 cout << " " << saveEvent;
             }
             cout << endl;
@@ -365,6 +369,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         double fittedBernB = 0.5;//initializationParMap["bernx11"];
         double fittedBernC = 0.5;//initializationParMap["berny01"];
         double fittedBernD = 0.5;//initializationParMap["berny11"];
+        double fittedBernE = 0.5;//initializationParMap["berny11"];
         cout << "fittedMassX " << fittedMassX << endl;
         cout << "fittedMassY " << fittedMassY << endl;
         cout << "fittedSigmaX " << fittedSigmaX << endl;
@@ -390,14 +395,15 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX);//,fittedMassX,fittedMassX);
         RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,fittedSigmaX*0.7,fittedSigmaX*1.3);
         RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY);//,fittedMassY,fittedMassY);
-        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,fittedSigmaY*0,fittedSigmaY*100);
+        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,fittedSigmaY*0.7,fittedSigmaY*1.3);
 
         RooRealVar bern_parA(("bern_parA"+sThread).c_str(),"bern_parA",fittedBernA,0,1);
         RooRealVar bern_parB(("bern_parB"+sThread).c_str(),"bern_parB",fittedBernB,0,1);
         RooRealVar bern_parC(("bern_parC"+sThread).c_str(),"bern_parC",fittedBernC,0,1);
         RooRealVar bern_parD(("bern_parD"+sThread).c_str(),"bern_parD",fittedBernD,0,1);
-        //RooGenericPdf rooBkg(("rooBkg"+sThread).c_str(), "rooBkg", ("bern_parA"+sThread+"*roo_Mpi0"+sThread+"+bern_parB"+sThread+"*(1-roo_Mpi0"+sThread+")+bern_parC"+sThread+"*roo_Meta"+sThread+"+bern_parD"+sThread+"*(1-roo_Meta"+sThread+")").c_str(),RooArgSet(bern_parA,bern_parB,bern_parC,bern_parD,roo_Mpi0,roo_Meta));
+        //RooRealVar bern_parE(("bern_parE"+sThread).c_str(),"bern_parE",fittedBernE,0,1);///,fittedBernE,0,1);
         RooGenericPdf rooBkgX(("rooBkgX"+sThread).c_str(), "rooBkgX", ("bern_parA"+sThread+"*roo_Mpi0"+sThread+"+bern_parB"+sThread+"*(1-roo_Mpi0"+sThread+")").c_str(),RooArgSet(bern_parA,bern_parB,roo_Mpi0));
+        //RooGenericPdf rooBkgY(("rooBkgY"+sThread).c_str(), "rooBkgY", ("bern_parC"+sThread+"*(1-roo_Meta"+sThread+")**2+bern_parD"+sThread+"*2*roo_Meta"+sThread+"*(1-roo_Meta"+    sThread+")+bern_parE"+sThread+"*(roo_Meta"+sThread+")**2").c_str(),RooArgSet(bern_parC,bern_parD,bern_parE,roo_Meta));
         RooGenericPdf rooBkgY(("rooBkgY"+sThread).c_str(), "rooBkgY", ("bern_parC"+sThread+"*roo_Meta"+sThread+"+bern_parD"+sThread+"*(1-roo_Meta"+sThread+")").c_str(),RooArgSet(bern_parC,bern_parD,roo_Meta));
         RooGaussian rooGausPi0_bkg(("rooGausPi0_bkg"+sThread).c_str(), "rooGausPi0_bkg", roo_Mpi0, peak_pi0, width_pi0);
         RooRealVar bkgPeakFrac(("bkgPeakFrac"+sThread).c_str(),"bkgPeakFrac",1,0,1);
@@ -429,9 +435,9 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         int counter=-1;
         RooTrace::mark();
         int skipInitial=0;
-        if (iProcess==0){
-            skipInitial=229079;
-        }
+        //if (iProcess==0){
+        //    skipInitial=229079;
+        //}
         for (int ientry=lowest_nentry+skipInitial; ientry<largest_nentry+skipInitial; ientry++){
                 //ientry = ientry2+38145;
                 //if (ientry > largest_nentry){ ientry = lowest_nentry; } 
@@ -441,12 +447,13 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                 //){
                 //    continue;
                 //}
-                ++counter;
-                if (counter > extra){
-                    exit(0);
-                }
+                //++counter;
+                //if (counter > extra){
+                //    exit(0);
+                //}
                 dHist_qvaluesBS->Reset();
                 dHist_mcprocess->Reset();
+                memset(neighbors,0,sizeof(neighbors)); // last argument sets that number of bytes to the specified value. Dont want just kDim here since it is 4 Bytes per
                 qvalues.clear();
         	if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end() || saveAllHistograms) {
                     qHistsFile = new TFile((cwd+"/histograms"+runTag+"/"+fileTag+"/qValueHists_"+to_string(ientry)+".root").c_str(),"RECREATE");
@@ -517,12 +524,13 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                     }
                     else {
 		        for (int jentry : phasePoint2PotentailNeighbor_BS) {  
-		        	if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
-		        	for ( int iVar=0; iVar<dim; ++iVar ){
-		        	   	phasePoint2[iVar] = phaseSpaceVars[iVar][jentry];
-		        	}
-		        	distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
-		        	distKNN.insertPair(make_pair(distance,jentry));
+                            if (jentry == ientry){ continue; } 
+		            if ( verbose_outputDistCalc ) { cout << "event i,j = " << ientry << "," << jentry << endl;} 
+		            for ( int iVar=0; iVar<dim; ++iVar ){
+		               	phasePoint2[iVar] = phaseSpaceVars[iVar][jentry];
+		            }
+		            distance = calc_distance(dim,phasePoint1,phasePoint2,verbose_outputDistCalc);
+		            distKNN.insertPair(make_pair(distance,jentry));
 		        }
                     }
 		    duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
@@ -533,12 +541,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                     if(verbose_outputDistCalc){ cout << "These are our neighbors" << endl; }
 
 
-                    bool writeDataOut=mapSaveEventToLogNum.find(ientry) != mapSaveEventToLogNum.end(); 
-                    if (writeDataOut){
-                        *alwaysSaveLogs[mapSaveEventToLogNum[ientry]] << "Event: " << ientry << endl;
-                        *alwaysSaveLogs[mapSaveEventToLogNum[ientry]] << "Mpi0: " << discrimVars[0][ientry] << endl;
-                        *alwaysSaveLogs[mapSaveEventToLogNum[ientry]] << "Meta: " << discrimVars[1][ientry] << endl;
-                    }
+                    int iNeighbor=-1;
 		    while ( distKNN.kNN.empty() == false ){
 		            newPair = distKNN.kNN.top();
 		            distKNN.kNN.pop();
@@ -551,7 +554,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                             roo_Mpi0 = discrimVars[0][newPair.second];
                             // with 600 neighbors it seems like the fitTo command takes ~2x longer when using Range() argument which selects the fit range.
                             // This is equivalent to shrinking the data set range and fitting over the full range which will save time.
-                            // It might be useful to think of setting a fit range to lower the effective number of nearest neighbors. Another thing that lowers
+                            // It might be useful to think of setting a fit range as to lower the effective number of nearest neighbors. Another thing that lowers
                             // the effective number of neighbors is any weights we apply to the filling of the histograms
                             if ( discrimVars[1][newPair.second] > fitRangeEta2[0] && 
                                     discrimVars[1][newPair.second] < fitRangeEta2[1] &&
@@ -561,9 +564,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                                 // roo_Weight will get overwritten here when adding to RooDataSet but actually does not pick up the value. So we cannot use 
                                 // roo_Weight.getVal() but the dataset is weighted: https://root-forum.cern.ch/t/fit-to-a-weighted-unbinned-data-set/33495
                                 rooData.add(RooArgSet(roo_Mpi0,roo_Meta,roo_Weight),weight);
-                                if (writeDataOut){
-                                    *alwaysSaveLogs[mapSaveEventToLogNum[ientry]] << roo_Mpi0.getVal() << " " << roo_Meta.getVal() << " " << weight << endl;
-                                }
+                                neighbors[++iNeighbor]=newPair.second;
                             }
 
                             if(verbose_outputDistCalc){
@@ -607,7 +608,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                         ////////////////////////////////////////////////////////////////////////////////////////////
                         //  BEGIN 2D GAUS FIT
                         ////////////////////////////////////////////////////////////////////////////////////////////
-                        roo_result = rooSigPlusBkg.fitTo(rooData, Save(), RooFit::SumW2Error(true), PrintLevel(-1), BatchMode(kTRUE));//, Range(("roo_fitRangeMpi0"+sThread+",roo_fitRangeMeta"+sThread).c_str()));// Hesse(kFALSE));
+                        roo_result = rooSigPlusBkg.fitTo(rooData, Minos(kTRUE), Save(), RooFit::SumW2Error(true), PrintLevel(-1), BatchMode(kTRUE));//, Range(("roo_fitRangeMpi0"+sThread+",roo_fitRangeMeta"+sThread).c_str()));// Hesse(kFALSE));
                         
 		        duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - duration_beginEvent).count();
 		        if(verbose){logFile <<	"\tFitted hist with some initialization: " << duration2 << "ms" << endl;}
@@ -630,6 +631,10 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
 		    	NLL = roo_result->minNll();
 		    	if (NLL < bestNLL){
 		    		best_qvalue = qvalue;
+                                best_nsig = nsig.getVal();
+                                best_nbkg = nbkg.getVal();
+                                best_ntot = best_nsig + best_nbkg;
+                                effNentriesMinusTotal = eff_nentries-best_ntot;
 		    		bestNLL=NLL;
                                 params=rooSigPlusBkg.getParameters(RooArgList(roo_Mpi0,roo_Meta));
                                 savedParams = (RooArgSet*)params->snapshot();

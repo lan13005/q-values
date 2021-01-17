@@ -122,6 +122,7 @@ void drawPlots(
                         ).c_str());
     xframe2->GetXaxis()->SetTitle((namey+" "+xframe2->GetXaxis()->GetTitle()).c_str());
     
+    delete gROOT->FindObject("");
 
     ////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////
@@ -155,7 +156,6 @@ void drawPlots(
     fx_bkg = bkg->getVal(RooArgList(*x,*y))*(1-sigFrac)*nentries*locxbinsize*locybinsize;
     model_hist->SetTitle(("#splitline{PDF f("+namex+","+namey+")="+std::to_string(fx)+"}{Q("+namex+","+namey+")="+std::to_string(fx_sig/(fx_bkg+fx_sig))+"}").c_str());
 
-
     // PLOT SIGNAL PDF ON 2D 
     c->cd(4);
     gPad->SetRightMargin(0.2);
@@ -182,7 +182,13 @@ void drawPlots(
     newLine->DrawLine(valX,model_bkg->GetYaxis()->GetXmin(),valX,model_bkg->GetYaxis()->GetXmax());    
     model_bkg->SetTitle(("Bkg PDF   f("+namex+","+namey+")="+std::to_string(fx_bkg)).c_str());
 
+
     c->cd(6);
     gPad->SetRightMargin(0.2);
     gPad->SetBottomMargin(0.2);
+
+
+    delete model_hist;
+    delete model_bkg;
+    delete model_sig;
 }

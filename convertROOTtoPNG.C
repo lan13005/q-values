@@ -43,18 +43,18 @@ void subdetector_convertROOTtoPNG(string inDir){
                                 // --- FOR SOME REASON I NEED TO DRAW CLONE OR DO SOME COUT STATEMENTS TO FULLY COMPLETE THE LOOP. AN ERROR STILL OCCURS SAYING THE LIST IS TRYING TO ACCESS A DELETED VARIABLE
                                 // --- BUT IT ALLOWS ME TO COMPLETE THE PROGRAM.
 		    	    	h->DrawClone();
-		    	    	h->SaveAs((inDir+"/"+key->GetName()+".png").c_str());
+		    	    	//h->SaveAs((inDir+"/"+key->GetName()+".png").c_str());
 
-                                //if ( counter==0 ){
-		    	    	//    h->Print((inDir+"/massHists.pdf(").c_str(),"pdf");
-                                //}
-                                //// This only works if there is only one key inside each root file. The counter wont match properly otherwise
-                                //else if ( counter == n-1 ){
-		    	    	//    h->Print((inDir+"/massHists.pdf)").c_str(),"pdf");
-                                //}
-                                //else{
-		    	    	//    h->Print((inDir+"/massHists.pdf").c_str(),"pdf");
-                                //}
+                                if ( counter==0 ){
+		    	    	    h->Print((inDir+"/massHists.pdf(").c_str(),"pdf");
+                                }
+                                // This only works if there is only one key inside each root file. The counter wont match properly otherwise
+                                else if ( counter == n-1 ){
+		    	    	    h->Print((inDir+"/massHists.pdf)").c_str(),"pdf");
+                                }
+                                else{
+		    	    	    h->Print((inDir+"/massHists.pdf").c_str(),"pdf");
+                                }
                                 ++counter;
 		    	    }
                         }

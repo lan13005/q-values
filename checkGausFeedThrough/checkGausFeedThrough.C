@@ -1,12 +1,12 @@
-#include "helperFuncs.h"
-#include "auxilliary/drawPlots/drawPlots.C"
+#include "/d/grid13/ln16/q-values-2/helperFuncs.h"
+#include "/d/grid13/ln16/q-values-2/auxilliary/drawPlots/drawPlots.C"
 
 using namespace RooFit;
 void checkGausFeedThrough(double initSigFrac){
     initSigFrac /= 10; // bash doesnt accept non integer increments in loops so we multiplied by 10
 
     RooRandom::randomGenerator()->SetSeed(1992);
-    RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
+    RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR);
     // ---------------------------
     // RooFit Variables
     // ---------------------------
@@ -25,6 +25,7 @@ void checkGausFeedThrough(double initSigFrac){
     double fittedBernB = 0.5;
     double fittedBernC = 0.5;
     double fittedBernD = 0.5;
+    double fittedBernE = 0.5;
     
     // For loading the data
     int iProcess=0;
@@ -38,15 +39,17 @@ void checkGausFeedThrough(double initSigFrac){
     roo_Mpi0.setBins(100);
     
     RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX);//,fittedMassX,fittedMassX);
-    RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,fittedSigmaX*0.7,fittedSigmaX*1.3);
+    RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,fittedSigmaX*0.5,fittedSigmaX*1.5);
     RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY);//,fittedMassY,fittedMassY);
-    RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,fittedSigmaY*0.7,fittedSigmaY*1.3);
+    RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,fittedSigmaY*0.5,fittedSigmaY*1.5);
     
     RooRealVar bern_parA(("bern_parA"+sThread).c_str(),"bern_parA",fittedBernA,0,1);
     RooRealVar bern_parB(("bern_parB"+sThread).c_str(),"bern_parB",fittedBernB,0,1);
     RooRealVar bern_parC(("bern_parC"+sThread).c_str(),"bern_parC",fittedBernC,0,1);
     RooRealVar bern_parD(("bern_parD"+sThread).c_str(),"bern_parD",fittedBernD,0,1);
+    //RooRealVar bern_parE(("bern_parE"+sThread).c_str(),"bern_parE",fittedBernE,0,1);///,fittedBernE,0,1);
     RooGenericPdf rooBkgX(("rooBkgX"+sThread).c_str(), "rooBkgX", ("bern_parA"+sThread+"*roo_Mpi0"+sThread+"+bern_parB"+sThread+"*(1-roo_Mpi0"+sThread+")").c_str(),RooArgSet(bern_parA,bern_parB,roo_Mpi0));
+    //RooGenericPdf rooBkgY(("rooBkgY"+sThread).c_str(), "rooBkgY", ("bern_parC"+sThread+"*(1-roo_Meta"+sThread+")**2+bern_parD"+sThread+"*2*roo_Meta"+sThread+"*(1-roo_Meta"+    sThread+")+bern_parE"+sThread+"*(roo_Meta"+sThread+")**2").c_str(),RooArgSet(bern_parC,bern_parD,bern_parE,roo_Meta));
     RooGenericPdf rooBkgY(("rooBkgY"+sThread).c_str(), "rooBkgY", ("bern_parC"+sThread+"*roo_Meta"+sThread+"+bern_parD"+sThread+"*(1-roo_Meta"+sThread+")").c_str(),RooArgSet(bern_parC,bern_parD,roo_Meta));
     RooGaussian rooGausPi0_bkg(("rooGausPi0_bkg"+sThread).c_str(), "rooGausPi0_bkg", roo_Mpi0, peak_pi0, width_pi0);
     RooRealVar bkgPeakFrac(("bkgPeakFrac"+sThread).c_str(),"bkgPeakFrac",1,0,1);
@@ -71,10 +74,11 @@ void checkGausFeedThrough(double initSigFrac){
     double inputTotalSig;
     double outputTotalSig;
     double fitSigFrac=1;
-    double initbkgPeakFrac=1;
+    double initbkgPeakFrac=0;
     int totalEvnts=500;
-    cout << "totalEvnts kDim initSigFrac inputTotalSig outputTotalSig" << endl;
-    for (int kDim=100; kDim<=1000; kDim+=100){
+    cout << "** totalEvnts kDim initSigFrac inputTotalSig outputTotalSig" << endl;
+    std::vector<double> kDims={100,500,1000};
+    for (auto kDim: kDims){
         inputTotalSig=0;
         outputTotalSig=0;
         for (int iter=0; iter<totalEvnts; ++iter){
@@ -97,10 +101,11 @@ void checkGausFeedThrough(double initSigFrac){
             ////////////////////////////////////////////////////////////////////////////////////////////
             nsig.setVal(fitSigFrac*kDim);
             nbkg.setVal((1-fitSigFrac)*kDim);
-            roo_result = rooSigPlusBkg.fitTo(*rooData, Save(), RooFit::SumW2Error(true), PrintLevel(-1));
+            roo_result = rooSigPlusBkg.fitTo(*rooData, Save(), Minos(kTRUE), Extended(kTRUE), RooFit::SumW2Error(true), BatchMode(kTRUE), PrintLevel(-1), PrintEvalErrors(-1));
             // setting parameters for bkg/sig and extracting q-value
             sigFrac = nsig.getVal()/(nsig.getVal()+nbkg.getVal());
             outputTotalSig += sigFrac;
+            //cout << "sigfrac, nsig, nkg, ntot: " << sigFrac << ", "<< nsig.getVal() << ", " << nbkg.getVal() << ", " <<nsig.getVal()+nbkg.getVal() << endl;
 
             //-------------------
             // Doesnt do anything
@@ -116,7 +121,7 @@ void checkGausFeedThrough(double initSigFrac){
             //allCanvases->SaveAs(("iter"+to_string(iter)+".png").c_str());
             //allCanvases->Clear();
         }
-        cout << totalEvnts << " " << kDim << " " << initSigFrac << " " << inputTotalSig << " " << outputTotalSig << endl;
+        cout << "** " << totalEvnts << " " << kDim << " " << initSigFrac << " " << inputTotalSig << " " << outputTotalSig << endl;
         
     }
 }
