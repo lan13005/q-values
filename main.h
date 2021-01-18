@@ -129,6 +129,7 @@ class QFactorAnalysis{
 		bool verbose;
 		string varString;
                 string alwaysSaveTheseEvents;
+                bool saveBranchOfNeighbors;
                 string standardizationType;
                 string cwd;
                 bool redistributeBkgSigFits;
@@ -159,7 +160,8 @@ class QFactorAnalysis{
 	public:
 		QFactorAnalysis(int kDim1, string varString1, string cwd1, string standardizationType1, bool redistributeBkgSigFits1, bool doKRandomNeighbors1,
                                 int numberEventsToSavePerProcess1, int nProcess1, int seedShift1, Long64_t nentries1, int nRndRepSubset1, 
-                                int nBS1, bool saveBShistsAlso1, bool override_nentries1, bool verbose1, string alwaysSaveTheseEvents1){ 
+                                int nBS1, bool saveBShistsAlso1, bool override_nentries1, bool verbose1, string alwaysSaveTheseEvents1, 
+                                bool saveBranchOfNeighbors1){ 
 			cout << "Constructed QFactorAnalysis class..." << endl;
 			kDim=kDim1;
 			numberEventsToSavePerProcess=numberEventsToSavePerProcess1;
@@ -174,6 +176,7 @@ class QFactorAnalysis{
 			start2 = std::chrono::high_resolution_clock::now();
 			varString=varString1;
                         alwaysSaveTheseEvents=alwaysSaveTheseEvents1;
+                        saveBranchOfNeighbors=saveBranchOfNeighbors1;
                         cwd=cwd1;
                         standardizationType=standardizationType1;
                         redistributeBkgSigFits=redistributeBkgSigFits1;

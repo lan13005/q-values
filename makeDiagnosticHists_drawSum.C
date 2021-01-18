@@ -6,7 +6,7 @@ void makeDiagnosticHists_drawSum(){
 	gStyle->SetStatW(0.1);
     	TCanvas *allCanvases = new TCanvas("anyHists","",1440,900);
 	
-	TFile* dataFile2 = new TFile(("diagnosticPlots"+runTag+"/postQVal.root").c_str());
+	TFile* dataFile2 = new TFile(("diagnosticPlots"+runTag+"/postQVal_hists.root").c_str());
 	TH1F* totHist;
 	TH1F* bkgHist;
 	TH1F* sigHist;

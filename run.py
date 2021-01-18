@@ -16,7 +16,7 @@ _SET_nProcess=26 # how many processes to spawn
 _SET_kDim=800 # number of neighbors
 _SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
-_SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If nRndRepSubset>nentries when override_nentries=1, the program will not use a random subset.
+_SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If 0 or > nentries then we will not consider random subsets
 _SET_standardizationType="range" # what type of standardization to apply when normalizing the phase space variables 
 _SET_redistributeBkgSigFits=0 # should we do the 3 different fits where there is 100% bkg, 50/50, 100% signal initilizations. 
 _SET_doKRandomNeighbors=0 # should we use k random neighbors as a test instead of doing k nearest neighbors?
@@ -35,7 +35,8 @@ _SET_runTag="" # 3 folders are outputs of this set of programs {fitResults/diagn
 _SET_runBatch=0 # (default=0) 0=run on a single computer, 1=submit to condor for batch processing
 _SET_saveMemUsage=0 #save a file for the memory usage per process
 _SET_numberEventsToSavePerProcess=10 # how many histograms (root files) we want to save. -1 = Save all histograms
-_SET_alwaysSaveTheseEvents="229079" # A histogram of the fit including a csv of the actual data will be saved for these semicolon separated events
+_SET_alwaysSaveTheseEvents="229079" # A histogram of the fit will always be saved for these semicolon separated events
+_SET_saveBranchOfNeighbors=1 # Should we save a branch containing all the neighbors per event. Size increase ~ (4Bytes per int)*kDim*nentries which is around 3GB
 
 
 # What file we will analyze and what tree to look for
@@ -136,6 +137,8 @@ def reconfigureSettings(fileName, _SET_rootFileLoc, _SET_rootTreeName, Set_fileT
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
     sedArgs=["sed","-i",'s@s_mcprocessBranch=".*";@s_mcprocessBranch="'+_SET_mcprocessBranch+'";@g',fileName]
     subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
+    sedArgs=["sed","-i",'s@kDim=.*;@kDim='+str(_SET_kDim)+';@g',fileName]
+    subprocess.Popen(sedArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).wait()
 
 
 def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
@@ -150,6 +153,22 @@ def execFullFit(_SET_rootFileLoc, _SET_rootTreeName, Set_fileTag):
     # get the initialization parameters
     proc=subprocess.Popen("root -l -b -q getInitParams.C",shell=True).wait()
       
+def mergeResults():
+    '''
+    After running the multi process q-factors there will be a bunch of resultsX.root files
+    We will hadd them all together and then merge the final result file with the input tree
+    so we can have a tree that has everything in it
+    '''
+    concatRootCmd="hadd -f logs"+_SET_runTag+"/"+_SET_fileTag+"/resultsMerged_"+_SET_fileTag+".root"
+    for iProcess in range(_SET_nProcess):
+        concatRootCmd=concatRootCmd+" logs"+_SET_runTag+"/"+_SET_fileTag+"/results"+str(iProcess)+".root"
+    print(concatRootCmd)
+    subprocess.Popen(concatRootCmd,shell=True).wait()
+    # Finally if everything successfully exists we can merge out q-factor results with the original input tree
+    print("All processes completed without error codes")
+    print("Begin merging qfactor results...")
+    os.system("root -l -b -q mergeQresults.C")
+            
 
 def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     '''
@@ -164,6 +183,8 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
     os.system("rm -rf logs"+_SET_runTag+"/"+_SET_fileTag)
     os.system("rm -rf histograms"+_SET_runTag+"/"+_SET_fileTag)
     os.system("mkdir -p logs"+_SET_runTag+"/"+_SET_fileTag)
+    os.system("cp main.C logs/main.C")
+    os.system("cp run.py logs/run.py")
     os.system("mkdir -p histograms"+_SET_runTag+"/"+_SET_fileTag)
     os.system("rm -rf memUsage")
     if _SET_saveMemUsage:
@@ -248,7 +269,8 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
             errLogs.append(errLog)
             executeMain=["./main",str(_SET_kDim),_SET_varString,_SET_standardizationType,_SET_fitLocation,str(_SET_redistributeBkgSigFits), str(_SET_doKRandomNeighbors), \
                     str(_SET_numberEventsToSavePerProcess),str(_SET_iProcess),str(_SET_nProcess),str(_SET_seedShift),str(_SET_nentries),str(_SET_nRndRepSubset), \
-                    str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd,_SET_alwaysSaveTheseEvents, "&"]
+                    str(_SET_nBS),str(_SET_saveBShistsAlso),str(_SET_override_nentries),str(_SET_verbose),_SET_cwd,_SET_alwaysSaveTheseEvents, \
+                    str(_SET_saveBranchOfNeighbors),"&"]
             # print out the commands with the appropriate quotations so it can be directly run if needed
             validCommand=executeMain[:-1]
             for i in range(1,len(validCommand)):
@@ -264,29 +286,11 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
             pids.append(openProcess.pid)
             openProcesses.append(openProcess)
         exit_codes = [proc.wait() for proc in openProcesses]
-        if checkCompletion(exit_codes)==1:
-            exit()
-        #print("\nprocess# | exit code (0=success) | manual check status")
-        #successful_exits = True
-        #for icode,exit_code in enumerate(exit_codes):
-        #    manualCheckStatus=subprocess.check_output("tail -n 1 /d/grid13/ln16/q-values-2/logs/all/out"+str(icode)+".txt",shell=True)[:8]=='nentries'
-        #    if manualCheckStatus:
-        #        manualCheckStatus="success"
-        #    else:
-        #        manualCheckStatus="failed"
-        #    print("process"+str(icode)+" | "+str(exit_code)+" | "+manualCheckStatus)
-        #    if (exit_code != 0) and (manualCheckStatus != "success"):
-        #        successful_exits = False
-        #if not successful_exits:
-        #    print(colored("Atleast one proccess terminated without success. Exiting program...","red"))
+        #if checkCompletion(exit_codes)==1:
         #    exit()
-        #else:
-        #    print(colored("All proccess terminated successfully","green"))
-        #print("\n")
-            
+        mergeResults()
 
 
-        
        
 def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     '''
@@ -297,34 +301,29 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     print("Cleaning diagnosticPlots"+_SET_runTag+" folder")
     os.system("rm -rf diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
     os.system("mkdir -p diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag)
-    os.system("cp main.C logs/main.C")
-    os.system("cp run.py logs/run.py")
     # ------------------------------------
     # run the makeDiagnosticHists program
     # ------------------------------------
-    subprocess.Popen("cat logs"+_SET_runTag+"/"+_SET_fileTag+"/process* > logs"+_SET_runTag+"/"+_SET_fileTag+"/diagnostic_logs.txt",shell=True).wait()
-    concatRootCmd="hadd diagnosticPlots"+_SET_runTag+"/"+_SET_fileTag+"/qvalResults_"+_SET_fileTag+".root"
-    for iProcess in range(_SET_nProcess):
-        concatRootCmd=concatRootCmd+" logs"+_SET_runTag+"/"+_SET_fileTag+"/results"+str(iProcess)+".root"
-    print(concatRootCmd)
-    subprocess.Popen(concatRootCmd,shell=True).wait()
+    #subprocess.Popen("cat logs"+_SET_runTag+"/"+_SET_fileTag+"/process* > logs"+_SET_runTag+"/"+_SET_fileTag+"/diagnostic_logs.txt",shell=True).wait()
     subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
 
 
 def combineAllGraphs():
     '''
     After running over all the different dataset we will just add all the histograms together and make one final plot
+    postQVal_hists_TAG.root are outputs of makeDiagnosticHists.C
+    postQVal_flatTree_TAG.root are outputs of mergeQresults.C
     '''
     tags = [rootFileLoc[2] for rootFileLoc in rootFileLocs]
-    haddHistCmd="hadd diagnosticPlots"+_SET_runTag+"/postQVal.root"
-    haddTreeCmd="hadd diagnosticPlots"+_SET_runTag+"/postQVal_flatTree.root"
+    haddHistCmd="hadd -f diagnosticPlots"+_SET_runTag+"/postQVal_hists.root"
+    haddTreeCmd="hadd -f logs"+_SET_runTag+"/postQVal_flatTree.root"
     for tag in tags:
-        haddHistCmd = haddHistCmd+" diagnosticPlots"+_SET_runTag+"/"+tag+"/postQValHists_"+tag+".root"
-        haddTreeCmd = haddTreeCmd+" diagnosticPlots"+_SET_runTag+"/"+tag+"/postQ_"+tag+"_flatTree.root"
+        haddHistCmd = haddHistCmd+" diagnosticPlots"+_SET_runTag+"/"+tag+"/postQVal_hists_"+tag+".root"
+        haddTreeCmd = haddTreeCmd+" logs"+_SET_runTag+"/"+tag+"/postQVal_flatTree_"+tag+".root"
     print("\n\n")
     print(haddHistCmd)
     print(haddTreeCmd)
-    os.system("rm -f diagnosticPlots/postQVal.root")
+    os.system("rm -f diagnosticPlots/postQVal_hists.root")
     os.system(haddHistCmd)
     os.system("rm -f diagnosticPlots/postQVal_flatTree.root")
     os.system(haddTreeCmd)
@@ -345,9 +344,11 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     if _SET_runFullFit:
         execFullFit(_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     if _SET_runQFactor:
-        runOverCombo(range(numVar),_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
+        #runOverCombo(range(numVar),_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
+        mergeResults()
     if _SET_runMakeHists:
         runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished)
+        combineAllGraphs()
     if _SET_emailWhenFinished:
         print("Sending program finished email")
         subprocess.Popen("sendmail "+_SET_emailWhenFinished+" < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
@@ -366,8 +367,6 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     #        print combo
     #        runOverCombo(combo,_SET_nentries,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     
-if _SET_runMakeHists:
-    combineAllGraphs()
 
 
 print("--- %s seconds ---" % (time.time() - start_time))

@@ -282,9 +282,11 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         resultsTree->Branch("best_nbkg",&best_nbkg,"best_nbkg/D");
         resultsTree->Branch("best_ntot",&best_ntot,"best_ntot/D");
         resultsTree->Branch("eff_nentries",&eff_nentries,"eff_nentries/D");
-        resultsTree->Branch("kDim",&kDim,"kDim/i"); // 32 bit integer. Could have used unsigned but not really worth the change...
-        resultsTree->Branch("neighbors",neighbors,"neighbors[kDim]/i"); // i = 32 bit integer
         resultsTree->Branch("effNentriesMinusTotal",&effNentriesMinusTotal,"effNentriesMinusTotal/D");
+        if (saveBranchOfNeighbors){
+            resultsTree->Branch("kDim",&kDim,"kDim/I"); // 32 bit integer. Could have used unsigned but not really worth the change...
+            resultsTree->Branch("neighbors",neighbors,"neighbors[kDim]/I"); // I = 32 bit integer
+        }
         cout << "Set up branch addresses" << endl;
 
 	// Define some needed variables like canvases, histograms, and legends
@@ -453,7 +455,9 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                 //}
                 dHist_qvaluesBS->Reset();
                 dHist_mcprocess->Reset();
-                memset(neighbors,0,sizeof(neighbors)); // last argument sets that number of bytes to the specified value. Dont want just kDim here since it is 4 Bytes per
+                if (saveBranchOfNeighbors){
+                    memset(neighbors,0,sizeof(neighbors)); // last argument sets that number of bytes to the specified value. Dont want just kDim here since it is 4 Bytes per
+                }
                 qvalues.clear();
         	if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end() || saveAllHistograms) {
                     qHistsFile = new TFile((cwd+"/histograms"+runTag+"/"+fileTag+"/qValueHists_"+to_string(ientry)+".root").c_str(),"RECREATE");
@@ -564,7 +568,9 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                                 // roo_Weight will get overwritten here when adding to RooDataSet but actually does not pick up the value. So we cannot use 
                                 // roo_Weight.getVal() but the dataset is weighted: https://root-forum.cern.ch/t/fit-to-a-weighted-unbinned-data-set/33495
                                 rooData.add(RooArgSet(roo_Mpi0,roo_Meta,roo_Weight),weight);
-                                neighbors[++iNeighbor]=newPair.second;
+                                if (saveBranchOfNeighbors){
+                                    neighbors[++iNeighbor]=newPair.second;
+                                }
                             }
 
                             if(verbose_outputDistCalc){
@@ -894,6 +900,9 @@ int main( int argc, char* argv[] ){
         else{ verbose=false;}
         std::string cwd=argv[17];
         std::string alwaysSaveTheseEvents=argv[18];
+        bool saveBranchOfNeighbors;
+        if ( atoi(argv[19])==1) { saveBranchOfNeighbors=true; }
+        else { saveBranchOfNeighbors=false; } 
         cout << "----------------------------" << endl;
         cout << "kDim: " << kDim << endl;
         cout << "iProcess: " << iProcess << endl;
@@ -912,6 +921,7 @@ int main( int argc, char* argv[] ){
         cout << "doKRandomNeighbors: " << doKRandomNeighbors << endl;
         cout << "cwd: " << cwd << endl;
         cout << "alwaysSaveTheseEvents: " << alwaysSaveTheseEvents << endl;
+        cout << "saveBranchOfNeighbors: " << saveBranchOfNeighbors << endl;
         cout << "fitLocation: " << fitLocation << endl;
         cout << "----------------------------" << endl;
 
@@ -919,7 +929,8 @@ int main( int argc, char* argv[] ){
         //sleep(10);
     
 	QFactorAnalysis analysisControl(kDim, varString, cwd, standardizationType, redistributeBkgSigFits, doKRandomNeighbors, 
-                numberEventsToSavePerProcess, nProcess, seedShift, nentries, nRndRepSubset, nBS, saveBShistsAlso, override_nentries, verbose, alwaysSaveTheseEvents);
+                numberEventsToSavePerProcess, nProcess, seedShift, nentries, nRndRepSubset, nBS, saveBShistsAlso, override_nentries, verbose, alwaysSaveTheseEvents,
+                saveBranchOfNeighbors);
 	analysisControl.loadTree(rootFileLoc, rootTreeName);
 	analysisControl.loadFitParameters(fitLocation,cwd);
 	analysisControl.loadData();

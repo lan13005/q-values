@@ -27,6 +27,7 @@ string s_sbWeight="weightBS";
 string s_discrimVar="Mpi0;Meta";
 string s_utBranch="";
 string s_mcprocessBranch="mcprocess";
+static const int kDim=800;
 
 ///// **************************************************************
 ///// STEP0.5: DEFINE HISTOGRAM BIN PARAMETERS SO THERE IS CONSISTENCY
