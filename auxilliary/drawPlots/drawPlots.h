@@ -23,7 +23,7 @@ void drawPlots(
         RooAbsRealLValue* x, RooAbsRealLValue* y, double valX, double valY, int nentries, 
         RooAbsPdf* model, RooAbsPdf* bkg, RooAbsPdf* sig, 
         RooDataSet* data, RooAbsRealLValue* nsig, RooAbsRealLValue* nbkg,
-        TCanvas* c, string sThread
+        TCanvas* c, TH1* model_hist, TH1* model_sig, TH1* model_bkg
         );
 
 #endif

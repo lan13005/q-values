@@ -1,10 +1,13 @@
+// This is the script that is used to draw the fit results including its x-y projections
+// and what the PDFs look like in 2D. 
+
 #include "drawPlots.h"
 
 void drawPlots(
         RooAbsRealLValue* x, RooAbsRealLValue* y, double valX, double valY, int nentries, 
         RooAbsPdf* model, RooAbsPdf* bkg, RooAbsPdf* sig, 
         RooDataSet* data, RooAbsRealLValue* nsig, RooAbsRealLValue* nbkg,
-        TCanvas* c, string sThread
+        TCanvas* c, TH1* model_hist, TH1* model_sig, TH1* model_bkg
         ){
     using namespace RooFit;
 
@@ -14,6 +17,8 @@ void drawPlots(
 
     string namex = x->GetName();
     string namey = y->GetName();
+    cout << "x variable name: " << namex << endl;
+    cout << "y variable name: " << namey << endl;
 
     RooPlot *xframe = x->frame(Title(namex.c_str()));
     RooPlot *xframe2 = y->frame(Title(namey.c_str()));
@@ -63,9 +68,6 @@ void drawPlots(
     model->plotOn(xframe, LineColor(kBlue));
     model->plotOn(xframe, LineColor(kOrange),LineStyle(kDashed),Components(*bkg));
     model->plotOn(xframe, LineColor(kMagenta),LineStyle(kDashed),Components(*sig));
-    //model->plotOn(xframe, NormRange(("roo_fitRangeMpi0"+sThread).c_str()),Range(("roo_fitRangeMpi0"+sThread).c_str()), LineColor(kBlue));
-    //model->plotOn(xframe, NormRange(("roo_fitRangeMpi0"+sThread).c_str()),Range(("roo_fitRangeMpi0"+sThread).c_str()), LineColor(kOrange),LineStyle(kDashed),Components(*bkg));
-    //model->plotOn(xframe, NormRange(("roo_fitRangeMpi0"+sThread).c_str()),Range(("roo_fitRangeMpi0"+sThread).c_str()), LineColor(kMagenta),LineStyle(kDashed),Components(*sig));
     model->paramOn(xframe, Layout(0.725,1.0,0.825));
     xframe->getAttText()->SetTextSize(0.01); 
     floatPars = (RooArgSet*)model->getParameters(data)->selectByAttrib("Constant",kFALSE);
@@ -99,9 +101,6 @@ void drawPlots(
     model->plotOn(xframe2, LineColor(kBlue));
     model->plotOn(xframe2, LineColor(kOrange),LineStyle(kDashed),Components(*bkg));
     model->plotOn(xframe2, LineColor(kMagenta),LineStyle(kDashed),Components(*sig));
-    //model->plotOn(xframe2, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()), LineColor(kBlue));
-    //model->plotOn(xframe2, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()), LineColor(kOrange),LineStyle(kDashed),Components(*bkg));
-    //model->plotOn(xframe2, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()), LineColor(kMagenta),LineStyle(kDashed),Components(*sig));
     chiSq = xframe2->chiSquare(xframe2->nameOf(1),xframe2->nameOf(0),nParams);
     xframe2->Draw();
     newLine->SetLineColor(kRed);
@@ -122,7 +121,7 @@ void drawPlots(
                         ).c_str());
     xframe2->GetXaxis()->SetTitle((namey+" "+xframe2->GetXaxis()->GetTitle()).c_str());
     
-    delete gROOT->FindObject("");
+//    delete gROOT->FindObject("");
 
     ////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////
@@ -137,14 +136,14 @@ void drawPlots(
     ////////////////////////////////////////////////////////////////////
 
 
-    // PLOT DATA AND PDF ON 2D 
+    // PLOT PDF ON 2D 
     c->cd(3);
     gPad->SetTopMargin(0.2);
     gPad->SetBottomMargin(1);
     int pdfBins=locxbins*locybins;
     gPad->SetRightMargin(0.2);
     gPad->SetBottomMargin(0.2);
-    TH1* model_hist = model->createHistogram((namex+","+namey).c_str(),locxbins,locybins);
+    model_hist = model->createHistogram((namex+","+namey).c_str(),locxbins,locybins);
     model_hist->SetStats(0);
     model_hist->Scale(locxbinsize*locybinsize);
     newLine->SetLineColor(kRed);
@@ -160,7 +159,7 @@ void drawPlots(
     c->cd(4);
     gPad->SetRightMargin(0.2);
     gPad->SetBottomMargin(0.2);
-    TH1* model_sig = sig->createHistogram((namex+","+namey).c_str(),locxbins,locybins);
+    model_sig = sig->createHistogram((namex+","+namey).c_str(),locxbins,locybins);
     model_sig->SetStats(0);
     model_sig->Scale(sigFrac*nentries);//*locxbins/locxrange*locybins/locyrange);
     newLine->SetLineColor(kRed);
@@ -173,7 +172,7 @@ void drawPlots(
     c->cd(5);
     gPad->SetRightMargin(0.2);
     gPad->SetBottomMargin(0.2);
-    TH1* model_bkg = bkg->createHistogram((namex+","+namey).c_str(),locxbins,locybins);
+    model_bkg = bkg->createHistogram((namex+","+namey).c_str(),locxbins,locybins);
     model_bkg->Scale((1-sigFrac)*nentries);//*locxbins/locxrange*locybins/locyrange);
     model_bkg->SetStats(0);
     newLine->SetLineColor(kRed);
@@ -187,8 +186,7 @@ void drawPlots(
     gPad->SetRightMargin(0.2);
     gPad->SetBottomMargin(0.2);
 
-
-    delete model_hist;
-    delete model_bkg;
-    delete model_sig;
+    //delete model_hist;
+    //delete model_bkg;
+    //delete model_sig;
 }

@@ -13,7 +13,7 @@ start_time = time.time()
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
 _SET_nProcess=26 # how many processes to spawn
-_SET_kDim=800 # number of neighbors
+_SET_kDim=600 # number of neighbors
 _SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If 0 or > nentries then we will not consider random subsets
@@ -344,7 +344,7 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
     if _SET_runFullFit:
         execFullFit(_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     if _SET_runQFactor:
-        #runOverCombo(range(numVar),_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
+        runOverCombo(range(numVar),_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
         mergeResults()
     if _SET_runMakeHists:
         runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished)

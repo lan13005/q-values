@@ -456,7 +456,7 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                 dHist_qvaluesBS->Reset();
                 dHist_mcprocess->Reset();
                 if (saveBranchOfNeighbors){
-                    memset(neighbors,0,sizeof(neighbors)); // last argument sets that number of bytes to the specified value. Dont want just kDim here since it is 4 Bytes per
+                    memset(neighbors,-1,sizeof(neighbors)); // last argument sets that number of bytes to the specified value. Dont want just kDim here since it is 4 Bytes per
                 }
                 qvalues.clear();
         	if ( selectRandomIdxToSave.find(ientry) != selectRandomIdxToSave.end() || saveAllHistograms) {
@@ -720,9 +720,12 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
                                 //rooData.plotOn(roo_Meta_frame);
 
                                 // reload the best params
+                                TH1* model_hist;
+                                TH1* model_sig;
+                                TH1* model_bkg; // need these pointers to pass to drawPlots so we can properly clean these objects afterwards
                                 RooArgSet* params=rooSigPlusBkg.getParameters(RooArgList(roo_Mpi0,roo_Meta));
                                 *params = *savedParams;
-                                drawPlots(&roo_Mpi0, &roo_Meta, discrimVars[0][ientry], discrimVars[1][ientry], eff_nentries, &rooSigPlusBkg, &rooBkg, &rooGaus2D, &rooData, &nsig, &nbkg, allCanvases, sThread);
+                                drawPlots(&roo_Mpi0, &roo_Meta, discrimVars[0][ientry], discrimVars[1][ientry], eff_nentries, &rooSigPlusBkg, &rooBkg, &rooGaus2D, &rooData, &nsig, &nbkg, allCanvases, model_hist, model_sig, model_bkg);
                                 
                                 //rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()));
                                 //rooSigPlusBkg.plotOn(roo_Meta_frame, NormRange(("roo_fitRangeMeta"+sThread).c_str()),Range(("roo_fitRangeMeta"+sThread).c_str()), Components(rooBkg),LineStyle(kDashed),LineColor(kOrange));

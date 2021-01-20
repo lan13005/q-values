@@ -1,3 +1,7 @@
+# This script is used to get the memory usage of the process. We can see how the q-factors program
+# uses memory. Turns out there is a bug in RooFit that needs to be fixed. Currently it causes repeated
+# calls to fitTo to explode in memory usuage since some RooFit objects are not cleaned. Started a ROOT issue for this
+
 id=$1
 pid=$2
 maxIters=$3
