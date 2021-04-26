@@ -395,9 +395,9 @@ void QFactorAnalysis::runQFactorThreaded(int iProcess){
         // So when we fill the data we use: rooData.add(RooArgSet(roo_Mpi0,roo_Meta,roo_Weight),weight);
         RooDataSet rooData(("rooData"+sThread).c_str(),"rooData",RooArgSet(roo_Mpi0,roo_Meta,roo_Weight),WeightVar(roo_Weight));
         RooRealVar peak_pi0(("peak_pi0"+sThread).c_str(),"peak_pi0",fittedMassX);//,fittedMassX,fittedMassX);
-        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,fittedSigmaX*0.7,fittedSigmaX*1.3);
+        RooRealVar width_pi0(("width_pi0"+sThread).c_str(),"width_pi0",fittedSigmaX,fittedSigmaX*0.3,fittedSigmaX*1.7);
         RooRealVar peak_eta(("peak_eta"+sThread).c_str(),"peak_eta",fittedMassY);//,fittedMassY,fittedMassY);
-        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,fittedSigmaY*0.7,fittedSigmaY*1.3);
+        RooRealVar width_eta(("width_eta"+sThread).c_str(),"width_eta",fittedSigmaY,fittedSigmaY*0.3,fittedSigmaY*1.7);
 
         RooRealVar bern_parA(("bern_parA"+sThread).c_str(),"bern_parA",fittedBernA,0,1);
         RooRealVar bern_parB(("bern_parB"+sThread).c_str(),"bern_parB",fittedBernB,0,1);

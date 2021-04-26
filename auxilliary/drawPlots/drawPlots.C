@@ -9,6 +9,7 @@ void drawPlots(
         RooDataSet* data, RooAbsRealLValue* nsig, RooAbsRealLValue* nbkg,
         TCanvas* c, TH1* model_hist, TH1* model_sig, TH1* model_bkg
         ){
+
     using namespace RooFit;
 
     x->setVal(valX);
@@ -23,6 +24,8 @@ void drawPlots(
     RooPlot *xframe = x->frame(Title(namex.c_str()));
     RooPlot *xframe2 = y->frame(Title(namey.c_str()));
     TLine* newLine = new TLine();
+    newLine->SetLineStyle(2);
+    newLine->SetLineWidth(2);
 
     // Construct plot frame in 'x'
     // Make a second plot frame in x and draw both the
@@ -66,9 +69,10 @@ void drawPlots(
     gPad->SetTopMargin(0.2);
     xframe->GetYaxis()->SetTitleOffset(1.6);
     model->plotOn(xframe, LineColor(kBlue));
-    model->plotOn(xframe, LineColor(kOrange),LineStyle(kDashed),Components(*bkg));
-    model->plotOn(xframe, LineColor(kMagenta),LineStyle(kDashed),Components(*sig));
-    model->paramOn(xframe, Layout(0.725,1.0,0.825));
+    model->plotOn(xframe, LineColor(kOrange),Components(*bkg));
+    model->plotOn(xframe, LineColor(kMagenta),Components(*sig));
+    model->paramOn(xframe, Layout(1,1,1)); // essentially hiding the statbox...?
+    //model->paramOn(xframe, Layout(0.725,1.0,0.825)); // a decent size if we want to see the statbox
     xframe->getAttText()->SetTextSize(0.01); 
     floatPars = (RooArgSet*)model->getParameters(data)->selectByAttrib("Constant",kFALSE);
     nParams = floatPars->getSize();
@@ -99,8 +103,8 @@ void drawPlots(
     gPad->SetTopMargin(0.2);
     xframe2->GetYaxis()->SetTitleOffset(1.6);
     model->plotOn(xframe2, LineColor(kBlue));
-    model->plotOn(xframe2, LineColor(kOrange),LineStyle(kDashed),Components(*bkg));
-    model->plotOn(xframe2, LineColor(kMagenta),LineStyle(kDashed),Components(*sig));
+    model->plotOn(xframe2, LineColor(kOrange),Components(*bkg));
+    model->plotOn(xframe2, LineColor(kMagenta),Components(*sig));
     chiSq = xframe2->chiSquare(xframe2->nameOf(1),xframe2->nameOf(0),nParams);
     xframe2->Draw();
     newLine->SetLineColor(kRed);

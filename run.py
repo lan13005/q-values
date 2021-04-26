@@ -12,8 +12,8 @@ start_time = time.time()
 #############################################################################
 ###################  DEFINING ENVIRONMENT VARIABLES #########################
 #############################################################################
-_SET_nProcess=26 # how many processes to spawn
-_SET_kDim=600 # number of neighbors
+_SET_nProcess=48 # how many processes to spawn
+_SET_kDim=800 # number of neighbors
 _SET_nentries=-1 # how many combos we want to run over. Set to -1 to run over all. This should be much significantly larger than kDim or we might get errors .
 _SET_seedShift=1341 # in case we dont want to save the same q-value histogram we can choose another random seed
 _SET_nRndRepSubset=0 # size of the random subset of potential neighbors. If 0 or > nentries then we will not consider random subsets
@@ -26,7 +26,7 @@ _SET_weightingScheme="as" # can be {"","as"}. for no accidental weights, acciden
 _SET_accWeight="AccWeight" # the branch to look at to get the accidental weights
 _SET_sbWeight="weightBS" # the branch to look at to get the sideband weight
 _SET_uniquenessTracking="" # default is "" which will set all event counting weights to 1. Otherwise we can give it a branch to look at
-_SET_varStringBase="cosTheta_eta_gj;phi_eta_gj;cosTheta_X_cm;nn0;nn1;Mpi0g1;Mpi0g2" #;cosTheta_X_cm;phi_eta_gj # what is the phase space variables to calculate distance in 
+_SET_varStringBase="cosTheta_eta_gj;phi_eta_gj;cosTheta_X_cm" #;cosTheta_X_cm;phi_eta_gj # what is the phase space variables to calculate distance in 
 _SET_discrimVars="Mpi0;Meta" # discriminating/reference variable
 _SET_mcprocessBranch="mcprocess" # if you use a sum of simulated events with a branch for the reaction processes we can output some more information
 _SET_emailWhenFinished="lng1492@gmail.com" # we can send an email when the code is finished, no email sent if empty string
@@ -44,21 +44,26 @@ _SET_saveBranchOfNeighbors=1 # Should we save a branch containing all the neighb
 rootFileBase="/d/grid13/ln16/q-values-2/"
 rootFileLocs=[
         # ROOT FILE LOCATION ------ ROOT TREE NAME ------NAME TAG TO SAVE FILES AND FOLDERRS UNDER
-        #(rootFileBase+"degALL_bcal_treeFlat_DSelector_UTweights.root", "degALL_bcal_tree_flat", "bcal")
-        #,(rootFileBase+"degALL_fcal_treeFlat_DSelector_UTweights.root", "degALL_fcal_tree_flat", "fcal")
-        #,(rootFileBase+"degALL_split_treeFlat_DSelector_UTweights.root", "degALL_split_tree_flat", "split")
+        #(rootFileBase+"degALL_a0a2a2pi1_8288_chi13_treeFlat_DSelector.root ", "degALL_a0a2a2pi1_8288_chi13_tree_flat", "all")
+        #(rootFileBase+"degALL_data_2017_mEllipse_8288_treeFlat_DSelector.root", "degALL_data_2017_mEllipse_8288_tree_flat", "all")
+        #(rootFileBase+"degALL_malte_mc_treeFlat_DSelector_subsetThird.root", "degALL_malte_mc_tree_flat", "all")
+        #(rootFileBase+"degALL_2017_8288_chi13_treeFlat_DSelector.root", "degALL_2017_8288_chi13_tree_flat", "all")
+        #(rootFileBase+"degALL_malte_mc_pol035_treeFlat_DSelector.root", "degALL_malte_mc_pol035_tree_flat", "all")
+        #(rootFileBase+"degALL_a0a2a2pi1_moreD2_lessD1_treeFlat_DSelector_subsetThird.root", "degALL_a0a2a2pi1_moreD2_lessD1_tree_flat", "all")
+        #(rootFileBase+"degALL_a0a2a2pi1_D2neg_treeFlat_DSelector.root", "degALL_a0a2a2pi1_D2neg_tree_flat", "all")
 
-        ("/d/grid13/ln16/q-values-2/allMC_tree_ext_subset.root", "degALL_acc_mEllipse_tree_flat", "all")
-        #("/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/allMC_trees.root", "degALL_acc_mEllipse_tree_flat", "all")
-        #("/d/grid15/ln16/rootFiles/pi0eta/seansBkgMC/a0a2MC_trees.root", "degALL_acc_mEllipse_tree_flat", "all")
-
-        #(rootFileBase+"degALL_data_2017_mEllipse_treeFlat_DSelector.root ", "degALL_data_2017_mEllipse_tree_flat", "all")
-
-        #(rootFileBase+"degALL_ALL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_ALL_a0a2_tree_flat", "all")
-        #(rootFileBase+"degALL_BCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_BCAL_a0a2_tree_flat", "bcal")
-        #(rootFileBase+"degALL_FCAL_a0a2_treeFlat_DSelector_UTweights.root", "degALL_FCAL_a0a2_tree_flat", "fcal")
-        #,(rootFileBase+"degALL_SPLIT_a0a2_treeFlat_DSelector_UTweights.root", "degALL_SPLIT_a0a2_tree_flat", "split")
+         (rootFileBase+"degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat_pol000-part1.root","degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat","000")
+        ,(rootFileBase+"degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat_pol045-part1.root","degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat","045")
+        ,(rootFileBase+"degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat_pol090-part1.root","degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat","090")
+        ,(rootFileBase+"degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat_pol135-part1.root","degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat","135")
+        ,(rootFileBase+"degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat_polAMO-part1.root","degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat","AMO")
         ]
+        # (rootFileBase+"degALL_flat_8288_chi13_2_tLT05_pol000.root", "degALL_flat_8288_chi13_2_tree_flat", "000")
+        #,(rootFileBase+"degALL_flat_8288_chi13_2_tLT05_pol045.root", "degALL_flat_8288_chi13_2_tree_flat", "045")
+        #,(rootFileBase+"degALL_flat_8288_chi13_2_tLT05_pol090.root", "degALL_flat_8288_chi13_2_tree_flat", "090")
+        #,(rootFileBase+"degALL_flat_8288_chi13_2_tLT05_pol135.root", "degALL_flat_8288_chi13_2_tree_flat", "135")
+        #,(rootFileBase+"degALL_flat_8288_chi13_2_tLT05_polAMO.root", "degALL_flat_8288_chi13_2_tree_flat", "AMO")
+        #,]
 _SET_fitLocationBase="var1Vsvar2Fit_toMain" # the location of the fit file from getInitParms will be searched for in "fitResults/"+fileTag+"/"+"_SET_fitLocationBase+"_"+fileTag+".txt"
 
 #############################################################################
@@ -77,6 +82,9 @@ def showHelp():
 def parseCmdArgs():
     if(len(args)!=2):
         showHelp()
+        exit()
+    if(_SET_kDim >= _SET_nentries and _SET_nentries>0):
+        print("We cannot have kDim >= nentries. Since the combo in question cannot be a neighbor to itself we will never have kDim neighbors!")
         exit()
     for arg in args[1:]:
         arg=str(arg)
@@ -159,6 +167,7 @@ def mergeResults():
     We will hadd them all together and then merge the final result file with the input tree
     so we can have a tree that has everything in it
     '''
+    print("\n\n")
     concatRootCmd="hadd -f logs"+_SET_runTag+"/"+_SET_fileTag+"/resultsMerged_"+_SET_fileTag+".root"
     for iProcess in range(_SET_nProcess):
         concatRootCmd=concatRootCmd+" logs"+_SET_runTag+"/"+_SET_fileTag+"/results"+str(iProcess)+".root"
@@ -288,7 +297,6 @@ def runOverCombo(combo,_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag):
         exit_codes = [proc.wait() for proc in openProcesses]
         #if checkCompletion(exit_codes)==1:
         #    exit()
-        mergeResults()
 
 
        
@@ -305,7 +313,9 @@ def runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished):
     # run the makeDiagnosticHists program
     # ------------------------------------
     #subprocess.Popen("cat logs"+_SET_runTag+"/"+_SET_fileTag+"/process* > logs"+_SET_runTag+"/"+_SET_fileTag+"/diagnostic_logs.txt",shell=True).wait()
-    subprocess.Popen("root -l -b -q makeDiagnosticHists.C",shell=True).wait()
+    cmd="root -l -b -q makeDiagnosticHists.C"
+    print("running cmd: "+cmd)
+    subprocess.Popen(cmd,shell=True).wait()
 
 
 def combineAllGraphs():
@@ -345,13 +355,16 @@ for _SET_rootFileLoc, _SET_rootTreeName, _SET_fileTag in rootFileLocs:
         execFullFit(_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
     if _SET_runQFactor:
         runOverCombo(range(numVar),_SET_rootFileLoc,_SET_rootTreeName,_SET_fileTag)
-        mergeResults()
     if _SET_runMakeHists:
+        mergeResults()
         runMakeGraphs(_SET_fileTag,_SET_emailWhenFinished)
-        combineAllGraphs()
     if _SET_emailWhenFinished:
         print("Sending program finished email")
         subprocess.Popen("sendmail "+_SET_emailWhenFinished+" < defaultEmail.txt",shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+
+# Once all the datasets have been run over we can combine all the results. This does suppose the datasets should be combined...
+if _SET_runMakeHists:
+    combineAllGraphs()
 
 
     # Use this code block to run over all possible combinations of variables

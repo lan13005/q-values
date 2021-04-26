@@ -17,9 +17,9 @@ using namespace std;
 // NO SPACES BETWEEN THE = SIGNS. I USE SED TO REPLACE
 // !!!!!!
 //bool verbose=true;
-string rootFileLoc="/d/grid13/ln16/q-values-2/allMC_tree_ext_subset.root";
-string rootTreeName="degALL_acc_mEllipse_tree_flat";
-string fileTag="all";
+string rootFileLoc="/d/grid13/ln16/q-values-2/degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat_polAMO-part1.root";
+string rootTreeName="degALL_flat_2017_mEllipse_8288_chi13_tpLT05_pipicut_omegacut_tree_flat";
+string fileTag="AMO";
 string runTag="";
 string weightingScheme="as";
 string s_accWeight="AccWeight";
@@ -27,7 +27,7 @@ string s_sbWeight="weightBS";
 string s_discrimVar="Mpi0;Meta";
 string s_utBranch="";
 string s_mcprocessBranch="mcprocess";
-static const int kDim=600;
+static const int kDim=800;
 
 ///// **************************************************************
 ///// STEP0.5: DEFINE HISTOGRAM BIN PARAMETERS SO THERE IS CONSISTENCY

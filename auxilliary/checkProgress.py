@@ -2,6 +2,7 @@
 
 import subprocess
 import time
+import argparse
 
 with open("run.py","r") as cfg:
     startRootFileLoc=0
@@ -10,15 +11,22 @@ with open("run.py","r") as cfg:
     for iline, line in enumerate(cfg):
         if line[:13]=="_SET_nProcess":
             nProcess=int(line.split("=")[1].split("#")[0].rstrip())
-        if line[:12]=="rootFileLocs":
-            startRootFileLoc = iline
-            inContext=True
-        if line[:9]=="        ]":
-            endRootFileLoc = iline
-            inContext=False
-        if inContext:
-            if line.lstrip()[:1]=="(":
-                tag=line.split(",")[-1].lstrip().rstrip()[:-1][1:-1]
+        #if line[:12]=="rootFileLocs":
+        #    startRootFileLoc = iline
+        #    inContext=True
+        #if line[:9]=="        ]":
+        #    endRootFileLoc = iline
+        #    inContext=False
+        #if inContext:
+        #    if line.lstrip()[:1]=="(":
+        #        tag=line.split(",")[-1].lstrip().rstrip()[:-1][1:-1]
+
+
+parser=argparse.ArgumentParser("look in log files in subfolder given by tag to determine percent complete")
+parser.add_argument("-t",help="folder tag to look for log files")
+args=parser.parse_args()
+tag=args.t
+print("LOOKING IN SUBDIR: "+tag)
 
 folder="logs/"+tag
 nentriesPerProc=0

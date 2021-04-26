@@ -2,6 +2,7 @@
 
 #include "makeDiagnosticHists.h"
 
+
 void makeDiagnosticHists(){
 	gStyle->SetOptFit(111);
 	gStyle->SetStatH(0.1);
@@ -202,6 +203,36 @@ void makeDiagnosticHists(){
 	TH1F *Mpi0g_sig_sb = new TH1F( "Mpi0g_sig_sb", "M(#pi^{0}g); M(#pi^{0}g) GeV; Events/0.001 GeV", 350, 0, 3.5 );
 	TH1F *Mpi0g_bkg_sb = new TH1F( "Mpi0g_bkg_sb", "M(#pi^{0}g); M(#pi^{0}g) GeV; Events/0.001 GeV", 350, 0, 3.5 );
 
+        double gj_lowMass=0.7;
+        double gj_uppMass=2.0;
+        const int nBins=50;
+        double gj_width=(gj_uppMass-gj_lowMass)/nBins;
+	TH1F* cosThetaEta_GJ_tot_Mbinned[nBins];
+	TH1F* cosThetaEta_GJ_sig_Mbinned[nBins];
+	TH1F* cosThetaEta_GJ_bkg_Mbinned[nBins];
+	TH1F* cosThetaEta_GJ_sig_sb_Mbinned[nBins];
+	TH1F* cosThetaEta_GJ_bkg_sb_Mbinned[nBins];
+        for (int imass=0; imass<nBins; ++imass){
+            double lmass=imass*gj_width+gj_lowMass;
+            double umass=(imass+1)*gj_width+gj_lowMass;
+            char clowMass[20];
+            char cuppMass[20];
+            sprintf(clowMass,"%.2lf",lmass);
+            sprintf(cuppMass,"%.2lf",umass);
+            string slowMass=clowMass;
+            string suppMass=cuppMass;
+	    cosThetaEta_GJ_tot_Mbinned[imass] = new TH1F( ("cosThetaEta_GJ_tot-"+to_string(imass)).c_str(), 
+                    ("cos(#theta) GJ of #eta; cos(#theta) of #eta "+slowMass+"<Mpi0eta<"+suppMass+"; Events/0.02 GeV").c_str(), 100, -1, 1 );
+	    cosThetaEta_GJ_sig_Mbinned[imass] = new TH1F( ("cosThetaEta_GJ_sig-"+to_string(imass)).c_str(), 
+                    ("cos(#theta) GJ of #eta; cos(#theta) of #eta "+slowMass+"<Mpi0eta<"+suppMass+"; Events/0.02 GeV").c_str(), 100, -1, 1 );
+	    cosThetaEta_GJ_bkg_Mbinned[imass] = new TH1F( ("cosThetaEta_GJ_bkg-"+to_string(imass)).c_str(), 
+                    ("cos(#theta) GJ of #eta; cos(#theta) of #eta "+slowMass+"<Mpi0eta<"+suppMass+"; Events/0.02 GeV").c_str(), 100, -1, 1 );
+	    cosThetaEta_GJ_sig_sb_Mbinned[imass] = new TH1F( ("cosThetaEta_GJ_sig_sb-"+to_string(imass)).c_str(),
+                    ("cos(#theta) GJ of #eta; cos(#theta) of #eta "+slowMass+"<Mpi0eta<"+suppMass+"; Events/0.02 GeV").c_str(), 100, -1, 1 );
+	    cosThetaEta_GJ_bkg_sb_Mbinned[imass] = new TH1F( ("cosThetaEta_GJ_bkg_sb-"+to_string(imass)).c_str(),
+                    ("cos(#theta) GJ of #eta; cos(#theta) of #eta "+slowMass+"<Mpi0eta<"+suppMass+"; Events/0.02 GeV").c_str(), 100, -1, 1 );
+        }
+
         cout << "Defined all histograms" << endl;
 
 	for (int i=0; i<2; i++){
@@ -376,7 +407,15 @@ void makeDiagnosticHists(){
 		phiEta_GJ_bkg_sb[1]->Fill(phi_eta_gjs[ientry], bkgWeight_sb);
 		Mpi0eta_sig_sb[1]->Fill(Mpi0etas[ientry],sigWeight_sb);
 		Mpi0eta_bkg_sb[1]->Fill(Mpi0etas[ientry],bkgWeight_sb);
-                
+
+                int massBin=floor( (Mpi0etas[ientry]-gj_lowMass)/gj_width );
+                if ((massBin>=0)*(massBin<nBins)){
+		    cosThetaEta_GJ_tot_Mbinned[massBin]->Fill(cosTheta_eta_gjs[ientry], totWeight);
+		    cosThetaEta_GJ_sig_Mbinned[massBin]->Fill(cosTheta_eta_gjs[ientry], sigWeight);
+		    cosThetaEta_GJ_bkg_Mbinned[massBin]->Fill(cosTheta_eta_gjs[ientry], bkgWeight);
+		    cosThetaEta_GJ_sig_sb_Mbinned[massBin]->Fill(cosTheta_eta_gjs[ientry], sigWeight_sb);
+		    cosThetaEta_GJ_bkg_sb_Mbinned[massBin]->Fill(cosTheta_eta_gjs[ientry], bkgWeight_sb);
+                }
         }
         cout << "Made the histograms" << endl;
 
@@ -393,6 +432,9 @@ void makeDiagnosticHists(){
 		makeStackedHist(cosThetaX_CM_tot[i],cosThetaX_CM_sig[i],cosThetaX_CM_bkg[i],cosThetaX_CM_sig_sb[i],cosThetaX_CM_bkg_sb[i],"cosThetaX_CM"+tag, "diagnosticPlots"+runTag+"/"+fileTag);	
 		makeStackedHist(phiEta_GJ_tot[i],phiEta_GJ_sig[i],phiEta_GJ_bkg[i],phiEta_GJ_sig_sb[i],phiEta_GJ_bkg_sb[i],"phiEta_GJ"+tag, "diagnosticPlots"+runTag+"/"+fileTag);	
 	}
+        for (int imass=0; imass<nBins; ++imass){
+	    makeStackedHist(cosThetaEta_GJ_tot_Mbinned[imass],cosThetaEta_GJ_sig_Mbinned[imass],cosThetaEta_GJ_bkg_Mbinned[imass],cosThetaEta_GJ_sig_sb_Mbinned[imass],cosThetaEta_GJ_bkg_sb_Mbinned[imass],"cosThetaEta_GJ-"+to_string(imass), "diagnosticPlots"+runTag+"/"+fileTag);	
+        }
 
         cout << "FINIHSED!"<<endl;
 
@@ -437,5 +479,12 @@ void makeDiagnosticHists(){
 	Mpi0g_tot->Write();
 	Mpi0g_sig_sb->Write();
 	Mpi0g_bkg_sb->Write();
+        for (int imass=0; imass<nBins; ++imass){
+	    cosThetaEta_GJ_tot_Mbinned[imass]->Write();
+	    cosThetaEta_GJ_sig_Mbinned[imass]->Write();
+	    cosThetaEta_GJ_bkg_Mbinned[imass]->Write();
+	    cosThetaEta_GJ_sig_sb_Mbinned[imass]->Write();
+	    cosThetaEta_GJ_bkg_sb_Mbinned[imass]->Write();
+        }
 }
 

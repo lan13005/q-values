@@ -83,11 +83,11 @@ void getUniquenessWeights(){
     string treeName = "degALL_bcal_tree_flat";
     addUTWeightsBranch(rootFileLoc, rootFileName, treeName);
 
-    rootFileName = "degALL_fcal_treeFlat_DSelector";
-    treeName = "degALL_fcal_tree_flat";
-    addUTWeightsBranch(rootFileLoc, rootFileName, treeName);
+    //rootFileName = "degALL_fcal_treeFlat_DSelector";
+    //treeName = "degALL_fcal_tree_flat";
+    //addUTWeightsBranch(rootFileLoc, rootFileName, treeName);
 
-    rootFileName = "degALL_split_treeFlat_DSelector";
-    treeName = "degALL_split_tree_flat";
-    addUTWeightsBranch(rootFileLoc, rootFileName, treeName);
+    //rootFileName = "degALL_split_treeFlat_DSelector";
+    //treeName = "degALL_split_tree_flat";
+    //addUTWeightsBranch(rootFileLoc, rootFileName, treeName);
 }

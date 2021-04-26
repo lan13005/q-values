@@ -48,7 +48,7 @@
 //#include "Math/MinimizerOptions.h"
 
 
-const int dim=7; // will get replaced by run.py
+const int dim=3; // will get replaced by run.py
 bool verbose_outputDistCalc=false;
 TRandom rgen;
 
